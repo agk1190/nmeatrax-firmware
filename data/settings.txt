@@ -1,0 +1,18 @@
+{
+    "wifiMode":"lan",
+    "wifiSSID":"NMEATrax",
+    "wifiPass":"nmeatrax",
+    "voyNum":1,
+    "recInt":5,
+    "en183":"0",
+    "en2000":"1",
+    "posSrc":"1",
+    "timeSrc":"1",
+    "speedSrc":"1",
+    "cogSrc":"1",
+    "wtempSrc":"1",
+    "depthSrc":"1",
+    "depthUnit":"0",
+    "tempUnit":"0",
+    "timeZone":0
+}

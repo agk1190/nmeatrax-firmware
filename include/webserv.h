@@ -1,0 +1,30 @@
+/**
+ * NMEATrax
+ * 
+ * @authors Alex Klouda, Greyson Stelmaschuk
+ * 
+ * NMEATrax webserver header file.
+ */
+
+#include <WiFiManager.h>
+
+// Wifi Manager class
+extern WiFiManager wifiManager;
+
+/**
+ * @brief Look up the timezone definition based on the offset number provided
+ * @param tz Timezone offset number. Integer between -11 and +14.
+ * @returns The timezone string used to set the ESP32s internal timezone settings 
+*/
+const char* getTZdefinition(double tz);
+
+/**
+ * @brief Set up webserver functions
+ * @returns True if succeeded
+*/
+bool webSetup();
+
+/**
+ * @brief Run webserver updating
+*/
+void webLoop();

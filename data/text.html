@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" class="js-focus-visible">
+
+<head>
+    <title>NMEATrax WebView</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="manifest" href="site.webmanifest">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <style>
+
+    </style>
+</head>
+
+<body>
+    <div class="topnav"><br>
+        <h1 class="nmea">NMEA</h1><h1 class="trax">Trax WebView</h1><br><br>
+        <a href="index.html">Home</a>
+        <a href="text.html" class="active">Text</a>
+        <a href="options.html" >Options</a>
+    </div>
+    <main class="container" style="padding-top: 1%;">
+        <div style="border-radius: 10px !important;">
+            <h2>Engine</h2>
+            <table class="text-table">
+                <colgroup>
+                    <!-- <col span="1" style="background-color:rgb(230,230,230); color:#000000 ;">
+                    <col span="1" style="background-color:rgb(200,200,200); color:#000000 ;"> -->
+                    <col span="1" class="col1">
+                    <col span="1" class="col2">
+                </colgroup>
+                <tr>
+                    <th colspan="1"><div class="heading">Name</div></th>
+                    <th colspan="1"><div class="heading">Value</div></th>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">RPM</div></td>
+                    <td><div class="tabledata" id="rpm">%rpm%</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Engine Temp</div></td>
+                    <td><div class="tabledata" id="etemp">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Oil Temp</div></td>
+                    <td><div class="tabledata" id="otemp">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Oil Pressure</div></td>
+                    <td><div class="tabledata" id="opres">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Fuel Rate</div></td>
+                    <td><div class="tabledata" id="fuel_rate">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Fuel Pressure</div></td>
+                    <td><div class="tabledata" id="fpres">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Fuel Level</div></td>
+                    <td><div class="tabledata" id="flevel">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Leg Tilt</div></td>
+                    <td><div class="tabledata" id="leg_tilt">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Engine Hours</div></td>
+                    <td><div class="tabledata" id="ehours">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Gear</div></td>
+                    <td><div class="tabledata" id="gear">-</div></td>
+                </tr>
+            </table><br>
+            <h2>GPS</h2>
+            <table class="text-table">
+                <colgroup>
+                    <col span="1" class="col1">
+                    <col span="1" class="col2">
+                </colgroup>
+                <tr>
+                    <th colspan="1"><div class="heading">Name</div></th>
+                    <th colspan="1"><div class="heading">Value</div></th>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Latitude</div></td>
+                    <td><div class="tabledata" id="lat">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Longitude</div></td>
+                    <td><div class="tabledata" id="lon">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Speed</div></td>
+                    <td><div class="tabledata" id="speed">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Heading</div></td>
+                    <td><div class="tabledata" id="cog">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Mag. Variation</div></td>
+                    <td><div class="tabledata" id="mag_var">-</div></td>
+                </tr>
+            </table><br>
+            <h2>Environment</h2>
+            <table class="text-table">
+                <colgroup>
+                    <col span="1" class="col1">
+                    <col span="1" class="col2">
+                </colgroup>
+                <tr>
+                    <th colspan="1"><div class="heading">Name</div></th>
+                    <th colspan="1"><div class="heading">Value</div></th>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Depth</div></td>
+                    <td><div class="tabledata" id="depth">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Water Temp</div></td>
+                    <td><div class="tabledata" id="wtemp">-</div></td>
+                </tr>
+                <tr>
+                    <td><div class="bodytext">Battery Voltage</div></td>
+                    <td><div class="tabledata" id="battV">-</div></td>
+                </tr>
+                <tr style="height: 40px">
+                    <td><div class="bodytext">Time</div></td>
+                    <td style="height: 60px;"><div class="tabledata" id="time">-</div></td>
+                </tr>
+            </table>
+        </div>
+        <br>
+    </main>
+
+    <footer class="botnav">
+        <h1 class="botnavtext">NMEATrax</h1>
+    </footer>
+
+    <script>
+
+        //https://css-tricks.com/a-complete-guide-to-dark-mode-on-the-web/
+        const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+        const currentTheme = localStorage.getItem("theme");
+
+        if (currentTheme == "dark") {
+            document.body.classList.toggle("dark-theme");
+        } else if (currentTheme == "light") {
+            document.body.classList.toggle("light-theme");
+        }
+
+        var celcius = true;
+        var meters = false;
+
+        window.onload = function ( ) {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var myObj = JSON.parse(this.responseText);
+
+                    if (myObj.depthUnit == "1") meters = true;
+                    else meters = false;
+
+                    if (myObj.tempUnit == "1") celcius = false;
+                    else celcius = true;
+                }
+            };
+            xhttp.open("GET", "/toggleState", true);
+            xhttp.send();
+        }
+
+        function getTempUnit() {
+            if (celcius) {return "&degC"}
+            else return "&degF"
+        }
+
+        function getDistUnit() {
+            if (meters) {return " m"}
+            else return " ft"
+        }
+
+        if (!!window.EventSource) {
+            var source = new EventSource('/events');
+            source.addEventListener('new_readings', function(e) {
+                var myObj = JSON.parse(e.data);
+                document.getElementById("rpm").innerHTML = myObj.rpm;
+                document.getElementById("etemp").innerHTML = myObj.etemp + getTempUnit();
+                document.getElementById("otemp").innerHTML = myObj.otemp + getTempUnit();
+                document.getElementById("opres").innerHTML = myObj.opres + " kPa";
+                document.getElementById("fuel_rate").innerHTML = myObj.fuel_rate + " L/h";
+                document.getElementById("fpres").innerHTML = myObj.fpres + " kPa";
+                document.getElementById("flevel").innerHTML = myObj.flevel + "%";
+                document.getElementById("leg_tilt").innerHTML = myObj.leg_tilt;
+                document.getElementById("speed").innerHTML = myObj.speed + " kn";
+                document.getElementById("cog").innerHTML = myObj.heading + "&deg";
+                document.getElementById("depth").innerHTML = myObj.depth + getDistUnit();
+                document.getElementById("wtemp").innerHTML = myObj.wtemp + getTempUnit();
+                document.getElementById("battV").innerHTML = myObj.battV + " V";
+                document.getElementById("ehours").innerHTML = myObj.ehours;
+                document.getElementById("gear").innerHTML = myObj.gear;
+                document.getElementById("lat").innerHTML = myObj.lat;
+                document.getElementById("lon").innerHTML = myObj.lon;
+                document.getElementById("mag_var").innerHTML = myObj.mag_var + "&deg";
+                document.getElementById("time").innerHTML = myObj.time;
+            }, false);
+        }
+    </script>
+</body>

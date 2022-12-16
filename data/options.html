@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>NMEATrax WebView</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <meta name="color-scheme" content="dark light"> -->
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="manifest" href="site.webmanifest">
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body id="mainBody">
+    <div class="topnav"><br>
+        <h1 class="nmea">NMEA</h1><h1 class="trax">Trax WebView</h1><br><br>
+        <a href="index.html">Home</a>
+        <a href="text.html">Text</a>
+        <a href="options.html" class="active">Options</a>
+    </div><br>
+    <div>
+        <p>Recording Toggle</p>
+        <p class="options" style="display: inline;">Current state: <p class="options" style="display: inline;" id="state">-</p></p>
+        <button type="button" onclick="toggleLog()" id="toggleLogBtn">Start</button>
+    </div><br>
+    <div>
+        <p>Recorded Data</p>
+        <a href="downloads.html" class="button">Download Logs</a>
+        <button type="button" onclick="confirmErase()">Erase Logs</button>
+    </div><br>
+    <div>
+        <p id="confTxt" style="display: none;">Are you sure you want to erase ALL recorded data?</p><br>
+        <button type="button" id="confBut" style="display: none;" onclick="eraseData()">ERASE ALL DATA</button><br>
+        <p id="eraseGood" style="display: none;">Erase Complete!</p>
+    </div>
+    <div>
+        <p>WiFi Settings</p>
+        <form action="/param">
+            <p class="options inline">WiFi SSID</p>
+            <input type="text" name="ssid" placeholder="SSID">
+            <input class="button" type="submit" value="Set">
+        </form>
+        <form action="/param">
+            <p class="options inline">WiFi Password</p>
+            <input type="text" name="pass" placeholder="Password">
+            <input class="button" type="submit" value="Set">
+        </form><br>
+        <p class="options">This will reset the WiFi settings and reboot the device</p>
+        <button type="button" onclick="EEPROMRequest();">Reset WiFi & Reboot</button>
+    </div><br>
+    <div>
+        <form action="/param">
+            <p>Recording Interval (seconds)</p>
+            <p class="options" id="recInt">Currently 5 seconds</p>
+            <input type="number" name="interval" placeholder="Ex. 5">
+            <input class="button" type="submit" value="Set">
+        </form>
+    </div><br>
+    <div>
+        <form action="/param">
+            <p>Timezone</p>
+            <p class="options" id="tzDisplay">Currently -7</p>
+            <input type="text" name="timeZone" placeholder="Ex. -7">
+            <input class="button" type="submit" value="Set">
+        </form>
+    </div><br><br>
+    <div>
+        <button class="btn-toggle" id="darkModeBtn" style="display: inline;">Toggle Dark Mode</button>
+    </div><br>
+    <div>
+        <p>Preferences</p>
+        <button type="button" id="showSetBtn" onclick="toggleSettings()">Show Settings</button><br><br>
+        <table class="text-table" id="setTable" style="display: none;">
+            <tr>
+                <td><p class="Rjust">NMEA 0183</p></td>
+                <td><label class="switch">
+                    <input type="checkbox" onchange="toggleCheckbox(this, 0)" id="en183">
+                    <span class="slider"></span>
+                    </label>
+                </td>
+                <td><p class="Ljust">Enabled</p></td>
+            </tr>
+            <tr>
+                <td><p class="Rjust">NMEA 2000</p></td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" onchange="toggleCheckbox(this, 1)" id="en2000">
+                        <span class="slider"></span>
+                    </label>
+                </td>
+                <td><p class="Ljust">Enabled</p></td>
+            </tr>
+            <tr>
+                <td><p class="Rjust">Position | 0183</p></td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" onchange="toggleCheckbox(this, 2)" id="posSrc">
+                        <span class="slider"></span>
+                    </label>
+                </td>
+                <td><p class="Ljust">2000</p></td>
+            </tr>
+            <tr>
+                <td><p class="Rjust">Time | 0183</p></td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" onchange="toggleCheckbox(this, 3)" id="timeSrc">
+                        <span class="slider"></span>
+                    </label>
+                </td>
+                <td><p class="Ljust">2000</p></td>
+            </tr>
+            <tr>
+                <td><p class="Rjust">Speed | 0183</p></td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" onchange="toggleCheckbox(this, 4)" id="speedSrc">
+                        <span class="slider"></span>
+                    </label>
+                </td>
+                <td><p class="Ljust">2000</p></td>
+            </tr>
+            <tr>
+                <td><p class="Rjust">Course | 0183</p></td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" onchange="toggleCheckbox(this, 5)" id="cogSrc">
+                        <span class="slider"></span>
+                    </label>
+                </td>
+                <td><p class="Ljust">2000</p></td>
+            </tr>
+            <tr>
+                <td><p class="Rjust">Water | 0183  </p></td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" onchange="toggleCheckbox(this, 6)" id="wtempSrc">
+                        <span class="slider"></span>
+                    </label>
+                </td>
+                <td><p class="Ljust">2000</p></td>
+            </tr>
+            <tr>
+                <td><p class="Rjust">Depth | 0183  </p></td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" onchange="toggleCheckbox(this, 7)" id="depthSrc">
+                        <span class="slider"></span>
+                    </label>
+                </td>
+                <td><p class="Ljust">2000</p></td>
+            </tr>
+            <tr>
+                <td><p class="Rjust">Depth Unit | Feet  </p></td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" onchange="toggleCheckbox(this, 8)" id="depthUnit">
+                        <span class="slider"></span>
+                    </label>
+                </td>
+                <td><p class="Ljust">Meters</p></td>
+            </tr>
+            <tr>
+                <td><p class="Rjust">Temp Unit | &degC  </p></td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" onchange="toggleCheckbox(this, 9)" id="tempUnit">
+                        <span class="slider"></span>
+                    </label>
+                </td>
+                <td><p class="Ljust">&degF</p></td>
+            </tr>
+        </table>
+    </div>
+    
+    <footer class="botnav">
+        <h1 class="botnavtext">NMEATrax</h1>
+    </footer>
+    <script>
+        //https://css-tricks.com/a-complete-guide-to-dark-mode-on-the-web/
+        const btn = document.querySelector(".btn-toggle");
+        const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+        const currentTheme = localStorage.getItem("theme");
+
+        if (currentTheme == "dark") {
+            document.body.classList.toggle("dark-theme");
+            document.getElementById("mainBody").style.colorScheme = "dark";
+        } else if (currentTheme == "light") {
+            document.body.classList.toggle("light-theme");
+        }
+
+        btn.addEventListener("click", function () {
+            if (prefersDarkScheme.matches) {
+                document.body.classList.toggle("light-theme");
+                // var theme = document.body.classList.contains("light-theme") ? "light" : "dark";
+                if (document.body.classList.contains("light-theme")) {
+                    theme = "light";
+                    document.getElementById("mainBody").style.colorScheme = "light";
+                } else {
+                    theme = "dark";
+                    document.getElementById("mainBody").style.colorScheme = "dark";
+                }
+            } else {
+                document.body.classList.toggle("dark-theme");
+                // var theme = document.body.classList.contains("dark-theme") ? "dark" : "light";
+                if (document.body.classList.contains("dark-theme")) {
+                    theme = "dark";
+                    document.getElementById("mainBody").style.colorScheme = "dark";
+                } else {
+                    theme = "light";
+                    document.getElementById("mainBody").style.colorScheme = "light";
+                }
+            }
+            localStorage.setItem("theme", theme);
+        });
+
+        function EEPROMRequest() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("GET", "/eraseWiFi", true);
+            xhttp.send();
+        }
+
+        function eraseData() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("GET", "/eraseData", true);
+            xhttp.send();
+            document.getElementById('eraseGood').style.display = "inline";
+            setTimeout(function() {
+                document.getElementById('confBut').style.display = "none";
+                document.getElementById('confTxt').style.display = "none";
+                document.getElementById('eraseGood').style.display = "none";
+            }, 5000);
+        }
+
+        function confirmErase() {
+            document.getElementById('confBut').style.display = "inline";
+            document.getElementById('confTxt').style.display = "inline";
+        }
+
+        function toggleLog() {
+            if (document.getElementById("toggleLogBtn").innerHTML == "Start") {
+                var xhttp = new XMLHttpRequest();
+                xhttp.open("GET", "/startLog", true);
+                xhttp.send();
+            }
+            else if (document.getElementById("toggleLogBtn").innerHTML == "Stop") {
+                var xhttp = new XMLHttpRequest();
+                xhttp.open("GET", "/stopLog", true);
+                xhttp.send();
+            }
+        }
+
+        setInterval(function getRunState(){
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    if (this.responseText == "0") {
+                        document.getElementById("state").innerHTML = "Disabled";
+                        document.getElementById("toggleLogBtn").innerHTML = "Start";
+                    } 
+                    else if (this.responseText == "1") {
+                        document.getElementById("state").innerHTML = "Enabled";
+                        document.getElementById("toggleLogBtn").innerHTML = "Stop";
+                    }
+                }
+            }; 
+            xhr.open("GET", "/runState", true);
+            xhr.send();
+        }, 1000);
+
+        function toggleSettings(){
+            if (document.getElementById("showSetBtn").innerHTML == "Show Settings") {
+                document.getElementById("showSetBtn").innerHTML = "Hide Settings";
+                document.getElementById("setTable").style.display = "inline";
+            }
+            else if (document.getElementById("showSetBtn").innerHTML == "Hide Settings") {
+                document.getElementById("showSetBtn").innerHTML = "Show Settings";
+                document.getElementById("setTable").style.display = "none";
+            }
+        }
+
+        function toggleCheckbox(element, index) {
+            var xhr = new XMLHttpRequest();
+            var str = "/toggles?";
+            str += index;
+            if(element.checked)
+            { 
+                str += "=1";
+                xhr.open("GET", str, true);
+            }
+            else 
+            { 
+                str += "=0";
+                xhr.open("GET", str, true);
+            }
+            xhr.send();
+        }
+
+        window.onload = function ( ) {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var myObj = JSON.parse(this.responseText);
+                    
+                    if (myObj.en183 == "1") document.getElementById("en183").checked = true; 
+                    else document.getElementById("en183").checked = false;
+
+                    if (myObj.en2000 == "1") document.getElementById("en2000").checked = true; 
+                    else document.getElementById("en2000").checked = false;
+
+                    if (myObj.posSrc == "1") document.getElementById("posSrc").checked = true;
+                    else document.getElementById("posSrc").checked = false;
+
+                    if (myObj.timeSrc == "1") document.getElementById("timeSrc").checked = true;
+                    else document.getElementById("timeSrc").checked = false;
+
+                    if (myObj.speedSrc == "1") document.getElementById("speedSrc").checked = true;
+                    else document.getElementById("speedSrc").checked = false;
+
+                    if (myObj.cogSrc == "1") document.getElementById("cogSrc").checked = true;
+                    else document.getElementById("cogSrc").checked = false;
+
+                    if (myObj.wtempSrc == "1") document.getElementById("wtempSrc").checked = true;
+                    else document.getElementById("wtempSrc").checked = false;
+
+                    if (myObj.depthSrc == "1") document.getElementById("depthSrc").checked = true;
+                    else document.getElementById("depthSrc").checked = false;
+
+                    if (myObj.depthUnit == "1") document.getElementById("depthUnit").checked = true;
+                    else document.getElementById("depthUnit").checked = false;
+
+                    if (myObj.tempUnit == "1") document.getElementById("tempUnit").checked = true;
+                    else document.getElementById("tempUnit").checked = false;
+
+                    if (myObj.recInt > 1) {
+                        document.getElementById("recInt").innerHTML = "Currently " + myObj.recInt + " seconds";
+                    } else {
+                        document.getElementById("recInt").innerHTML = "Currently " + myObj.recInt + " second";
+                    }
+                    document.getElementById("tzDisplay").innerHTML = "Currently " + myObj.timeZone;
+                }
+            };
+            xhttp.open("GET", "/toggleState", true);
+            xhttp.send();
+        }
+    </script>
+</body>
+
+</html>
