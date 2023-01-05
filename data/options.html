@@ -68,93 +68,13 @@
         <button class="btn-toggle" id="darkModeBtn" style="display: inline;">Toggle Dark Mode</button>
     </div><br>
     <div>
-        <p>Preferences</p>
-        <button type="button" id="showSetBtn" onclick="toggleSettings()">Show Settings</button><br><br>
-        <table class="text-table" id="setTable" style="display: none;">
-            <tr>
-                <td><p class="Rjust">NMEA 0183</p></td>
-                <td><label class="switch">
-                    <input type="checkbox" onchange="toggleCheckbox(this, 0)" id="en183">
-                    <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">Enabled</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">NMEA 2000</p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 1)" id="en2000">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">Enabled</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">Position | 0183</p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 2)" id="posSrc">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">2000</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">Time | 0183</p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 3)" id="timeSrc">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">2000</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">Speed | 0183</p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 4)" id="speedSrc">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">2000</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">Course | 0183</p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 5)" id="cogSrc">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">2000</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">Water | 0183  </p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 6)" id="wtempSrc">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">2000</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">Depth | 0183  </p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 7)" id="depthSrc">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">2000</p></td>
-            </tr>
+        <p>Units</p>
+        <table class="text-table" id="setTable">
             <tr>
                 <td><p class="Rjust">Depth Unit | Feet  </p></td>
                 <td>
                     <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 8)" id="depthUnit">
+                        <input type="checkbox" onchange="toggleCheckbox(this, 0)" id="depthUnit">
                         <span class="slider"></span>
                     </label>
                 </td>
@@ -164,7 +84,7 @@
                 <td><p class="Rjust">Temp Unit | &degC  </p></td>
                 <td>
                     <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 9)" id="tempUnit">
+                        <input type="checkbox" onchange="toggleCheckbox(this, 1)" id="tempUnit">
                         <span class="slider"></span>
                     </label>
                 </td>
@@ -268,17 +188,6 @@
             xhr.send();
         }, 1000);
 
-        function toggleSettings(){
-            if (document.getElementById("showSetBtn").innerHTML == "Show Settings") {
-                document.getElementById("showSetBtn").innerHTML = "Hide Settings";
-                document.getElementById("setTable").style.display = "inline";
-            }
-            else if (document.getElementById("showSetBtn").innerHTML == "Hide Settings") {
-                document.getElementById("showSetBtn").innerHTML = "Show Settings";
-                document.getElementById("setTable").style.display = "none";
-            }
-        }
-
         function toggleCheckbox(element, index) {
             var xhr = new XMLHttpRequest();
             var str = "/toggles?";
@@ -302,30 +211,6 @@
                 if (this.readyState == 4 && this.status == 200) {
                     var myObj = JSON.parse(this.responseText);
                     
-                    if (myObj.en183 == "1") document.getElementById("en183").checked = true; 
-                    else document.getElementById("en183").checked = false;
-
-                    if (myObj.en2000 == "1") document.getElementById("en2000").checked = true; 
-                    else document.getElementById("en2000").checked = false;
-
-                    if (myObj.posSrc == "1") document.getElementById("posSrc").checked = true;
-                    else document.getElementById("posSrc").checked = false;
-
-                    if (myObj.timeSrc == "1") document.getElementById("timeSrc").checked = true;
-                    else document.getElementById("timeSrc").checked = false;
-
-                    if (myObj.speedSrc == "1") document.getElementById("speedSrc").checked = true;
-                    else document.getElementById("speedSrc").checked = false;
-
-                    if (myObj.cogSrc == "1") document.getElementById("cogSrc").checked = true;
-                    else document.getElementById("cogSrc").checked = false;
-
-                    if (myObj.wtempSrc == "1") document.getElementById("wtempSrc").checked = true;
-                    else document.getElementById("wtempSrc").checked = false;
-
-                    if (myObj.depthSrc == "1") document.getElementById("depthSrc").checked = true;
-                    else document.getElementById("depthSrc").checked = false;
-
                     if (myObj.depthUnit == "1") document.getElementById("depthUnit").checked = true;
                     else document.getElementById("depthUnit").checked = false;
 
@@ -337,6 +222,7 @@
                     } else {
                         document.getElementById("recInt").innerHTML = "Currently " + myObj.recInt + " second";
                     }
+
                     document.getElementById("tzDisplay").innerHTML = "Currently " + myObj.timeZone;
                 }
             };

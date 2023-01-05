@@ -22,7 +22,6 @@
 #include "main.h"
 #include <time.h>
 #include "sdkconfig.h"
-#include "N183.h"
 
 // Local NMEATrax access point IP settings
 IPAddress local_ip(192, 168, 1, 1);
@@ -47,61 +46,28 @@ Settings settings;
 */
 String getCSV()
 {
-    String lspeed;
-    String lheading;
-    String ldepth;
-    String lwtemp;
-    String llat;
-    String llon;
-    String ltime;
-    String lmag;
-
-    if (settings.speedSrc == "1") {lspeed = String(n2kspeed);}
-    else {lspeed = String(n183speed);}
-
-    if (settings.cogSrc == "1") {lheading = String(n2kheading);}
-    else {lheading = String(n183heading);}
-
-    if (settings.depthSrc == "1") {ldepth = String(n2kdepth);}
-    else {ldepth = String(n183depth);}
-    
-    if (settings.wtempSrc == "1") {lwtemp = String(n2kwtemp);}
-    else {lwtemp = String(n183wtemp);}
-
-    if (settings.posSrc == "1") {llat = String(n2klat, 6);}
-    else {llat = String(n183lat, 6);}
-    
-    if (settings.posSrc == "1") {llon = String(n2klon, 6);}
-    else {llon = String(n183lon, 6);}
-
-    if (settings.timeSrc == "1") {ltime = String(n2ktimeString);}
-    else {ltime = String(n183timeString);}
-
-    if (settings.posSrc == "1") {llat = String(n2kmag_var, 2);}
-    else {llat = String(n183mag_var, 2);}
-
     String data[] = {
-        String(rpm),        // 0
-        String(etemp),      // 1
-        String(otemp),      // 2
-        String(opres),      // 3
-        String(fuel_rate),  // 4
-        String(fpres),      // 5
-        String(flevel),     // 6
-        String(leg_tilt),   // 7
-        String(lspeed),     // 8
-        String(lheading),   // 9
-        String(ldepth),     // 10
-        String(lwtemp),     // 11
-        String(battV),      // 12
-        String(ehours),     // 13
-        String(gear),       // 14
-        String(llat),       // 15
-        String(llon),       // 16
-        String(lmag),       // 17
+        String(rpm),            // 0
+        String(etemp),          // 1
+        String(otemp),          // 2
+        String(opres),          // 3
+        String(fuel_rate),      // 4
+        String(fpres),          // 5
+        String(flevel),         // 6
+        String(leg_tilt),       // 7
+        String(speed),          // 8
+        String(heading),        // 9
+        String(depth),          // 10
+        String(wtemp),          // 11
+        String(battV),          // 12
+        String(ehours),         // 13
+        String(gear),           // 14
+        String(lat, 6),         // 15
+        String(lon, 6),         // 16
+        String(mag_var, 2),       // 17
         String(settings.tempUnit),  // 18
         String(settings.depthUnit),  // 19
-        String(ltime)      // 20
+        String(timeString)      // 20
     };
     String rdata;
 
@@ -129,34 +95,17 @@ String JSONValues()
     readings["fpres"] = String(fpres);
     readings["flevel"] = String(flevel);
     readings["leg_tilt"] = String(leg_tilt);
-
-    if (settings.speedSrc == "1") {readings["speed"] = String(n2kspeed);}
-    else {readings["speed"] = String(n183speed);}
-
-    if (settings.cogSrc == "1") {readings["heading"] = String(n2kheading);}
-    else {readings["heading"] = String(n183heading);}
-
-    if (settings.depthSrc == "1") {readings["depth"] = String(n2kdepth);}
-    else {readings["depth"] = String(n183depth);}
-    
-    if (settings.wtempSrc == "1") {readings["wtemp"] = String(n2kwtemp);}
-    else {readings["wtemp"] = String(n183wtemp);}
-
+    readings["speed"] = String(speed);
+    readings["heading"] = String(heading);
+    readings["depth"] = String(depth);
+    readings["wtemp"] = String(wtemp);
     readings["battV"] = String(battV);
     readings["ehours"] = String(ehours);
     readings["gear"] = String(gear);
-
-    if (settings.posSrc == "1") {readings["lat"] = String(n2klat, 6);}
-    else {readings["lat"] = String(n183lat, 6);}
-    
-    if (settings.posSrc == "1") {readings["lon"] = String(n2klon, 6);}
-    else {readings["lon"] = String(n183lon, 6);}
-
-    if (settings.posSrc == "1") {readings["mag_var"] = String(n2kmag_var, 2);}
-    else {readings["mag_var"] = String(n183mag_var, 2);}
-    
-    if (settings.timeSrc == "1") {readings["time"] = String(n2ktimeString);}
-    else {readings["time"] = String(n183timeString);}
+    readings["lat"] = String(lat, 6);
+    readings["lon"] = String(lon, 6);
+    readings["mag_var"] = String(mag_var, 2);
+    readings["time"] = String(timeString);
 
     String jsonString = JSON.stringify(readings);
     return jsonString;
@@ -171,14 +120,6 @@ bool saveSettings()
     jsettings["wifiPass"] = "nmeatrax";
     jsettings["voyNum"] = settings.voyNum;
     jsettings["recInt"] = settings.recInt;
-    jsettings["en2000"] = settings.en2000;
-    jsettings["en183"] = settings.en183;
-    jsettings["posSrc"] = settings.posSrc;
-    jsettings["timeSrc"] = settings.timeSrc;
-    jsettings["speedSrc"] = settings.speedSrc;
-    jsettings["cogSrc"] = settings.cogSrc;
-    jsettings["wtempSrc"] = settings.wtempSrc;
-    jsettings["depthSrc"] = settings.depthSrc;
     jsettings["depthUnit"] = settings.depthUnit;
     jsettings["tempUnit"] = settings.tempUnit;
     jsettings["timeZone"] = settings.timeZone;
@@ -206,14 +147,6 @@ bool readSettings()
     settings.wifiPass = jsettings["wifiPass"];
     settings.voyNum = jsettings["voyNum"];
     settings.recInt = jsettings["recInt"];
-    settings.en2000 = jsettings["en2000"];
-    settings.en183 = jsettings["en183"];
-    settings.posSrc = jsettings["posSrc"];
-    settings.timeSrc = jsettings["timeSrc"];
-    settings.speedSrc = jsettings["speedSrc"];
-    settings.cogSrc = jsettings["cogSrc"];
-    settings.wtempSrc = jsettings["wtempSrc"];
-    settings.depthSrc = jsettings["depthSrc"];
     settings.depthUnit = jsettings["depthUnit"];
     settings.tempUnit = jsettings["tempUnit"];
     settings.timeZone = jsettings["timeZone"];
@@ -303,7 +236,7 @@ void setup()
 
     // https://forum.arduino.cc/t/esp32-settimeofday-functionality-giving-odd-results/676136
     struct timeval tv;
-    tv.tv_sec = 1661990400;     // Sep 1 2022 00:00
+    tv.tv_sec = 1672560000;     // Jan 1 2023 00:00
     settimeofday(&tv, NULL);    // set default time
     setenv("TZ", getTZdefinition(settings.timeZone), 1);     // set time zone
     tzset();
@@ -311,7 +244,6 @@ void setup()
     if (getSDcardStatus()) {sdSetup();}
     if (!webSetup()) {crash();}
     if (!NMEAsetup()) {crash();}
-    if (!setupN183()) {crash();}
     createWifiText();
 }
 
@@ -355,6 +287,8 @@ void loop()
         count++;
     }
 
+    NMEAloop();
+
     // create new csv filename with voyage number 
     if (voyState == START)
     {
@@ -370,6 +304,8 @@ void loop()
         voyState = RUN;
     }
 
+    NMEAloop();
+
     // log the current NMEA data every x seconds
     if (count >= settings.recInt && voyState == RUN)
     {
@@ -378,11 +314,6 @@ void loop()
         if (!appendFile(sfileName.c_str(), getCSV().c_str(), false)) {crash();}
     }
     
-    // if NMEA2000 is enabled, process data
-    if (settings.en2000 == "1") NMEAloop();
-
-    // if NMEA0183 is enabled, process data
-    if (settings.en183 == "1") loopN183();
-
+    NMEAloop();
     webLoop();
 }

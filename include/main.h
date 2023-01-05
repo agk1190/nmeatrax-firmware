@@ -38,14 +38,6 @@ struct settings
     const char *wifiPass;
     int voyNum;
     int recInt;
-    String en2000;
-    String en183;
-    String posSrc;
-    String timeSrc;
-    String speedSrc;
-    String cogSrc;
-    String wtempSrc;
-    String depthSrc;
     String depthUnit;
     String tempUnit;
     double timeZone;

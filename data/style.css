@@ -6,6 +6,8 @@ body {
     --col1bgcolour: #e6e6e6;
     --col2bgcolour: #C8C8C8;
     --card-title-color: #034078;
+    --slider-bg-color: #ccc;
+    --slider-circle-color: #fff;
 }
 
 body.dark-theme {
@@ -14,6 +16,8 @@ body.dark-theme {
     --col1bgcolour: #1b1b1f;
     --col2bgcolour: #1b1b1f;
     --card-title-color: #e6e6e6;
+    --slider-bg-color: #343a40;
+    --slider-circle-color: #C8C8C8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -25,6 +29,8 @@ body.dark-theme {
         --col1bgcolour: #1b1b1f;
         --col2bgcolour: #1b1b1f;
         --card-title-color: #e6e6e6;
+        --slider-bg-color: #343a40;
+        --slider-circle-color: #C8C8C8;
     }
 
     body.light-theme {
@@ -33,6 +39,8 @@ body.dark-theme {
         --col1bgcolour: #e6e6e6;
         --col2bgcolour: #C8C8C8;
         --card-title-color: #034078;
+        --slider-bg-color: #ccc;
+        --slider-circle-color: #fff;
     }
 }
 
@@ -235,7 +243,8 @@ input {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #ccc;
+    /* background-color: #ccc; */
+    background-color: var(--slider-bg-color);
     border-radius: 34px
 }
 
@@ -246,7 +255,8 @@ input {
     width: 26px;
     left: 8px;
     bottom: 4px;
-    background-color: #fff;
+    /* background-color: #fff; */
+    background-color: var(--slider-circle-color);
     -webkit-transition: .4s;
     transition: .4s;
     border-radius: 68px

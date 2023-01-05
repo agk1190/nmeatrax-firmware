@@ -194,16 +194,8 @@ bool webSetup() {
         String inputMessage;
         String inputParam;
         // GET input1 value on <ESP_IP>/update?state=<inputMessage>
-        if (request->hasParam("0")) {settings.en183 = request->getParam("0")->value();}
-        else if (request->hasParam("1")) {settings.en2000 = request->getParam("1")->value();}
-        else if (request->hasParam("2")) {settings.posSrc = request->getParam("2")->value();}
-        else if (request->hasParam("3")) {settings.timeSrc = request->getParam("3")->value();}
-        else if (request->hasParam("4")) {settings.speedSrc = request->getParam("4")->value();}
-        else if (request->hasParam("5")) {settings.cogSrc = request->getParam("5")->value();}
-        else if (request->hasParam("6")) {settings.wtempSrc = request->getParam("6")->value();}
-        else if (request->hasParam("7")) {settings.depthSrc = request->getParam("7")->value();}
-        else if (request->hasParam("8")) {settings.depthUnit = request->getParam("8")->value();}
-        else if (request->hasParam("9")) {settings.tempUnit = request->getParam("9")->value();}
+        if (request->hasParam("0")) {settings.depthUnit = request->getParam("0")->value();}
+        else if (request->hasParam("1")) {settings.tempUnit = request->getParam("1")->value();}
         if (!saveSettings()) {crash();}
         request->send(200, "text/plain", "OK");
     });
@@ -211,14 +203,6 @@ bool webSetup() {
     // Send the current state of the toggle switches
     server.on("/toggleState", HTTP_GET, [] (AsyncWebServerRequest *request) {
         String str = "";
-        values["en183"] = settings.en183;
-        values["en2000"] = settings.en2000;
-        values["posSrc"] = settings.posSrc;
-        values["timeSrc"] = settings.timeSrc;
-        values["speedSrc"] = settings.speedSrc;
-        values["cogSrc"] = settings.cogSrc;
-        values["wtempSrc"] = settings.wtempSrc;
-        values["depthSrc"] = settings.depthSrc;
         values["depthUnit"] = settings.depthUnit;
         values["tempUnit"] = settings.tempUnit;
         values["recInt"] = settings.recInt;
@@ -286,13 +270,6 @@ bool webSetup() {
                                         "</h1><br><a href=\"/options.html\">Return</a><script>setTimeout(function()" + 
                                         "{window.location.href = \"/options.html\"}, 5000);</script>");
     });
-
-    // Request for the latest sensor readings
-    // server.on("/readings", HTTP_GET, [](AsyncWebServerRequest *request) {
-    //     String json = JSONValues();
-    //     request->send(200, "application/json", json);
-    //     json = String(); 
-    // });
 
     // Request for the recording mode
     server.on("/runState", HTTP_GET, [](AsyncWebServerRequest *request) {
