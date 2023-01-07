@@ -8,13 +8,13 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 ## [Unreleased] - yyyy-mm-dd
  
 ### Coming Soon
-- Better gauges
 - OTA updates
 
 ### In Progress
 
 ### Changed
 - Removed NMEA 0183
+- Better gauges
  
 ## [1.0.0] - 2022-12-15
  
