@@ -125,6 +125,15 @@
         var needleCircleInnerColor = "#000";
         var gaugeBorderColor = "#000";
         var gaugeFont = "verdana";
+
+        var rpmVal;
+        var etempVal;
+        var otempVal;
+        var opresVal;
+        var fpresVal;
+        var flevelVal;
+        var speedVal;
+        var headingVal;
         
         //https://css-tricks.com/a-complete-guide-to-dark-mode-on-the-web/
         const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
@@ -229,8 +238,7 @@
                 needleShadow: false,
                 animationDuration: 250,
                 animationRule: "linear",
-                animateOnInit: true,
-                value: 0
+                value: rpmVal
             }).draw();
         
             // Create oil pressure Gauge
@@ -288,8 +296,7 @@
                 needleShadow: false,
                 animationDuration: 250,
                 animationRule: "linear",
-                animateOnInit: true,
-                value: 0
+                value: opresVal
             }).draw();
 
             // Create fuel pressure Gauge
@@ -347,8 +354,7 @@
                 needleShadow: false,
                 animationDuration: 250,
                 animationRule: "linear",
-                animateOnInit: true,
-                value: 0
+                value: fpresVal
             }).draw();
         
             // Create fuel level Gauge
@@ -406,8 +412,7 @@
                 needleShadow: false,
                 animationDuration: 250,
                 animationRule: "linear",
-                animateOnInit: true,
-                value: 0
+                value: flevelVal
             }).draw();
         
             // Create Speed Gauge
@@ -468,8 +473,7 @@
                 needleShadow: false,
                 animationDuration: 250,
                 animationRule: "linear",
-                animateOnInit: true,
-                value: 0
+                value: speedVal
             }).draw();
         
             // Create Heading Gauge
@@ -532,8 +536,7 @@
                 needleShadow: false,
                 animationDuration: 250,
                 animationRule: "linear",
-                animateOnInit: true,
-                value: 0
+                value: headingVal
             }).draw();
         
             if (tUnit == "\u2103") {
@@ -599,8 +602,7 @@
                 needleShadow: false,
                 animationDuration: 250,
                 animationRule: "linear",
-                animateOnInit: true,
-                value: 0
+                value: etempVal
             }).draw();
 
             // Create oil temp Gauge
@@ -660,8 +662,7 @@
                 needleShadow: false,
                 animationDuration: 250,
                 animationRule: "linear",
-                animateOnInit: true,
-                value: 0
+                value: otempVal
             }).draw();
         }
 
@@ -722,8 +723,7 @@
                 needleShadow: false,
                 animationDuration: 250,
                 animationRule: "linear",
-                animateOnInit: true,
-                value: 0
+                value: etempVal
             }).draw();
 
             // Create oil temp Gauge F
@@ -783,8 +783,7 @@
                 needleShadow: false,
                 animationDuration: 250,
                 animationRule: "linear",
-                animateOnInit: true,
-                value: 0
+                value: otempVal
             }).draw();
         }
 
@@ -793,14 +792,14 @@
             var source = new EventSource('/events');
             source.addEventListener('new_readings', function(e) {
                 var myObj = JSON.parse(e.data);
-                gaugeRPM.value = myObj.rpm;
-                gaugeEtemp.value = myObj.etemp;
-                gaugeOtemp.value = myObj.otemp;
-                gaugeOpres.value = myObj.opres;
-                gaugeFpres.value = myObj.fpres;
-                gaugeFlevel.value = myObj.flevel;
-                gaugeSpeed.value = myObj.speed;
-                gaugeHeading.value = myObj.heading;
+                rpmVal = myObj.rpm;
+                etempVal = myObj.etemp;
+                otempVal = myObj.otemp;
+                opresVal = myObj.opres;
+                fpresVal = myObj.fpres;
+                flevelVal = myObj.flevel;
+                speedVal = myObj.speed;
+                headingVal = myObj.heading;
                 document.getElementById("textDepth").innerHTML = myObj.depth + dUnit;
                 document.getElementById("textWtemp").innerHTML = myObj.wtemp + tUnit;
                 drawGauges();

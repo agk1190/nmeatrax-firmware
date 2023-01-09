@@ -48,17 +48,17 @@ tNMEA2000Handler NMEA2000Handlers[]={
 };
 
 int rpm;
-double n2kdepth;
-double n2kspeed;
-int n2kheading;
+double depth;
+double speed;
+int heading;
 int etemp;
 int otemp;
-double n2kwtemp;
-double n2klat;
-double n2klon;
-double n2krapidLat;
-double n2krapidLon;
-double n2kmag_var;
+double wtemp;
+double lat;
+double lon;
+double rapidLat;
+double rapidLon;
+double mag_var;
 int leg_tilt;
 int opres;
 double battV;
@@ -68,7 +68,7 @@ int fpres;
 String gear;
 double flevel;
 uint32_t unixTime;
-String n2ktimeString;
+String timeString;
 
 extern Settings settings;
 
@@ -276,8 +276,8 @@ void COGSOG(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  SOG (m/s): ",SOG,0,true);
         #endif
         if (HeadingReference == 0 || HeadingReference == 1) {
-            n2kspeed = ReturnWithConversionCheckUnDef(SOG,&msToKnots);
-            n2kheading = ReturnWithConversionCheckUnDef(COG,&RadToDeg);
+            speed = ReturnWithConversionCheckUnDef(SOG,&msToKnots);
+            heading = ReturnWithConversionCheckUnDef(COG,&RadToDeg);
         }
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -324,16 +324,16 @@ void GNSS(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  geoidal separation: ",GeoidalSeparation,0,true);
         PrintLabelValWithConversionCheckUnDef("  reference stations: ",nReferenceStations,0,true);
         #endif
-        n2klat = Latitude;
-        n2klon = Longitude;
-        Serial.print("Lat: ");
-        Serial.println(n2klat, 6);
-        Serial.print("Lon: ");
-        Serial.println(n2klon, 6);
+        lat = Latitude;
+        lon = Longitude;
+        // Serial.print("Lat: ");
+        // Serial.println(lat, 6);
+        // Serial.print("Lon: ");
+        // Serial.println(lon, 6);
         unixTime = ((DaysSince1970*86400)+SecondsSinceMidnight);
         unixTime = unixTime+(settings.timeZone*3600);
         time_t epoch = unixTime;
-        n2ktimeString = asctime(gmtime(&epoch));
+        timeString = asctime(gmtime(&epoch));
         struct timeval tv;
         tv.tv_sec = unixTime;
         settimeofday(&tv, NULL);    // set ESP32 time to GPS time
@@ -351,8 +351,8 @@ void PositionRapid(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  latitude: ",Latitude,0,true,9);
         PrintLabelValWithConversionCheckUnDef("  longitude: ",Longitude,0,true,9);
         #endif
-        n2krapidLat = Latitude;
-        n2krapidLon = Longitude;
+        rapidLat = Latitude;
+        rapidLon = Longitude;
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
@@ -372,8 +372,8 @@ void Temperature(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef(", set temperature: ",SetTemperature,&KelvinToC,true);
         #endif
         if (TempSource == N2kts_SeaTemperature) {
-            if (settings.tempUnit == "1") {n2kwtemp = ReturnWithConversionCheckUnDef(ActualTemperature,&KelvinToF);}
-            else {n2kwtemp = ReturnWithConversionCheckUnDef(ActualTemperature,&KelvinToC);}
+            if (settings.tempUnit == "1") {wtemp = ReturnWithConversionCheckUnDef(ActualTemperature,&KelvinToF);}
+            else {wtemp = ReturnWithConversionCheckUnDef(ActualTemperature,&KelvinToC);}
         }
     } else {OutputStream->print("Failed to parse PGN: ");  OutputStream->println(N2kMsg.PGN);}
 }
@@ -411,10 +411,10 @@ void WaterDepth(const tN2kMsg &N2kMsg) {
                 OutputStream->println(DepthBelowTransducer+Offset);
                 #endif
                 double tDepth = DepthBelowTransducer+Offset;
-                if (settings.depthUnit == "1") {n2kdepth = tDepth;}
-                else {n2kdepth = tDepth*3.28084;}
+                if (settings.depthUnit == "1") {depth = tDepth;}
+                else {depth = tDepth*3.28084;}
                 Serial.print("Depth: ");
-                Serial.println(n2kdepth);
+                Serial.println(depth);
             } else {OutputStream->println(" not available");}
         }
     }
@@ -503,7 +503,7 @@ void MagneticVariation(const tN2kMsg &N2kMsg) {
                         OutputStream->print("  Variation Source: "); PrintN2kEnumType(Source,OutputStream,true);
         PrintLabelValWithConversionCheckUnDef("  Variation ",Variation,&RadToDeg,true);
         #endif
-        n2kmag_var = ReturnWithConversionCheckUnDef(Variation, &RadToDeg);
+        mag_var = ReturnWithConversionCheckUnDef(Variation, &RadToDeg);
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 

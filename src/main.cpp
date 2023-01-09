@@ -22,6 +22,8 @@
 #include "main.h"
 #include <time.h>
 #include "sdkconfig.h"
+#include <FREERTOS/FreeRTOS.h>
+#include <FREERTOS/timers.h>
 
 // Local NMEATrax access point IP settings
 IPAddress local_ip(192, 168, 1, 1);
@@ -176,6 +178,19 @@ void crash() {
     Serial.println("Device Crashed!");
     ESP.restart();
 }
+
+// Timer callback function
+void nmeaTimerCallback(TimerHandle_t xTimer) {
+    // Run the nmeaLoop() function
+    NMEAloop();
+}
+
+// Timer callback function
+void webTimerCallback(TimerHandle_t xTimer) {
+    // rpm = random(650, 700);
+    webLoop();
+}
+
 // ***************************************************
 /**
  * @brief Main program setup function
@@ -245,6 +260,14 @@ void setup()
     if (!webSetup()) {crash();}
     if (!NMEAsetup()) {crash();}
     createWifiText();
+
+    // Create timers
+    TimerHandle_t nmeaTimer = xTimerCreate("NMEATimer", 1 / portTICK_PERIOD_MS, pdTRUE, NULL, nmeaTimerCallback);
+    TimerHandle_t webTimer = xTimerCreate("webTimer", 500 / portTICK_PERIOD_MS, pdTRUE, NULL, webTimerCallback);
+
+    // Start the timer
+    xTimerStart(nmeaTimer, 0);
+    xTimerStart(webTimer, 0);
 }
 
 // ***************************************************
@@ -256,6 +279,8 @@ void loop()
     static long statDelay = millis();
     static int count = 0;
     static String sfileName;
+    static long lastCount;
+    static long mycount;
 
     if (statDelay + 1000 < millis())
     {
@@ -267,11 +292,11 @@ void loop()
         // Serial.println(&timeDetails, "%A, %B %d %Y %H:%M:%S");
 
         // rpm = random(650, 700);
-        // n2kheading = random(15, 30);
-        // n2kwtemp = random(8, 12);
+        // heading = random(15, 30);
+        // wtemp = random(8, 12);
         // otemp = random(104, 108);
         // etemp = random(73, 76);
-        // n2kmag_var = random(14, 16);
+        // mag_var = random(14, 16);
         // leg_tilt = random(0, 25);
         // opres = random(483, 626);
         // battV = random(12.0, 15.0);
@@ -280,14 +305,17 @@ void loop()
         // fpres = random(680, 690);
         // flevel = random(40.2, 60.9);
         // gear = "N";
-        // n2ktimeString = asctime(&timeDetails);
+        timeString = asctime(&timeDetails);
 
         getSDcardStatus();
         statDelay = millis();
         count++;
+
+        Serial.println(mycount - lastCount);
+        lastCount = mycount;
     }
 
-    NMEAloop();
+    // NMEAloop();
 
     // create new csv filename with voyage number 
     if (voyState == START)
@@ -304,7 +332,7 @@ void loop()
         voyState = RUN;
     }
 
-    NMEAloop();
+    // NMEAloop();
 
     // log the current NMEA data every x seconds
     if (count >= settings.recInt && voyState == RUN)
@@ -314,6 +342,8 @@ void loop()
         if (!appendFile(sfileName.c_str(), getCSV().c_str(), false)) {crash();}
     }
     
-    NMEAloop();
-    webLoop();
+    // NMEAloop();
+    // webLoop();
+
+    mycount++; 
 }

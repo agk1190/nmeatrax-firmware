@@ -11,6 +11,7 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 - OTA updates
 
 ### In Progress
+- Moved NMEAloop() and webLoop() to timers
 
 ### Changed
 - Removed NMEA 0183
