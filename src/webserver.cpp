@@ -34,10 +34,6 @@ extern Settings settings;
 // Create an Event Source on /events
 AsyncEventSource events("/events");
 
-// Timer variables for event
-unsigned long lastTime = 0;
-unsigned long timerDelay = 1000;
-
 const char* getTZdefinition(double tz) {
     if (tz == 0)
     {
@@ -153,18 +149,21 @@ bool webSetup() {
         }
         settings.voyNum = 1;
         if (!saveSettings()) {crash();}
+        request->send(200, "text/plain", "OK");
     });
 
     // start logging callback
     server.on("/startLog", HTTP_GET, [](AsyncWebServerRequest *request){
         voyState = START;
         Serial.println("Voyage Mode: START");
+        request->send(200, "text/plain", "OK");
     });
 
     // stop logging callback
     server.on("/stopLog", HTTP_GET, [](AsyncWebServerRequest *request){
         voyState = STOP;
         Serial.println("Voyage Mode: STOP");
+        request->send(200, "text/plain", "OK");
     });
 
     // Get all files on the SD card
@@ -298,10 +297,5 @@ bool webSetup() {
 }
 
 void webLoop() {
-    if ((millis() - lastTime) > timerDelay) {
-        // Send Events to the client with the Sensor Readings Every 10 seconds
-        // events.send("ping", NULL, millis());
-        events.send(JSONValues().c_str(), "new_readings", millis());
-        lastTime = millis();
-    }
+    events.send(JSONValues().c_str(), "new_readings", millis());
 }

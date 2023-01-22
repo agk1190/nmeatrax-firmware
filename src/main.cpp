@@ -263,7 +263,7 @@ void setup()
 
     // Create timers
     TimerHandle_t nmeaTimer = xTimerCreate("NMEATimer", 1 / portTICK_PERIOD_MS, pdTRUE, NULL, nmeaTimerCallback);
-    TimerHandle_t webTimer = xTimerCreate("webTimer", 500 / portTICK_PERIOD_MS, pdTRUE, NULL, webTimerCallback);
+    TimerHandle_t webTimer = xTimerCreate("webTimer", 1000 / portTICK_PERIOD_MS, pdTRUE, NULL, webTimerCallback);
 
     // Start the timer
     xTimerStart(nmeaTimer, 0);

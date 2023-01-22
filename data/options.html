@@ -162,15 +162,17 @@
                 var xhttp = new XMLHttpRequest();
                 xhttp.open("GET", "/startLog", true);
                 xhttp.send();
+                getRunState();
             }
             else if (document.getElementById("toggleLogBtn").innerHTML == "Stop") {
                 var xhttp = new XMLHttpRequest();
                 xhttp.open("GET", "/stopLog", true);
                 xhttp.send();
+                getRunState();
             }
         }
 
-        setInterval(function getRunState(){
+        function getRunState(){
             var xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
@@ -186,7 +188,7 @@
             }; 
             xhr.open("GET", "/runState", true);
             xhr.send();
-        }, 1000);
+        }
 
         function toggleCheckbox(element, index) {
             var xhr = new XMLHttpRequest();
@@ -205,7 +207,7 @@
             xhr.send();
         }
 
-        window.onload = function ( ) {
+        window.onload = function () {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
@@ -228,6 +230,7 @@
             };
             xhttp.open("GET", "/toggleState", true);
             xhttp.send();
+            getRunState();
         }
     </script>
 </body>
