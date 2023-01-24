@@ -18,15 +18,19 @@
 
 // SD card recording state
 enum voyState {
-    STOP = 0,
-    RUN = 1,
-    START = 2
+    OFF = 0,
+    ON = 1,
+    AUTO_SPD = 2,
+    AUTO_RPM = 3,
+    START = 4
 };
 
 /**
  * SD card logging mode
- * @param STOP
- * @param RUN
+ * @param OFF
+ * @param ON
+ * @param AUTO_SPD
+ * @param AUTO_RPM
  * @param START
 */
 extern enum voyState voyState;
@@ -37,6 +41,7 @@ struct settings
     const char *wifiSSID;
     const char *wifiPass;
     int voyNum;
+    int voyState;
     int recInt;
     String depthUnit;
     String tempUnit;

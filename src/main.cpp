@@ -113,12 +113,14 @@ String JSONValues()
 
 bool saveSettings()
 {
+    settings.voyState = voyState;
     jsettings["wifiMode"] = settings.wifiMode;
     // jsettings["wifiSSID"] = settings.wifiSSID;
     // jsettings["wifiPass"] = settings.wifiPass;
     jsettings["wifiSSID"] = "NMEATrax";
     jsettings["wifiPass"] = "nmeatrax";
     jsettings["voyNum"] = settings.voyNum;
+    jsettings["voyState"] = settings.voyState;
     jsettings["recInt"] = settings.recInt;
     jsettings["depthUnit"] = settings.depthUnit;
     jsettings["tempUnit"] = settings.tempUnit;
@@ -132,6 +134,7 @@ bool saveSettings()
     }
     file.print(settingsString);
     file.close();
+    // Serial.println(settingsString);
     return(true);
 }
 
@@ -142,14 +145,38 @@ bool readSettings()
     String settingsString = file.readString();
     file.close();
     jsettings = JSON.parse(settingsString);
+    // Serial.println(settingsString);
     settings.wifiMode = jsettings["wifiMode"];
     settings.wifiSSID = jsettings["wifiSSID"];
     settings.wifiPass = jsettings["wifiPass"];
     settings.voyNum = jsettings["voyNum"];
+    settings.voyState = jsettings["voyState"];
     settings.recInt = jsettings["recInt"];
     settings.depthUnit = jsettings["depthUnit"];
     settings.tempUnit = jsettings["tempUnit"];
     settings.timeZone = jsettings["timeZone"];
+    switch (settings.voyState)
+    {
+    case 0:
+        voyState = OFF;
+        break;
+
+    case 1:
+        voyState = ON;
+        break;
+
+    case 2:
+        voyState = AUTO_SPD;
+        break;
+
+    case 3:
+        voyState = AUTO_RPM;
+        break;
+    
+    default:
+        break;
+    }
+    // Serial.println(voyState);
     return(true);
 }
 
@@ -308,8 +335,8 @@ void loop()
         statDelay = millis();
         count++;
 
-        Serial.println(mycount - lastCount);
-        lastCount = mycount;
+        // Serial.println(mycount - lastCount);
+        // lastCount = mycount;
     }
 
     // NMEAloop();
@@ -326,21 +353,21 @@ void loop()
         sfileName += ".csv";
         settings.voyNum++;
         if (!saveSettings()) {crash();}
-        voyState = RUN;
+        voyState = ON;
     }
 
     // NMEAloop();
 
     // log the current NMEA data every x seconds
-    if (count >= settings.recInt && voyState == RUN)
-    {
-        // Serial.println("log");
-        count = 0;
-        if (!appendFile(sfileName.c_str(), getCSV().c_str(), false)) {crash();}
-    }
+    // if (count >= settings.recInt && voyState == ON)
+    // {
+    //     // Serial.println("log");
+    //     count = 0;
+    //     if (!appendFile(sfileName.c_str(), getCSV().c_str(), false)) {crash();}
+    // }
     
     // NMEAloop();
     // webLoop();
 
-    mycount++; 
+    // mycount++; 
 }

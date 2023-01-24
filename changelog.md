@@ -9,13 +9,12 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
  
 ### Coming Soon
 - OTA updates
-- Add Auto option to log recorder
 - Record GPX 
 - Change recording interval based on speed
 - Upload data to server (far fetched idea)
 
 ### In Progress
-
+- Add Auto option to log recorder
 
 ### Changed
 - Removed NMEA 0183
