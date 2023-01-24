@@ -64,7 +64,6 @@ int opres;
 double battV;
 double fuel_rate;
 int ehours;
-int fpres;
 String gear;
 double flevel;
 uint32_t unixTime;
@@ -181,7 +180,6 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
         battV = ReturnWithConversionCheckUnDef(AltenatorVoltage, 0);
         fuel_rate = ReturnWithConversionCheckUnDef(FuelRate, 0);
         ehours = ReturnWithConversionCheckUnDef(EngineHours, &SecondsToh);
-        fpres = ReturnWithConversionCheckUnDef(EngineFuelPress, 0) / 10000;
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 

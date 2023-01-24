@@ -54,22 +54,21 @@ String getCSV()
         String(otemp),          // 2
         String(opres),          // 3
         String(fuel_rate),      // 4
-        String(fpres),          // 5
-        String(flevel),         // 6
-        String(leg_tilt),       // 7
-        String(speed),          // 8
-        String(heading),        // 9
-        String(depth),          // 10
-        String(wtemp),          // 11
-        String(battV),          // 12
-        String(ehours),         // 13
-        String(gear),           // 14
-        String(lat, 6),         // 15
-        String(lon, 6),         // 16
-        String(mag_var, 2),       // 17
-        String(settings.tempUnit),  // 18
-        String(settings.depthUnit),  // 19
-        String(timeString)      // 20
+        String(flevel),         // 5
+        String(leg_tilt),       // 6
+        String(speed),          // 7
+        String(heading),        // 8
+        String(depth),          // 9
+        String(wtemp),          // 10
+        String(battV),          // 11
+        String(ehours),         // 12
+        String(gear),           // 13
+        String(lat, 6),         // 14
+        String(lon, 6),         // 15
+        String(mag_var, 2),       // 16
+        String(settings.tempUnit),  // 17
+        String(settings.depthUnit),  // 18
+        String(timeString)      // 19
     };
     String rdata;
 
@@ -94,7 +93,6 @@ String JSONValues()
     readings["otemp"] = String(otemp);
     readings["opres"] = String(opres);
     readings["fuel_rate"] = String(fuel_rate);
-    readings["fpres"] = String(fpres);
     readings["flevel"] = String(flevel);
     readings["leg_tilt"] = String(leg_tilt);
     readings["speed"] = String(speed);
@@ -302,7 +300,6 @@ void loop()
         // battV = random(12.0, 15.0);
         // fuel_rate = random(2, 6);
         // ehours = 122;
-        // fpres = random(680, 690);
         // flevel = random(40.2, 60.9);
         // gear = "N";
         timeString = asctime(&timeDetails);

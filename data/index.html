@@ -24,49 +24,6 @@
         <div class="card">
             <p class="card-title">RPM</p>
             <canvas id="gauge-rpm"></canvas>
-            <!-- <canvas
-                data-type="radial-gauge"
-                data-width="300"
-                data-height="300"
-                data-units="x1000"
-                data-animate-on-init="true"
-                data-min-value="0"
-                data-max-value="6000"
-                data-major-ticks="0,1,2,3,4,5,6"
-                data-minor-ticks="4"
-                data-stroke-ticks="false"
-                data-highlights='[{ "from": 5500, "to": 6000, "color": "rgba(255,0,0,.50)" }]'
-                data-color-plate="#1b1b1f"
-                data-color-major-ticks="#fff"
-                data-color-minor-ticks="#fff"
-                data-color-units="#fff"
-                data-color-numbers="#fff"
-                data-color-needle-end="#0050c7"
-                data-color-needle="#0050c7"
-                data-needle-width="2"
-                data-needle-start="0"
-                data-needle-circle-size="10"
-                data-color-needle-circle-outer="#222"
-                data-color-needle-circle-outer-end="#222"
-                data-color-needle-circle-inner="#000"
-                data-color-needle-circle-inner-end="#000"
-                data-needle-circle-inner="true"
-                data-value-int="1"
-                data-value-dec="0"
-                data-color-value-box-rect="#0050c7"
-                data-color-value-box-rect-end="#0050c7"
-                data-color-value-box-background="#1b1b1f"
-                data-color-value-text="#fff"
-                data-animation-rule="linear"
-                data-animation-duration="250"
-                data-font-value="verdana"
-                data-font-numbers="verdana"
-                data-needle-shadow="false"
-                data-border-shadow-width="0"
-                data-color-border-outer="#000"
-                data-color-border-outer-end="#000"
-                data-value="674"
-            ></canvas> -->
         </div>
         <div class="card">
             <p class="card-title">Engine Temp</p>
@@ -79,10 +36,6 @@
         <div class="card">
             <p class="card-title">Oil Pressure</p>
             <canvas id="gauge-opres"></canvas>
-        </div>
-        <div class="card">
-            <p class="card-title">Fuel Pressure</p>
-            <canvas id="gauge-fpres"></canvas>
         </div>
         <div class="card">
             <p class="card-title">Fuel Level</p>
@@ -130,7 +83,6 @@
         var etempVal;
         var otempVal;
         var opresVal;
-        var fpresVal;
         var flevelVal;
         var speedVal;
         var headingVal;
@@ -297,64 +249,6 @@
                 animationDuration: 250,
                 animationRule: "linear",
                 value: opresVal
-            }).draw();
-
-            // Create fuel pressure Gauge
-            var gaugeFpres = new RadialGauge({
-                renderTo: 'gauge-fpres',
-                width: 300,
-                height: 300,
-                units: "kPa",
-                minValue: 0,
-                maxValue: 1000,
-                colorValueBoxRect: signatureBlue,
-                colorValueBoxRectEnd: signatureBlue,
-                colorValueBoxBackground: gaugeBGcolor,
-                valueDec: 0,
-                valueInt: 1,
-                majorTicks: [
-                    "0",
-                    "200",
-                    "400",
-                    "600",
-                    "800",
-                    "1000"
-                ],
-                minorTicks: 4,
-                strokeTicks: false,
-                highlights: [
-                {
-                    "from": 800,
-                    "to": 1000,
-                    "color": "rgba(255, 0, 0, .50)"
-                }
-                ],
-                borderShadowWidth: 0,
-                borders: true,
-                colorBorderOuter: gaugeBorderColor,
-                colorBorderOuterEnd: gaugeBorderColor,
-                colorPlate: gaugeBGcolor,
-                colorMajorTicks: textAndTicksColor,
-                colorMinorTicks: textAndTicksColor,
-                colorUnits: textAndTicksColor,
-                colorNumbers: textAndTicksColor,
-                colorValueText: textAndTicksColor,
-                fontValue: gaugeFont,
-                fontNumbers: gaugeFont,
-                needleType: "arrow",
-                colorNeedle: signatureBlue,
-                colorNeedleEnd: signatureBlue,
-                needleStart: 0,
-                needleWidth: 2,
-                needleCircleSize: 10,
-                colorNeedleCircleOuter: needleCircleOuterColor,
-                colorNeedleCircleOuterEnd: needleCircleOuterColor,
-                colorNeedleCircleInner: needleCircleInnerColor,
-                colorNeedleCircleInnerEnd: needleCircleInnerColor,
-                needleShadow: false,
-                animationDuration: 250,
-                animationRule: "linear",
-                value: fpresVal
             }).draw();
         
             // Create fuel level Gauge
@@ -796,7 +690,6 @@
                 etempVal = myObj.etemp;
                 otempVal = myObj.otemp;
                 opresVal = myObj.opres;
-                fpresVal = myObj.fpres;
                 flevelVal = myObj.flevel;
                 speedVal = myObj.speed;
                 headingVal = myObj.heading;

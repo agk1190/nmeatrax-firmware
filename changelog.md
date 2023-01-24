@@ -9,13 +9,20 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
  
 ### Coming Soon
 - OTA updates
+- Add Auto option to log recorder
+- Record GPX 
+- Change recording interval based on speed
+- Upload data to server (far fetched idea)
 
 ### In Progress
-- Moved NMEAloop() and webLoop() to timers
+
 
 ### Changed
 - Removed NMEA 0183
 - Better gauges
+- Stopped options page from continously getting state of recording
+- Removed Fuel Pressure
+- Moved NMEAloop() and webLoop() to timers
  
 ## [1.0.0] - 2022-12-15
  

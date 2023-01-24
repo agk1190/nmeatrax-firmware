@@ -23,7 +23,6 @@ extern int opres;
 extern double battV;
 extern double fuel_rate;
 extern int ehours;
-extern int fpres;
 extern String gear;
 extern double flevel;
 extern String timeString;
