@@ -1,5 +1,5 @@
 {
-    "wifiMode":"lan",
+    "wifiMode":"wan",
     "wifiSSID":"NMEATrax",
     "wifiPass":"nmeatrax",
     "voyNum":1,

@@ -25,8 +25,6 @@
             <h2>Engine</h2>
             <table class="text-table">
                 <colgroup>
-                    <!-- <col span="1" style="background-color:rgb(230,230,230); color:#000000 ;">
-                    <col span="1" style="background-color:rgb(200,200,200); color:#000000 ;"> -->
                     <col span="1" class="col1">
                     <col span="1" class="col2">
                 </colgroup>
@@ -53,10 +51,6 @@
                 <tr>
                     <td><div class="bodytext">Fuel Rate</div></td>
                     <td><div class="tabledata" id="fuel_rate">-</div></td>
-                </tr>
-                <tr>
-                    <td><div class="bodytext">Fuel Pressure</div></td>
-                    <td><div class="tabledata" id="fpres">-</div></td>
                 </tr>
                 <tr>
                     <td><div class="bodytext">Fuel Level</div></td>
@@ -192,7 +186,6 @@
                 document.getElementById("otemp").innerHTML = myObj.otemp + getTempUnit();
                 document.getElementById("opres").innerHTML = myObj.opres + " kPa";
                 document.getElementById("fuel_rate").innerHTML = myObj.fuel_rate + " L/h";
-                document.getElementById("fpres").innerHTML = myObj.fpres + " kPa";
                 document.getElementById("flevel").innerHTML = myObj.flevel + "%";
                 document.getElementById("leg_tilt").innerHTML = myObj.leg_tilt;
                 document.getElementById("speed").innerHTML = myObj.speed + " kn";
