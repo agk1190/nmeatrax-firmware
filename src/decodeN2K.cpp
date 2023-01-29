@@ -64,10 +64,10 @@ int opres;
 double battV;
 double fuel_rate;
 int ehours;
-String gear;
+String gear = "-";
 double flevel;
 uint32_t unixTime;
-String timeString;
+String timeString = "-";
 
 extern Settings settings;
 

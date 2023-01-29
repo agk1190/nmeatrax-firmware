@@ -168,12 +168,12 @@ bool webSetup() {
 
     server.on("/loggingMode", HTTP_GET, [](AsyncWebServerRequest *request){
         if (request->hasParam("0")) {voyState = OFF;}
-        else if (request->hasParam("1")) {voyState = ON;}
-        else if (request->hasParam("2")) {voyState = AUTO_SPD;}
-        else if (request->hasParam("3")) {voyState = AUTO_RPM;}
+        else if (request->hasParam("1")) {voyState = ON; outOfIdle=true;}
+        else if (request->hasParam("2")) {voyState = AUTO_SPD; outOfIdle=true;}
+        else if (request->hasParam("3")) {voyState = AUTO_RPM; outOfIdle=true;}
         request->send(200, "text/plain", "OK");
         if (!saveSettings()) {crash();}
-        Serial.println(voyState);
+        // Serial.println(voyState);
     });
 
     // Request for the recording mode

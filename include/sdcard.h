@@ -9,6 +9,13 @@
 #include "SD.h"
 
 /**
+ * @brief Find the file requested.
+ * @param fileName The file name to look for
+ * @returns True if file found. False if file not found.
+*/
+bool searchForFile(const char * fileName);
+
+/**
  * @brief Write data to a file. This will overwrite the file with the contents.
  * @param path The path and file name to create
  * @param message The contents to write to the file

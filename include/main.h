@@ -16,13 +16,16 @@
 #define SD_Detect GPIO_NUM_34
 #define N2K_STBY GPIO_NUM_4
 
+extern bool outOfIdle;
+
 // SD card recording state
 enum voyState {
     OFF = 0,
     ON = 1,
     AUTO_SPD = 2,
     AUTO_RPM = 3,
-    START = 4
+    AUTO_SPD_IDLE = 4,
+    AUTO_RPM_IDLE = 5
 };
 
 /**
@@ -31,7 +34,8 @@ enum voyState {
  * @param ON
  * @param AUTO_SPD
  * @param AUTO_RPM
- * @param START
+ * @param AUTO_SPD_IDLE
+ * @param AUTO_RPM_IDLE
 */
 extern enum voyState voyState;
 

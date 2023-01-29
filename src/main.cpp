@@ -41,6 +41,8 @@ enum voyState voyState;
 // Structure to store device settings
 Settings settings;
 
+bool outOfIdle = true;
+
 /**
  * @brief Complie data in CSV format to send to the user.
  * @param none
@@ -303,9 +305,6 @@ void loop()
 {
     static long statDelay = millis();
     static int count = 0;
-    static String sfileName;
-    static long lastCount;
-    static long mycount;
 
     if (statDelay + 1000 < millis())
     {
@@ -334,40 +333,58 @@ void loop()
         getSDcardStatus();
         statDelay = millis();
         count++;
-
-        // Serial.println(mycount - lastCount);
-        // lastCount = mycount;
     }
 
-    // NMEAloop();
+    switch (voyState){
+        case AUTO_RPM:
+            if (rpm==0){voyState=AUTO_RPM_IDLE;}
+            break;
 
-    // create new csv filename with voyage number 
-    if (voyState == START)
-    {
-        std::string n = std::to_string(settings.voyNum);
-        const char *msg = "Voyage";
-        const char *num = n.c_str();
-        sfileName = "/";
-        sfileName += msg;
-        sfileName += num;
-        sfileName += ".csv";
-        settings.voyNum++;
-        if (!saveSettings()) {crash();}
-        voyState = ON;
+        case AUTO_RPM_IDLE:
+            if (rpm>0){
+                outOfIdle=true;
+                voyState=AUTO_RPM;
+            }
+            break;
+
+        case AUTO_SPD:
+            if (speed==0){voyState=AUTO_SPD_IDLE;}
+            break;
+
+        case AUTO_SPD_IDLE:
+            if (speed>0){
+                outOfIdle=true;
+                voyState=AUTO_SPD;
+            }
+            break;
+        
+        default:
+            break;
     }
-
-    // NMEAloop();
-
-    // log the current NMEA data every x seconds
-    // if (count >= settings.recInt && voyState == ON)
-    // {
-    //     // Serial.println("log");
-    //     count = 0;
-    //     if (!appendFile(sfileName.c_str(), getCSV().c_str(), false)) {crash();}
-    // }
     
-    // NMEAloop();
-    // webLoop();
+    if ((voyState == AUTO_RPM || voyState == AUTO_SPD || voyState == ON) && count >= settings.recInt){
+        static int voyageNum;
+        static String lastFileName;
+        static String curFileName;
 
-    // mycount++; 
+        if (outOfIdle) {
+            voyageNum = 1;
+            lastFileName = "Voyage";
+            lastFileName += voyageNum;
+            lastFileName += ".csv";
+
+            while (searchForFile(lastFileName.c_str())){
+                voyageNum++;
+                lastFileName = "Voyage";
+                lastFileName += voyageNum;
+                lastFileName += ".csv";
+            }
+            curFileName = "/";
+            curFileName += lastFileName;       // current = last because search function failed on search for current file name
+            outOfIdle = false;
+        }
+        
+        if (!appendFile(curFileName.c_str(), getCSV().c_str(), false)) {crash();}
+        count = 0;
+    }
 }
