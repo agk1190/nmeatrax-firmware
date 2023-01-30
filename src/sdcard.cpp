@@ -141,6 +141,22 @@ bool deleteFile(fs::FS &fs, const char * path){
     return(true);
 }
 
+bool writeGPX(double lat, double lon){
+    String waypoint;
+    static int wptNum;
+    String gpxFileName;
+
+    waypoint = "<wpt lat=\"";
+    waypoint += lat;
+    waypoint += "\" lon=\"";
+    waypoint += lon;
+    waypoint += "\">\n  <name>";
+    waypoint += wptNum;
+    waypoint += "</name>\n</wpt>\n";
+
+    return (appendFile(gpxFileName.c_str(), waypoint.c_str(), false));
+}
+
 bool sdSetup(){
     const uint8_t SCK = 18;
     const uint8_t MISO = 19;

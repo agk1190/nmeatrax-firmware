@@ -9,11 +9,10 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
  
 ### Coming Soon
 - OTA updates
-- Record GPX 
 - Upload data to server (far fetched idea)
 
 ### In Progress
-
+- Record GPX 
 
 ### Changed
 - Removed NMEA 0183
