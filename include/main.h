@@ -10,7 +10,6 @@
 #include <Arduino_JSON.h>
 
 #define LED_PWR GPIO_NUM_32
-#define LED_0183 GPIO_NUM_33
 #define LED_N2K GPIO_NUM_25
 #define LED_SD GPIO_NUM_14
 #define SD_Detect GPIO_NUM_34
@@ -44,7 +43,6 @@ struct settings
     String wifiMode;
     const char *wifiSSID;
     const char *wifiPass;
-    int voyNum;
     int voyState;
     int recInt;
     String depthUnit;

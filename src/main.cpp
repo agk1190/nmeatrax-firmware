@@ -121,7 +121,6 @@ bool saveSettings()
     // jsettings["wifiPass"] = settings.wifiPass;
     jsettings["wifiSSID"] = "NMEATrax";
     jsettings["wifiPass"] = "nmeatrax";
-    jsettings["voyNum"] = settings.voyNum;
     jsettings["voyState"] = settings.voyState;
     jsettings["recInt"] = settings.recInt;
     jsettings["depthUnit"] = settings.depthUnit;
@@ -129,14 +128,12 @@ bool saveSettings()
     jsettings["timeZone"] = settings.timeZone;
     String settingsString = JSON.stringify(jsettings);
     File file = SPIFFS.open("/settings.txt", "w");
-    if (!file)
-    {
+    if (!file){
         Serial.println("Error opening settings file");
         return(false);
     }
     file.print(settingsString);
     file.close();
-    // Serial.println(settingsString);
     return(true);
 }
 
@@ -147,11 +144,9 @@ bool readSettings()
     String settingsString = file.readString();
     file.close();
     jsettings = JSON.parse(settingsString);
-    // Serial.println(settingsString);
     settings.wifiMode = jsettings["wifiMode"];
     settings.wifiSSID = jsettings["wifiSSID"];
     settings.wifiPass = jsettings["wifiPass"];
-    settings.voyNum = jsettings["voyNum"];
     settings.voyState = jsettings["voyState"];
     settings.recInt = jsettings["recInt"];
     settings.depthUnit = jsettings["depthUnit"];
@@ -178,7 +173,6 @@ bool readSettings()
     default:
         break;
     }
-    // Serial.println(voyState);
     return(true);
 }
 
@@ -228,14 +222,12 @@ void setup()
     delay(500);
 
     pinMode(LED_PWR, OUTPUT);
-    pinMode(LED_0183, OUTPUT);
     pinMode(LED_N2K, OUTPUT);
     pinMode(LED_SD, OUTPUT);
     pinMode(SD_Detect, INPUT_PULLUP);
     pinMode(N2K_STBY, OUTPUT);
 
     digitalWrite(LED_PWR, HIGH);
-    digitalWrite(LED_0183, LOW);
     digitalWrite(LED_N2K, LOW);
     digitalWrite(LED_SD, LOW);
     digitalWrite(N2K_STBY, LOW);
@@ -305,6 +297,7 @@ void loop()
 {
     static long statDelay = millis();
     static int count = 0;
+    static int localRecInt;
 
     if (statDelay + 1000 < millis())
     {
@@ -328,7 +321,7 @@ void loop()
         // ehours = 122;
         // flevel = random(40.2, 60.9);
         // gear = "N";
-        timeString = asctime(&timeDetails);
+        // timeString = asctime(&timeDetails);
 
         getSDcardStatus();
         statDelay = millis();
@@ -361,15 +354,29 @@ void loop()
         default:
             break;
     }
+
+    if (voyState == AUTO_RPM){
+        if (rpm > 3000){
+            localRecInt = 30;
+        } else {
+            localRecInt = settings.recInt;
+        }
+    } else if (voyState == AUTO_SPD){
+        if (speed > 15){
+            localRecInt = 30;
+        } else {
+            localRecInt = settings.recInt;
+        }
+    } else {
+        localRecInt = settings.recInt;
+    }
     
-    if ((voyState == AUTO_RPM || voyState == AUTO_SPD || voyState == ON) && count >= settings.recInt){
-        static int voyageNum;
-        static String lastFileName;
+    if ((voyState == AUTO_RPM || voyState == AUTO_SPD || voyState == ON) && count >= localRecInt){
         static String curFileName;
 
         if (outOfIdle) {
-            voyageNum = 1;
-            lastFileName = "Voyage";
+            int voyageNum = 1;
+            String lastFileName = "Voyage";
             lastFileName += voyageNum;
             lastFileName += ".csv";
 

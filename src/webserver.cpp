@@ -147,24 +147,8 @@ bool webSetup() {
         } else {
             Serial.println("Erase complete");
         }
-        settings.voyNum = 1;
-        if (!saveSettings()) {crash();}
         request->send(200, "text/plain", "OK");
     });
-
-    // // start logging callback
-    // server.on("/startLog", HTTP_GET, [](AsyncWebServerRequest *request){
-    //     voyState = START;
-    //     Serial.println("Voyage Mode: START");
-    //     request->send(200, "text/plain", "OK");
-    // });
-
-    // // stop logging callback
-    // server.on("/stopLog", HTTP_GET, [](AsyncWebServerRequest *request){
-    //     voyState = STOP;
-    //     Serial.println("Voyage Mode: STOP");
-    //     request->send(200, "text/plain", "OK");
-    // });
 
     server.on("/loggingMode", HTTP_GET, [](AsyncWebServerRequest *request){
         if (request->hasParam("0")) {voyState = OFF;}
@@ -173,7 +157,6 @@ bool webSetup() {
         else if (request->hasParam("3")) {voyState = AUTO_RPM; outOfIdle=true;}
         request->send(200, "text/plain", "OK");
         if (!saveSettings()) {crash();}
-        // Serial.println(voyState);
     });
 
     // Request for the recording mode
@@ -181,8 +164,8 @@ bool webSetup() {
         String s;
         if (voyState == OFF) {s="0";}
         else if (voyState == ON) {s="1";}
-        else if (voyState == AUTO_SPD) {s="2";}
-        else if (voyState == AUTO_RPM) {s="3";}
+        else if (voyState == AUTO_SPD || voyState == AUTO_SPD_IDLE) {s="2";}
+        else if (voyState == AUTO_RPM || voyState == AUTO_RPM_IDLE) {s="3";}
         request->send(200, "text/plain", s);
     });
 

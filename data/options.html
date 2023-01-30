@@ -4,7 +4,6 @@
 <head>
     <title>NMEATrax WebView</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- <meta name="color-scheme" content="dark light"> -->
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="manifest" href="site.webmanifest">
@@ -165,21 +164,6 @@
             document.getElementById('confBut').style.display = "inline";
             document.getElementById('confTxt').style.display = "inline";
         }
-
-        // function toggleLog() {
-        //     if (document.getElementById("toggleLogBtn").innerHTML == "Start") {
-        //         var xhttp = new XMLHttpRequest();
-        //         xhttp.open("GET", "/startLog", true);
-        //         xhttp.send();
-        //         getRunState();
-        //     }
-        //     else if (document.getElementById("toggleLogBtn").innerHTML == "Stop") {
-        //         var xhttp = new XMLHttpRequest();
-        //         xhttp.open("GET", "/stopLog", true);
-        //         xhttp.send();
-        //         getRunState();
-        //     }
-        // }
 
         function setLoggingMode(index) {
             var xhr = new XMLHttpRequest();
