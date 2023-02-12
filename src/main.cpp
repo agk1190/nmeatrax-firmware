@@ -41,6 +41,9 @@ enum voyState voyState;
 // Structure to store device settings
 Settings settings;
 
+bool outOfIdle = true;
+String GPXFileName;
+
 /**
  * @brief Complie data in CSV format to send to the user.
  * @param none
@@ -113,20 +116,20 @@ String JSONValues()
 
 bool saveSettings()
 {
+    settings.voyState = voyState;
     jsettings["wifiMode"] = settings.wifiMode;
     // jsettings["wifiSSID"] = settings.wifiSSID;
     // jsettings["wifiPass"] = settings.wifiPass;
     jsettings["wifiSSID"] = "NMEATrax";
     jsettings["wifiPass"] = "nmeatrax";
-    jsettings["voyNum"] = settings.voyNum;
+    jsettings["voyState"] = settings.voyState;
     jsettings["recInt"] = settings.recInt;
     jsettings["depthUnit"] = settings.depthUnit;
     jsettings["tempUnit"] = settings.tempUnit;
     jsettings["timeZone"] = settings.timeZone;
     String settingsString = JSON.stringify(jsettings);
     File file = SPIFFS.open("/settings.txt", "w");
-    if (!file)
-    {
+    if (!file){
         Serial.println("Error opening settings file");
         return(false);
     }
@@ -145,11 +148,32 @@ bool readSettings()
     settings.wifiMode = jsettings["wifiMode"];
     settings.wifiSSID = jsettings["wifiSSID"];
     settings.wifiPass = jsettings["wifiPass"];
-    settings.voyNum = jsettings["voyNum"];
+    settings.voyState = jsettings["voyState"];
     settings.recInt = jsettings["recInt"];
     settings.depthUnit = jsettings["depthUnit"];
     settings.tempUnit = jsettings["tempUnit"];
     settings.timeZone = jsettings["timeZone"];
+    switch (settings.voyState)
+    {
+    case 0:
+        voyState = OFF;
+        break;
+
+    case 1:
+        voyState = ON;
+        break;
+
+    case 2:
+        voyState = AUTO_SPD;
+        break;
+
+    case 3:
+        voyState = AUTO_RPM;
+        break;
+    
+    default:
+        break;
+    }
     return(true);
 }
 
@@ -199,14 +223,12 @@ void setup()
     delay(500);
 
     pinMode(LED_PWR, OUTPUT);
-    pinMode(LED_0183, OUTPUT);
     pinMode(LED_N2K, OUTPUT);
     pinMode(LED_SD, OUTPUT);
     pinMode(SD_Detect, INPUT_PULLUP);
     pinMode(N2K_STBY, OUTPUT);
 
     digitalWrite(LED_PWR, HIGH);
-    digitalWrite(LED_0183, LOW);
     digitalWrite(LED_N2K, LOW);
     digitalWrite(LED_SD, LOW);
     digitalWrite(N2K_STBY, LOW);
@@ -276,9 +298,7 @@ void loop()
 {
     static long statDelay = millis();
     static int count = 0;
-    static String sfileName;
-    static long lastCount;
-    static long mycount;
+    static int localRecInt;
 
     if (statDelay + 1000 < millis())
     {
@@ -302,45 +322,93 @@ void loop()
         // ehours = 122;
         // flevel = random(40.2, 60.9);
         // gear = "N";
-        timeString = asctime(&timeDetails);
+        // lat = random(40.0, 60.0);
+        // lon = random(120.0, 140.0);
+        // timeString = asctime(&timeDetails);
 
         getSDcardStatus();
         statDelay = millis();
         count++;
-
-        Serial.println(mycount - lastCount);
-        lastCount = mycount;
     }
 
-    // NMEAloop();
+    switch (voyState){
+        case AUTO_RPM:
+            if (rpm==0){
+                voyState=AUTO_RPM_IDLE;
+                endGPXfile(GPXFileName.c_str());
+            }
+            break;
 
-    // create new csv filename with voyage number 
-    if (voyState == START)
-    {
-        std::string n = std::to_string(settings.voyNum);
-        const char *msg = "Voyage";
-        const char *num = n.c_str();
-        sfileName = "/";
-        sfileName += msg;
-        sfileName += num;
-        sfileName += ".csv";
-        settings.voyNum++;
-        if (!saveSettings()) {crash();}
-        voyState = RUN;
+        case AUTO_RPM_IDLE:
+            if (rpm>0){
+                outOfIdle=true;
+                voyState=AUTO_RPM;
+            }
+            break;
+
+        case AUTO_SPD:
+            if (speed==0){
+                voyState=AUTO_SPD_IDLE;
+                endGPXfile(GPXFileName.c_str());
+            }
+            break;
+
+        case AUTO_SPD_IDLE:
+            if (speed>0){
+                outOfIdle=true;
+                voyState=AUTO_SPD;
+            }
+            break;
+        
+        default:
+            break;
     }
 
-    // NMEAloop();
-
-    // log the current NMEA data every x seconds
-    if (count >= settings.recInt && voyState == RUN)
-    {
-        // Serial.println("log");
-        count = 0;
-        if (!appendFile(sfileName.c_str(), getCSV().c_str(), false)) {crash();}
+    if (voyState == AUTO_RPM){
+        if (rpm > 3000){
+            localRecInt = 30;
+        } else {
+            localRecInt = settings.recInt;
+        }
+    } else if (voyState == AUTO_SPD){
+        if (speed > 15){
+            localRecInt = 30;
+        } else {
+            localRecInt = settings.recInt;
+        }
+    } else {
+        localRecInt = settings.recInt;
     }
     
-    // NMEAloop();
-    // webLoop();
+    if ((voyState == AUTO_RPM || voyState == AUTO_SPD || voyState == ON) && count >= localRecInt){
+        static String CSVFileName;
+        static int gpxWPTcount = 1;
 
-    mycount++; 
+        if (outOfIdle) {
+            int voyageNum = 0;
+            gpxWPTcount = 1;
+            String lastCSVfileName;
+
+            do
+            {
+                voyageNum++;
+                lastCSVfileName = "Voyage";
+                lastCSVfileName += voyageNum;
+                lastCSVfileName += ".csv";
+            } while (searchForFile(lastCSVfileName.c_str()));
+
+            CSVFileName = "/";
+            CSVFileName += lastCSVfileName;       // current = last because search function failed on search for current file name
+            GPXFileName = "/Voyage";
+            GPXFileName += voyageNum;
+            GPXFileName += ".gpx";
+            createGPXfile(GPXFileName.c_str(), timeString.c_str());
+            outOfIdle = false;
+        }
+        
+        if (!appendFile(CSVFileName.c_str(), getCSV().c_str(), false)) {crash();}
+        if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
+        gpxWPTcount++;
+        count = 0;
+    }
 }

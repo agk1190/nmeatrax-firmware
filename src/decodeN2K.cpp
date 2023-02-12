@@ -29,7 +29,7 @@ void WaterDepth(const tN2kMsg &N2kMsg);
 void Temperature(const tN2kMsg &N2kMsg);
 void COGSOG(const tN2kMsg &N2kMsg);
 void GNSS(const tN2kMsg &N2kMsg);
-void PositionRapid(const tN2kMsg &N2kMsg);
+// void PositionRapid(const tN2kMsg &N2kMsg);
 void MagneticVariation(const tN2kMsg &N2kMsg);
 void FluidLevel(const tN2kMsg &N2kMsg);
 
@@ -42,7 +42,7 @@ tNMEA2000Handler NMEA2000Handlers[]={
     {128267L,&WaterDepth},
     {129026L,&COGSOG},
     {129029L,&GNSS},
-    {129025L,&PositionRapid},
+    // {129025L,&PositionRapid},
     {130312L,&Temperature},
     {0,0}
 };
@@ -56,18 +56,18 @@ int otemp;
 double wtemp;
 double lat;
 double lon;
-double rapidLat;
-double rapidLon;
+// double rapidLat;
+// double rapidLon;
 double mag_var;
 int leg_tilt;
 int opres;
 double battV;
 double fuel_rate;
 int ehours;
-String gear;
+String gear = "-";
 double flevel;
 uint32_t unixTime;
-String timeString;
+String timeString = "-";
 
 extern Settings settings;
 
@@ -217,46 +217,6 @@ void TransmissionParameters(const tN2kMsg &N2kMsg) {
         } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
-/*//*****************************************************************************
-// void TripFuelConsumption(const tN2kMsg &N2kMsg) {
-//     unsigned char EngineInstance;
-//     double TripFuelUsed;
-//     double FuelRateAverage; 
-//     double FuelRateEconomy; 
-//     double InstantaneousFuelEconomy; 
-    
-//     if (ParseN2kEngineTripParameters(N2kMsg,EngineInstance, TripFuelUsed, FuelRateAverage, FuelRateEconomy, InstantaneousFuelEconomy) ) {
-//       PrintLabelValWithConversionCheckUnDef("Trip fuel consumption: ",EngineInstance,0,true);
-//       PrintLabelValWithConversionCheckUnDef("  fuel used (l): ",TripFuelUsed,0,true);
-//       PrintLabelValWithConversionCheckUnDef("  average fuel rate (l/h): ",FuelRateAverage,0,true);
-//       PrintLabelValWithConversionCheckUnDef("  economy fuel rate (l/h): ",FuelRateEconomy,0,true);
-//       PrintLabelValWithConversionCheckUnDef("  instantaneous fuel economy (l/h): ",InstantaneousFuelEconomy,0,true);
-//     } else {
-//       OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);
-//     }
-// }
-
-//*****************************************************************************
-// void Heading(const tN2kMsg &N2kMsg) {
-//     unsigned char SID;
-//     tN2kHeadingReference HeadingReference;
-//     double Heading;
-//     double Deviation;
-//     double Variation;
-    
-//     if (ParseN2kHeading(N2kMsg,SID,Heading,Deviation,Variation,HeadingReference) ) {
-//                       OutputStream->println("Heading:");
-//       PrintLabelValWithConversionCheckUnDef("  SID: ",SID,0,true);
-//                         OutputStream->print("  reference: "); PrintN2kEnumType(HeadingReference,OutputStream);
-//       PrintLabelValWithConversionCheckUnDef("  Heading (deg): ",Heading,&RadToDeg,true);
-//       PrintLabelValWithConversionCheckUnDef("  Deviation (deg): ",Deviation,&RadToDeg,true);
-//       PrintLabelValWithConversionCheckUnDef("  Variation (deg): ",Variation,&RadToDeg,true);
-//     //   heading = ReturnWithConversionCheckUnDef(heading,&RadToDeg);
-//     } else {
-//       OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);
-//     }
-// }*/
-
 //*****************************************************************************
 void COGSOG(const tN2kMsg &N2kMsg) {
     unsigned char SID;
@@ -324,10 +284,6 @@ void GNSS(const tN2kMsg &N2kMsg) {
         #endif
         lat = Latitude;
         lon = Longitude;
-        // Serial.print("Lat: ");
-        // Serial.println(lat, 6);
-        // Serial.print("Lon: ");
-        // Serial.println(lon, 6);
         unixTime = ((DaysSince1970*86400)+SecondsSinceMidnight);
         unixTime = unixTime+(settings.timeZone*3600);
         time_t epoch = unixTime;
@@ -338,21 +294,21 @@ void GNSS(const tN2kMsg &N2kMsg) {
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
-void PositionRapid(const tN2kMsg &N2kMsg) {
-    double Latitude;
-    double Longitude;
+// void PositionRapid(const tN2kMsg &N2kMsg) {
+//     double Latitude;
+//     double Longitude;
 
-    digitalWrite(LED_N2K, HIGH);
-    if (ParseN2kPositionRapid(N2kMsg,Latitude,Longitude) ) {
-        #ifdef DEBUG_EN
-                        OutputStream->println("Position info:");
-        PrintLabelValWithConversionCheckUnDef("  latitude: ",Latitude,0,true,9);
-        PrintLabelValWithConversionCheckUnDef("  longitude: ",Longitude,0,true,9);
-        #endif
-        rapidLat = Latitude;
-        rapidLon = Longitude;
-    } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
-}
+//     digitalWrite(LED_N2K, HIGH);
+//     if (ParseN2kPositionRapid(N2kMsg,Latitude,Longitude) ) {
+//         #ifdef DEBUG_EN
+//                         OutputStream->println("Position info:");
+//         PrintLabelValWithConversionCheckUnDef("  latitude: ",Latitude,0,true,9);
+//         PrintLabelValWithConversionCheckUnDef("  longitude: ",Longitude,0,true,9);
+//         #endif
+//         rapidLat = Latitude;
+//         rapidLon = Longitude;
+//     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
+// }
 
 //*****************************************************************************
 void Temperature(const tN2kMsg &N2kMsg) {

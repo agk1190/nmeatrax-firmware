@@ -140,30 +140,33 @@ bool webSetup() {
 
     // Erase data callback
     server.on("/eraseData", HTTP_GET, [](AsyncWebServerRequest *request){
-        voyState = STOP;
+        voyState = OFF;
         if (!deleteFile(SD, "/")) {
             Serial.println("Erase failed");
             crash();
         } else {
             Serial.println("Erase complete");
         }
-        settings.voyNum = 1;
+        request->send(200, "text/plain", "OK");
+    });
+
+    server.on("/loggingMode", HTTP_GET, [](AsyncWebServerRequest *request){
+        if (request->hasParam("0")) {voyState = OFF; endGPXfile(GPXFileName.c_str());}
+        else if (request->hasParam("1")) {voyState = ON; outOfIdle=true;}
+        else if (request->hasParam("2")) {voyState = AUTO_SPD; outOfIdle=true;}
+        else if (request->hasParam("3")) {voyState = AUTO_RPM; outOfIdle=true;}
+        request->send(200, "text/plain", "OK");
         if (!saveSettings()) {crash();}
-        request->send(200, "text/plain", "OK");
     });
 
-    // start logging callback
-    server.on("/startLog", HTTP_GET, [](AsyncWebServerRequest *request){
-        voyState = START;
-        Serial.println("Voyage Mode: START");
-        request->send(200, "text/plain", "OK");
-    });
-
-    // stop logging callback
-    server.on("/stopLog", HTTP_GET, [](AsyncWebServerRequest *request){
-        voyState = STOP;
-        Serial.println("Voyage Mode: STOP");
-        request->send(200, "text/plain", "OK");
+    // Request for the recording mode
+    server.on("/runState", HTTP_GET, [](AsyncWebServerRequest *request) {
+        String s;
+        if (voyState == OFF) {s="0";}
+        else if (voyState == ON) {s="1";}
+        else if (voyState == AUTO_SPD || voyState == AUTO_SPD_IDLE) {s="2";}
+        else if (voyState == AUTO_RPM || voyState == AUTO_RPM_IDLE) {s="3";}
+        request->send(200, "text/plain", s);
     });
 
     // Get all files on the SD card
@@ -268,14 +271,6 @@ bool webSetup() {
         request->send(200, "text/html", "<h1>The " + inputParam + " was sucessfully set with value: " + inputMessage +
                                         "</h1><br><a href=\"/options.html\">Return</a><script>setTimeout(function()" + 
                                         "{window.location.href = \"/options.html\"}, 5000);</script>");
-    });
-
-    // Request for the recording mode
-    server.on("/runState", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String s;
-        if (voyState == STOP) {s="0";}
-        if (voyState == RUN) {s="1";}
-        request->send(200, "text/plain", s);
     });
 
     server.addHandler(&events);

@@ -2,7 +2,7 @@
     "wifiMode":"wan",
     "wifiSSID":"NMEATrax",
     "wifiPass":"nmeatrax",
-    "voyNum":1,
+    "voyState":2,
     "recInt":5,
     "depthUnit":"0",
     "tempUnit":"0",

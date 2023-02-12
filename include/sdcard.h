@@ -9,6 +9,13 @@
 #include "SD.h"
 
 /**
+ * @brief Find the file requested.
+ * @param fileName The file name to look for
+ * @returns True if file found. False if file not found.
+*/
+bool searchForFile(const char * fileName);
+
+/**
  * @brief Write data to a file. This will overwrite the file with the contents.
  * @param path The path and file name to create
  * @param message The contents to write to the file
@@ -50,6 +57,31 @@ String listDir(fs::FS &fs, const char * dirname, uint8_t levels);
  * @link https://www.codeproject.com/Articles/5300719/ESP32-WEB-Server-with-Asynchronous-Technology-and
 */
 String getFile(String filePath);
+
+/**
+ * @brief Write a point to the GPX file
+ * @param fileName GPX filename
+ * @param wptNum Waypoint number
+ * @param lat Latitude
+ * @param lon Longitude
+ * @returns True if succeeded
+*/
+bool writeGPXpoint(const char * fileName, int wptNum, double lat, double lon);
+
+/**
+ * @brief Create and setup gpx file
+ * @param fileName GPX filename
+ * @param timeStamp Current time stamp
+ * @returns True if succeeded
+*/
+bool createGPXfile(const char * fileName, const char * timeStamp);
+
+/**
+ * @brief Put a </gpx> at the end of the file
+ * @param fileName GPX filename
+ * @returns True if succeeded
+*/
+bool endGPXfile(const char * fileName);
 
 /**
  * @brief Setup SD card

@@ -10,24 +10,32 @@
 #include <Arduino_JSON.h>
 
 #define LED_PWR GPIO_NUM_32
-#define LED_0183 GPIO_NUM_33
 #define LED_N2K GPIO_NUM_25
 #define LED_SD GPIO_NUM_14
 #define SD_Detect GPIO_NUM_34
 #define N2K_STBY GPIO_NUM_4
 
+extern bool outOfIdle;
+extern String GPXFileName;
+
 // SD card recording state
 enum voyState {
-    STOP = 0,
-    RUN = 1,
-    START = 2
+    OFF = 0,
+    ON = 1,
+    AUTO_SPD = 2,
+    AUTO_RPM = 3,
+    AUTO_SPD_IDLE = 4,
+    AUTO_RPM_IDLE = 5
 };
 
 /**
  * SD card logging mode
- * @param STOP
- * @param RUN
- * @param START
+ * @param OFF
+ * @param ON
+ * @param AUTO_SPD
+ * @param AUTO_RPM
+ * @param AUTO_SPD_IDLE
+ * @param AUTO_RPM_IDLE
 */
 extern enum voyState voyState;
 
@@ -36,7 +44,7 @@ struct settings
     String wifiMode;
     const char *wifiSSID;
     const char *wifiPass;
-    int voyNum;
+    int voyState;
     int recInt;
     String depthUnit;
     String tempUnit;
