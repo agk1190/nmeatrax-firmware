@@ -12,7 +12,6 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 - Upload data to server (far fetched idea)
 
 ### In Progress
-- Record GPX 
 
 ### Changed
 - Removed NMEA 0183
@@ -22,6 +21,7 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 - Moved NMEAloop() and webLoop() to timers
 - Add Auto option to log recorder
 - Change recording interval based on speed or rpm
+- Record GPX
  
 ## [1.0.0] - 2022-12-15
  

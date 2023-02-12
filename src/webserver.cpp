@@ -151,7 +151,7 @@ bool webSetup() {
     });
 
     server.on("/loggingMode", HTTP_GET, [](AsyncWebServerRequest *request){
-        if (request->hasParam("0")) {voyState = OFF;}
+        if (request->hasParam("0")) {voyState = OFF; endGPXfile(GPXFileName.c_str());}
         else if (request->hasParam("1")) {voyState = ON; outOfIdle=true;}
         else if (request->hasParam("2")) {voyState = AUTO_SPD; outOfIdle=true;}
         else if (request->hasParam("3")) {voyState = AUTO_RPM; outOfIdle=true;}

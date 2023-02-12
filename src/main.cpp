@@ -42,6 +42,7 @@ enum voyState voyState;
 Settings settings;
 
 bool outOfIdle = true;
+String GPXFileName;
 
 /**
  * @brief Complie data in CSV format to send to the user.
@@ -321,6 +322,8 @@ void loop()
         // ehours = 122;
         // flevel = random(40.2, 60.9);
         // gear = "N";
+        // lat = random(40.0, 60.0);
+        // lon = random(120.0, 140.0);
         // timeString = asctime(&timeDetails);
 
         getSDcardStatus();
@@ -330,7 +333,10 @@ void loop()
 
     switch (voyState){
         case AUTO_RPM:
-            if (rpm==0){voyState=AUTO_RPM_IDLE;}
+            if (rpm==0){
+                voyState=AUTO_RPM_IDLE;
+                endGPXfile(GPXFileName.c_str());
+            }
             break;
 
         case AUTO_RPM_IDLE:
@@ -341,7 +347,10 @@ void loop()
             break;
 
         case AUTO_SPD:
-            if (speed==0){voyState=AUTO_SPD_IDLE;}
+            if (speed==0){
+                voyState=AUTO_SPD_IDLE;
+                endGPXfile(GPXFileName.c_str());
+            }
             break;
 
         case AUTO_SPD_IDLE:
@@ -372,26 +381,34 @@ void loop()
     }
     
     if ((voyState == AUTO_RPM || voyState == AUTO_SPD || voyState == ON) && count >= localRecInt){
-        static String curFileName;
+        static String CSVFileName;
+        static int gpxWPTcount = 1;
 
         if (outOfIdle) {
-            int voyageNum = 1;
-            String lastFileName = "Voyage";
-            lastFileName += voyageNum;
-            lastFileName += ".csv";
+            int voyageNum = 0;
+            gpxWPTcount = 1;
+            String lastCSVfileName;
 
-            while (searchForFile(lastFileName.c_str())){
+            do
+            {
                 voyageNum++;
-                lastFileName = "Voyage";
-                lastFileName += voyageNum;
-                lastFileName += ".csv";
-            }
-            curFileName = "/";
-            curFileName += lastFileName;       // current = last because search function failed on search for current file name
+                lastCSVfileName = "Voyage";
+                lastCSVfileName += voyageNum;
+                lastCSVfileName += ".csv";
+            } while (searchForFile(lastCSVfileName.c_str()));
+
+            CSVFileName = "/";
+            CSVFileName += lastCSVfileName;       // current = last because search function failed on search for current file name
+            GPXFileName = "/Voyage";
+            GPXFileName += voyageNum;
+            GPXFileName += ".gpx";
+            createGPXfile(GPXFileName.c_str(), timeString.c_str());
             outOfIdle = false;
         }
         
-        if (!appendFile(curFileName.c_str(), getCSV().c_str(), false)) {crash();}
+        if (!appendFile(CSVFileName.c_str(), getCSV().c_str(), false)) {crash();}
+        if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
+        gpxWPTcount++;
         count = 0;
     }
 }

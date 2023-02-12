@@ -141,10 +141,8 @@ bool deleteFile(fs::FS &fs, const char * path){
     return(true);
 }
 
-bool writeGPX(double lat, double lon){
+bool writeGPXpoint(const char * fileName, int wptNum, double lat, double lon){
     String waypoint;
-    static int wptNum;
-    String gpxFileName;
 
     waypoint = "<wpt lat=\"";
     waypoint += lat;
@@ -153,8 +151,26 @@ bool writeGPX(double lat, double lon){
     waypoint += "\">\n  <name>";
     waypoint += wptNum;
     waypoint += "</name>\n</wpt>\n";
+    // Serial.println(waypoint);
 
-    return (appendFile(gpxFileName.c_str(), waypoint.c_str(), false));
+    return (appendFile(fileName, waypoint.c_str(), false));
+}
+
+bool createGPXfile(const char * fileName, const char * timeStamp){
+    String header;
+
+    header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gpx version=\"1.0\" creator=\"NMEATrax\">\n  <time>";
+    header += timeStamp;
+    header += "</time>\n";
+    // Serial.println(header);
+
+    return (appendFile(fileName, header.c_str(), false));
+}
+
+bool endGPXfile(const char * fileName){
+    String footer;
+    footer = "</gpx>\n";
+    return (appendFile(fileName, footer.c_str(), false));
 }
 
 bool sdSetup(){

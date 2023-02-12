@@ -16,6 +16,7 @@
 #define N2K_STBY GPIO_NUM_4
 
 extern bool outOfIdle;
+extern String GPXFileName;
 
 // SD card recording state
 enum voyState {
