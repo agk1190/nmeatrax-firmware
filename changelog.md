@@ -8,10 +8,9 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 ## [Unreleased] - yyyy-mm-dd
  
 ### Coming Soon
-- OTA updates
-- Upload data to server (far fetched idea)
 
 ### In Progress
+- OTA updates
 
 ### Changed
 - Removed NMEA 0183
@@ -22,6 +21,7 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 - Add Auto option to log recorder
 - Change recording interval based on speed or rpm
 - Record GPX
+- Made all SD card functions require a file system to be supplied when called
  
 ## [1.0.0] - 2022-12-15
  

@@ -55,6 +55,11 @@
     </div><br>
     <!-- ----------------------------------------- -->
     <div>
+        <p>OTA Firmware Update</p>
+        <a href="update" class="button" onclick="OTAUpdate()">Update</a>
+    </div><br>
+    <!-- ----------------------------------------- -->
+    <div>
         <form action="/param">
             <p>Recording Interval (seconds)</p>
             <p class="options" id="recInt">Currently 5 seconds</p>
@@ -145,6 +150,13 @@
         function EEPROMRequest() {
             var xhttp = new XMLHttpRequest();
             xhttp.open("GET", "/eraseWiFi", true);
+            xhttp.send();
+        }
+
+        function OTAUpdate() {
+            setLoggingMode(0);
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("GET", "/otaUpdate", true);
             xhttp.send();
         }
 

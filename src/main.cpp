@@ -128,22 +128,29 @@ bool saveSettings()
     jsettings["tempUnit"] = settings.tempUnit;
     jsettings["timeZone"] = settings.timeZone;
     String settingsString = JSON.stringify(jsettings);
-    File file = SPIFFS.open("/settings.txt", "w");
-    if (!file){
-        Serial.println("Error opening settings file");
-        return(false);
-    }
-    file.print(settingsString);
-    file.close();
-    return(true);
+    // File file = SPIFFS.open("/settings.txt", "w");
+    // if (!file){
+    //     Serial.println("Error opening settings file");
+    //     return(false);
+    // }
+    // file.print(settingsString);
+    // file.close();
+    return(writeFile(SPIFFS, "/settings.txt", settingsString.c_str(), false));
 }
 
 bool readSettings()
 {
-    File file = SPIFFS.open("/settings.txt", "r");
-    if (!file){return(false);}
-    String settingsString = file.readString();
-    file.close();
+    // File file = SPIFFS.open("/settings.txt", "r");
+    // if (!file){return(false);}
+    // String settingsString = file.readString();
+    // file.close();
+    String settingsString;
+    if(getFile(SD, "/settings.txt") != "null") {
+        settingsString = getFile(SD, "/settings.txt");
+    } else {
+        settingsString = getFile(SPIFFS, "/settings.txt");
+    }
+    if(settingsString == "null"){return(false);}
     jsettings = JSON.parse(settingsString);
     settings.wifiMode = jsettings["wifiMode"];
     settings.wifiSSID = jsettings["wifiSSID"];
@@ -193,7 +200,7 @@ void createWifiText()
                 String(ipAddress[2]) + String(".") +\
                 String(ipAddress[3]) + "\r\n"; 
     wifiText += WiFi.macAddress();
-    writeFile("/wifi.txt", wifiText.c_str(), false);
+    writeFile(SD, "/wifi.txt", wifiText.c_str(), false);
 }
 
 void crash() {
@@ -395,7 +402,7 @@ void loop()
                 lastCSVfileName = "Voyage";
                 lastCSVfileName += voyageNum;
                 lastCSVfileName += ".csv";
-            } while (searchForFile(lastCSVfileName.c_str()));
+            } while (searchForFile(SD, lastCSVfileName.c_str()));
 
             CSVFileName = "/";
             CSVFileName += lastCSVfileName;       // current = last because search function failed on search for current file name
@@ -406,7 +413,7 @@ void loop()
             outOfIdle = false;
         }
         
-        if (!appendFile(CSVFileName.c_str(), getCSV().c_str(), false)) {crash();}
+        if (!appendFile(SD, CSVFileName.c_str(), getCSV().c_str(), false)) {crash();}
         if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
         gpxWPTcount++;
         count = 0;
