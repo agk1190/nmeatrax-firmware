@@ -120,25 +120,25 @@ bool writeFile(fs::FS &fs, const char * path, const char * message, bool newLine
 bool deleteFile(fs::FS &fs, const char * path){
     File root = fs.open(path);
     if(!root){
-        Serial.println("Failed to open directory");
+        Serial.println("Failed to open file/directory");
         return(false);
     }
-    if(!root.isDirectory()){
-        Serial.println("Not a directory");
-        return(false);
-    }
-    File file = root.openNextFile();
-    file = root.openNextFile();
-    while (file) 
-    {
-        String fileName = "/";
-        fileName += file.name();
-        if (!fs.remove(fileName)) {
-            return(false);
-        }
+    if(root.isDirectory()){
+        File file = root.openNextFile();
         file = root.openNextFile();
+        while (file) 
+        {
+            String fileName = "/";
+            fileName += file.name();
+            if (!fs.remove(fileName)) {
+                return(false);
+            }
+            file = root.openNextFile();
+        }
+        return(true);
+    } else {
+        return(fs.remove(path));
     }
-    return(true);
 }
 
 bool writeGPXpoint(const char * fileName, int wptNum, double lat, double lon){

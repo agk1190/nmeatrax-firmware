@@ -22,6 +22,9 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 - Change recording interval based on speed or rpm
 - Record GPX
 - Made all SD card functions require a file system to be supplied when called
+
+### Fixed
+- Fixed error when trying to download wifi.txt
  
 ## [1.0.0] - 2022-12-15
  

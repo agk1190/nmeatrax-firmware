@@ -185,9 +185,6 @@ bool webSetup() {
             }
             else return;
         AsyncWebServerResponse *response = request->beginResponse(SD, filePath, getFile(SD, filePath), true);
-        String content = "attachment; filename=";
-        content += request->getParam("fileName")->value();
-        response->addHeader("Content-Disposition",content);
         request->send(response);
         Serial.println("completed download");
     });
@@ -278,7 +275,7 @@ bool webSetup() {
     server.on("/otaUpdate", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send(200, "text/plain", "OK");
         digitalWrite(N2K_STBY, HIGH);
-        if (!writeFile(SD, "/settings.txt", getFile(SPIFFS, "/settings.txt").c_str(), false)){crash();}
+        backupSettings = true;
     });
 
     server.addHandler(&events);

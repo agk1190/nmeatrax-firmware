@@ -43,6 +43,7 @@ Settings settings;
 
 bool outOfIdle = true;
 String GPXFileName;
+bool backupSettings;
 
 /**
  * @brief Complie data in CSV format to send to the user.
@@ -128,29 +129,22 @@ bool saveSettings()
     jsettings["tempUnit"] = settings.tempUnit;
     jsettings["timeZone"] = settings.timeZone;
     String settingsString = JSON.stringify(jsettings);
-    // File file = SPIFFS.open("/settings.txt", "w");
-    // if (!file){
-    //     Serial.println("Error opening settings file");
-    //     return(false);
-    // }
-    // file.print(settingsString);
-    // file.close();
     return(writeFile(SPIFFS, "/settings.txt", settingsString.c_str(), false));
 }
 
 bool readSettings()
 {
-    // File file = SPIFFS.open("/settings.txt", "r");
-    // if (!file){return(false);}
-    // String settingsString = file.readString();
-    // file.close();
     String settingsString;
-    if(getFile(SD, "/settings.txt") != "null") {
-        settingsString = getFile(SD, "/settings.txt");
-    } else {
+    bool usedSdCard = true;
+    settingsString = getFile(SD, "/settings.txt");
+    Serial.print("SD Card - ");
+    Serial.println(settingsString);
+    if (settingsString == "null" || settingsString == "") {
         settingsString = getFile(SPIFFS, "/settings.txt");
+        Serial.print("SPIFFS - ");
+        Serial.println(settingsString);
+        usedSdCard = false;
     }
-    if(settingsString == "null"){return(false);}
     jsettings = JSON.parse(settingsString);
     settings.wifiMode = jsettings["wifiMode"];
     settings.wifiSSID = jsettings["wifiSSID"];
@@ -181,6 +175,10 @@ bool readSettings()
     default:
         break;
     }
+    if (usedSdCard) {
+        if (!saveSettings()) {crash();}
+        deleteFile(SD, "/settings.txt");
+    };
     return(true);
 }
 
@@ -247,6 +245,8 @@ void setup()
         crash();
     }
 
+    if (getSDcardStatus()) {sdSetup();}
+
     // load settings
     if (!readSettings()) {crash();}
 
@@ -283,7 +283,6 @@ void setup()
     setenv("TZ", getTZdefinition(settings.timeZone), 1);     // set time zone
     tzset();
 
-    if (getSDcardStatus()) {sdSetup();}
     if (!webSetup()) {crash();}
     if (!NMEAsetup()) {crash();}
     createWifiText();
@@ -417,5 +416,13 @@ void loop()
         if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
         gpxWPTcount++;
         count = 0;
+    
     }
+    // backup settings to sd card when doing ota update
+    if (backupSettings) {
+        if (!writeFile(SD, "/settings.txt", getFile(SPIFFS, "/settings.txt").c_str(), false)){crash();}
+        Serial.println("Backup Complete");
+        backupSettings = false;
+    }
+    vTaskDelay(1/portTICK_PERIOD_MS);
 }
