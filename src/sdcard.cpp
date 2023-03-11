@@ -13,8 +13,8 @@
 SPIClass spi = SPIClass(VSPI);
 
 // created by ChatGPT Jan 28, 2023
-bool searchForFile(const char* fileName) {
-    File root = SD.open("/");
+bool searchForFile(fs::FS &fs, const char* fileName) {
+    File root = fs.open("/");
     while (true) {
         File entry = root.openNextFile();
         if (!entry) {
@@ -66,8 +66,8 @@ String listDir(fs::FS &fs, const char * dirname, uint8_t levels){
     }
 }
 
-String getFile(String filePath) {
-    File file = SD.open(filePath);
+String getFile(fs::FS &fs, String filePath) {
+    File file = fs.open(filePath);
     String s;
     if (!file){
         Serial.println("Failed to open file for reading");
@@ -82,8 +82,8 @@ String getFile(String filePath) {
     }
 }
 
-bool appendFile(const char * path, const char * message, bool newLine){
-    File file = SD.open(path, FILE_APPEND);
+bool appendFile(fs::FS &fs, const char * path, const char * message, bool newLine){
+    File file = fs.open(path, FILE_APPEND);
     if (!file){
         Serial.println("Failed to open file for appending");
         return (false);
@@ -101,10 +101,10 @@ bool appendFile(const char * path, const char * message, bool newLine){
     return (true);
 }
 
-bool writeFile(const char * path, const char * message, bool newLine){
-    File file = SD.open(path, FILE_WRITE);
+bool writeFile(fs::FS &fs, const char * path, const char * message, bool newLine){
+    File file = fs.open(path, FILE_WRITE);
     if(!file){
-        Serial.println("Failed to open file for appending");
+        Serial.println("Failed to open file for writing");
         return(false);
     }
     if(file.print(message)){
@@ -120,25 +120,25 @@ bool writeFile(const char * path, const char * message, bool newLine){
 bool deleteFile(fs::FS &fs, const char * path){
     File root = fs.open(path);
     if(!root){
-        Serial.println("Failed to open directory");
+        Serial.println("Failed to open file/directory");
         return(false);
     }
-    if(!root.isDirectory()){
-        Serial.println("Not a directory");
-        return(false);
-    }
-    File file = root.openNextFile();
-    file = root.openNextFile();
-    while (file) 
-    {
-        String fileName = "/";
-        fileName += file.name();
-        if (!fs.remove(fileName)) {
-            return(false);
-        }
+    if(root.isDirectory()){
+        File file = root.openNextFile();
         file = root.openNextFile();
+        while (file) 
+        {
+            String fileName = "/";
+            fileName += file.name();
+            if (!fs.remove(fileName)) {
+                return(false);
+            }
+            file = root.openNextFile();
+        }
+        return(true);
+    } else {
+        return(fs.remove(path));
     }
-    return(true);
 }
 
 bool writeGPXpoint(const char * fileName, int wptNum, double lat, double lon){
@@ -153,7 +153,7 @@ bool writeGPXpoint(const char * fileName, int wptNum, double lat, double lon){
     waypoint += "</name>\n</wpt>\n";
     // Serial.println(waypoint);
 
-    return (appendFile(fileName, waypoint.c_str(), false));
+    return (appendFile(SD, fileName, waypoint.c_str(), false));
 }
 
 bool createGPXfile(const char * fileName, const char * timeStamp){
@@ -164,13 +164,13 @@ bool createGPXfile(const char * fileName, const char * timeStamp){
     header += "</time>\n";
     // Serial.println(header);
 
-    return (appendFile(fileName, header.c_str(), false));
+    return (appendFile(SD, fileName, header.c_str(), false));
 }
 
 bool endGPXfile(const char * fileName){
     String footer;
     footer = "</gpx>\n";
-    return (appendFile(fileName, footer.c_str(), false));
+    return (appendFile(SD, fileName, footer.c_str(), false));
 }
 
 bool sdSetup(){

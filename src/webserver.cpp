@@ -18,6 +18,7 @@
 #include "SPIFFS.h"
 #include "webserv.h"
 #include <ESPmDNS.h>
+#include <AsyncElegantOTA.h>
 
 // WebSever object
 AsyncWebServer server(80);
@@ -183,10 +184,7 @@ bool webSetup() {
                 filePath += request->getParam("fileName")->value();
             }
             else return;
-        AsyncWebServerResponse *response = request->beginResponse(SD, filePath, getFile(filePath), true);
-        String content = "attachment; filename=";
-        content += request->getParam("fileName")->value();
-        response->addHeader("Content-Disposition",content);
+        AsyncWebServerResponse *response = request->beginResponse(SD, filePath, getFile(SD, filePath), true);
         request->send(response);
         Serial.println("completed download");
     });
@@ -273,7 +271,17 @@ bool webSetup() {
                                         "{window.location.href = \"/options.html\"}, 5000);</script>");
     });
 
+    // OTA update safe mode
+    server.on("/otaUpdate", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(200, "text/plain", "OK");
+        digitalWrite(N2K_STBY, HIGH);
+        backupSettings = true;
+    });
+
     server.addHandler(&events);
+
+    // Start ElegantOTA
+    AsyncElegantOTA.begin(&server);
 
     // Start server
     server.begin();

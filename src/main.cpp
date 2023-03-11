@@ -43,6 +43,7 @@ Settings settings;
 
 bool outOfIdle = true;
 String GPXFileName;
+bool backupSettings;
 
 /**
  * @brief Complie data in CSV format to send to the user.
@@ -128,22 +129,22 @@ bool saveSettings()
     jsettings["tempUnit"] = settings.tempUnit;
     jsettings["timeZone"] = settings.timeZone;
     String settingsString = JSON.stringify(jsettings);
-    File file = SPIFFS.open("/settings.txt", "w");
-    if (!file){
-        Serial.println("Error opening settings file");
-        return(false);
-    }
-    file.print(settingsString);
-    file.close();
-    return(true);
+    return(writeFile(SPIFFS, "/settings.txt", settingsString.c_str(), false));
 }
 
 bool readSettings()
 {
-    File file = SPIFFS.open("/settings.txt", "r");
-    if (!file){return(false);}
-    String settingsString = file.readString();
-    file.close();
+    String settingsString;
+    bool usedSdCard = true;
+    settingsString = getFile(SD, "/settings.txt");
+    Serial.print("SD Card - ");
+    Serial.println(settingsString);
+    if (settingsString == "null" || settingsString == "") {
+        settingsString = getFile(SPIFFS, "/settings.txt");
+        Serial.print("SPIFFS - ");
+        Serial.println(settingsString);
+        usedSdCard = false;
+    }
     jsettings = JSON.parse(settingsString);
     settings.wifiMode = jsettings["wifiMode"];
     settings.wifiSSID = jsettings["wifiSSID"];
@@ -155,32 +156,40 @@ bool readSettings()
     settings.timeZone = jsettings["timeZone"];
     switch (settings.voyState)
     {
-    case 0:
-        voyState = OFF;
-        break;
+        case 0:
+            voyState = OFF;
+            break;
 
-    case 1:
-        voyState = ON;
-        break;
+        case 1:
+            voyState = ON;
+            break;
 
-    case 2:
-        voyState = AUTO_SPD;
-        break;
+        case 2: 
+        case 4:
+            voyState = AUTO_SPD;
+            break;
 
-    case 3:
-        voyState = AUTO_RPM;
-        break;
-    
-    default:
-        break;
+        case 3: 
+        case 5:
+            voyState = AUTO_RPM;
+            break;
+        
+        default:
+            break;
     }
+    if (usedSdCard) {
+        if (!saveSettings()) {crash();}
+        deleteFile(SD, "/settings.txt");
+        delay(500);
+        ESP.restart();      // reboot since wifi ssid does not show up when getting settings from sd card
+    };
     return(true);
 }
 
 bool getSDcardStatus()
 {
-    digitalWrite(LED_SD, !digitalRead(SD_Detect));
-    return(!digitalRead(SD_Detect));
+    digitalWrite(LED_SD, digitalRead(SD_Detect));
+    return(digitalRead(SD_Detect));
 }
 
 void createWifiText()
@@ -193,7 +202,7 @@ void createWifiText()
                 String(ipAddress[2]) + String(".") +\
                 String(ipAddress[3]) + "\r\n"; 
     wifiText += WiFi.macAddress();
-    writeFile("/wifi.txt", wifiText.c_str(), false);
+    writeFile(SD, "/wifi.txt", wifiText.c_str(), false);
 }
 
 void crash() {
@@ -240,11 +249,15 @@ void setup()
         crash();
     }
 
+    if (getSDcardStatus()) {sdSetup();}
+
     // load settings
     if (!readSettings()) {crash();}
+    delay(500);
 
     if (settings.wifiMode == "lan")     // if in local AP mode, create AP
     {
+        WiFi.softAPsetHostname("nmeatrax");
         WiFi.mode(WIFI_MODE_AP);
         WiFi.softAPConfig(local_ip, gateway, subnet);
         WiFi.softAP(settings.wifiSSID, settings.wifiPass);
@@ -276,7 +289,6 @@ void setup()
     setenv("TZ", getTZdefinition(settings.timeZone), 1);     // set time zone
     tzset();
 
-    if (getSDcardStatus()) {sdSetup();}
     if (!webSetup()) {crash();}
     if (!NMEAsetup()) {crash();}
     createWifiText();
@@ -395,7 +407,7 @@ void loop()
                 lastCSVfileName = "Voyage";
                 lastCSVfileName += voyageNum;
                 lastCSVfileName += ".csv";
-            } while (searchForFile(lastCSVfileName.c_str()));
+            } while (searchForFile(SD, lastCSVfileName.c_str()));
 
             CSVFileName = "/";
             CSVFileName += lastCSVfileName;       // current = last because search function failed on search for current file name
@@ -406,9 +418,17 @@ void loop()
             outOfIdle = false;
         }
         
-        if (!appendFile(CSVFileName.c_str(), getCSV().c_str(), false)) {crash();}
+        if (!appendFile(SD, CSVFileName.c_str(), getCSV().c_str(), false)) {crash();}
         if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
         gpxWPTcount++;
         count = 0;
+    
     }
+    // backup settings to sd card when doing ota update
+    if (backupSettings) {
+        if (!writeFile(SD, "/settings.txt", getFile(SPIFFS, "/settings.txt").c_str(), false)){crash();}
+        Serial.println("Backup Complete");
+        backupSettings = false;
+    }
+    vTaskDelay(1/portTICK_PERIOD_MS);
 }
