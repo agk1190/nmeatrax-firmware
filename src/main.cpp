@@ -156,36 +156,40 @@ bool readSettings()
     settings.timeZone = jsettings["timeZone"];
     switch (settings.voyState)
     {
-    case 0:
-        voyState = OFF;
-        break;
+        case 0:
+            voyState = OFF;
+            break;
 
-    case 1:
-        voyState = ON;
-        break;
+        case 1:
+            voyState = ON;
+            break;
 
-    case 2:
-        voyState = AUTO_SPD;
-        break;
+        case 2: 
+        case 4:
+            voyState = AUTO_SPD;
+            break;
 
-    case 3:
-        voyState = AUTO_RPM;
-        break;
-    
-    default:
-        break;
+        case 3: 
+        case 5:
+            voyState = AUTO_RPM;
+            break;
+        
+        default:
+            break;
     }
     if (usedSdCard) {
         if (!saveSettings()) {crash();}
         deleteFile(SD, "/settings.txt");
+        delay(500);
+        ESP.restart();      // reboot since wifi ssid does not show up when getting settings from sd card
     };
     return(true);
 }
 
 bool getSDcardStatus()
 {
-    digitalWrite(LED_SD, !digitalRead(SD_Detect));
-    return(!digitalRead(SD_Detect));
+    digitalWrite(LED_SD, digitalRead(SD_Detect));
+    return(digitalRead(SD_Detect));
 }
 
 void createWifiText()
@@ -249,9 +253,11 @@ void setup()
 
     // load settings
     if (!readSettings()) {crash();}
+    delay(500);
 
     if (settings.wifiMode == "lan")     // if in local AP mode, create AP
     {
+        WiFi.softAPsetHostname("nmeatrax");
         WiFi.mode(WIFI_MODE_AP);
         WiFi.softAPConfig(local_ip, gateway, subnet);
         WiFi.softAP(settings.wifiSSID, settings.wifiPass);
