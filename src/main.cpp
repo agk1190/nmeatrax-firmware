@@ -22,7 +22,8 @@
 #include "main.h"
 #include <time.h>
 #include "sdkconfig.h"
-#include "N183.h"
+#include <FREERTOS/FreeRTOS.h>
+#include <FREERTOS/timers.h>
 
 // Local NMEATrax access point IP settings
 IPAddress local_ip(192, 168, 1, 1);
@@ -40,6 +41,10 @@ enum voyState voyState;
 // Structure to store device settings
 Settings settings;
 
+bool outOfIdle = true;
+String GPXFileName;
+bool backupSettings;
+
 /**
  * @brief Complie data in CSV format to send to the user.
  * @param none
@@ -47,61 +52,27 @@ Settings settings;
 */
 String getCSV()
 {
-    String lspeed;
-    String lheading;
-    String ldepth;
-    String lwtemp;
-    String llat;
-    String llon;
-    String ltime;
-    String lmag;
-
-    if (settings.speedSrc == "1") {lspeed = String(n2kspeed);}
-    else {lspeed = String(n183speed);}
-
-    if (settings.cogSrc == "1") {lheading = String(n2kheading);}
-    else {lheading = String(n183heading);}
-
-    if (settings.depthSrc == "1") {ldepth = String(n2kdepth);}
-    else {ldepth = String(n183depth);}
-    
-    if (settings.wtempSrc == "1") {lwtemp = String(n2kwtemp);}
-    else {lwtemp = String(n183wtemp);}
-
-    if (settings.posSrc == "1") {llat = String(n2klat, 6);}
-    else {llat = String(n183lat, 6);}
-    
-    if (settings.posSrc == "1") {llon = String(n2klon, 6);}
-    else {llon = String(n183lon, 6);}
-
-    if (settings.timeSrc == "1") {ltime = String(n2ktimeString);}
-    else {ltime = String(n183timeString);}
-
-    if (settings.posSrc == "1") {llat = String(n2kmag_var, 2);}
-    else {llat = String(n183mag_var, 2);}
-
     String data[] = {
-        String(rpm),        // 0
-        String(etemp),      // 1
-        String(otemp),      // 2
-        String(opres),      // 3
-        String(fuel_rate),  // 4
-        String(fpres),      // 5
-        String(flevel),     // 6
-        String(leg_tilt),   // 7
-        String(lspeed),     // 8
-        String(lheading),   // 9
-        String(ldepth),     // 10
-        String(lwtemp),     // 11
-        String(battV),      // 12
-        String(ehours),     // 13
-        String(gear),       // 14
-        String(llat),       // 15
-        String(llon),       // 16
-        String(lmag),       // 17
-        String(settings.tempUnit),  // 18
-        String(settings.depthUnit),  // 19
-        String(ltime)      // 20
+        String(rpm),            // 0
+        String(etemp),          // 1
+        String(otemp),          // 2
+        String(opres),          // 3
+        String(fuel_rate),      // 4
+        String(flevel),         // 5
+        String(leg_tilt),       // 6
+        String(speed),          // 7
+        String(heading),        // 8
+        String(depth),          // 9
+        String(wtemp),          // 10
+        String(battV),          // 11
+        String(ehours),         // 12
+        String(gear),           // 13
+        String(lat, 6),         // 14
+        String(lon, 6),         // 15
+        String(mag_var, 2),       // 16
+        String(settings.tempUnit),  // 17
+        String(settings.depthUnit),  // 18
+        String(timeString)      // 19
     };
     String rdata;
 
@@ -126,37 +97,19 @@ String JSONValues()
     readings["otemp"] = String(otemp);
     readings["opres"] = String(opres);
     readings["fuel_rate"] = String(fuel_rate);
-    readings["fpres"] = String(fpres);
     readings["flevel"] = String(flevel);
     readings["leg_tilt"] = String(leg_tilt);
-
-    if (settings.speedSrc == "1") {readings["speed"] = String(n2kspeed);}
-    else {readings["speed"] = String(n183speed);}
-
-    if (settings.cogSrc == "1") {readings["heading"] = String(n2kheading);}
-    else {readings["heading"] = String(n183heading);}
-
-    if (settings.depthSrc == "1") {readings["depth"] = String(n2kdepth);}
-    else {readings["depth"] = String(n183depth);}
-    
-    if (settings.wtempSrc == "1") {readings["wtemp"] = String(n2kwtemp);}
-    else {readings["wtemp"] = String(n183wtemp);}
-
+    readings["speed"] = String(speed);
+    readings["heading"] = String(heading);
+    readings["depth"] = String(depth);
+    readings["wtemp"] = String(wtemp);
     readings["battV"] = String(battV);
     readings["ehours"] = String(ehours);
     readings["gear"] = String(gear);
-
-    if (settings.posSrc == "1") {readings["lat"] = String(n2klat, 6);}
-    else {readings["lat"] = String(n183lat, 6);}
-    
-    if (settings.posSrc == "1") {readings["lon"] = String(n2klon, 6);}
-    else {readings["lon"] = String(n183lon, 6);}
-
-    if (settings.posSrc == "1") {readings["mag_var"] = String(n2kmag_var, 2);}
-    else {readings["mag_var"] = String(n183mag_var, 2);}
-    
-    if (settings.timeSrc == "1") {readings["time"] = String(n2ktimeString);}
-    else {readings["time"] = String(n183timeString);}
+    readings["lat"] = String(lat, 6);
+    readings["lon"] = String(lon, 6);
+    readings["mag_var"] = String(mag_var, 2);
+    readings["time"] = String(timeString);
 
     String jsonString = JSON.stringify(readings);
     return jsonString;
@@ -164,66 +117,79 @@ String JSONValues()
 
 bool saveSettings()
 {
+    settings.voyState = voyState;
     jsettings["wifiMode"] = settings.wifiMode;
     // jsettings["wifiSSID"] = settings.wifiSSID;
     // jsettings["wifiPass"] = settings.wifiPass;
     jsettings["wifiSSID"] = "NMEATrax";
     jsettings["wifiPass"] = "nmeatrax";
-    jsettings["voyNum"] = settings.voyNum;
+    jsettings["voyState"] = settings.voyState;
     jsettings["recInt"] = settings.recInt;
-    jsettings["en2000"] = settings.en2000;
-    jsettings["en183"] = settings.en183;
-    jsettings["posSrc"] = settings.posSrc;
-    jsettings["timeSrc"] = settings.timeSrc;
-    jsettings["speedSrc"] = settings.speedSrc;
-    jsettings["cogSrc"] = settings.cogSrc;
-    jsettings["wtempSrc"] = settings.wtempSrc;
-    jsettings["depthSrc"] = settings.depthSrc;
     jsettings["depthUnit"] = settings.depthUnit;
     jsettings["tempUnit"] = settings.tempUnit;
     jsettings["timeZone"] = settings.timeZone;
     String settingsString = JSON.stringify(jsettings);
-    File file = SPIFFS.open("/settings.txt", "w");
-    if (!file)
-    {
-        Serial.println("Error opening settings file");
-        return(false);
-    }
-    file.print(settingsString);
-    file.close();
-    return(true);
+    return(writeFile(SPIFFS, "/settings.txt", settingsString.c_str(), false));
 }
 
 bool readSettings()
 {
-    File file = SPIFFS.open("/settings.txt", "r");
-    if (!file){return(false);}
-    String settingsString = file.readString();
-    file.close();
+    String settingsString;
+    bool usedSdCard = true;
+    settingsString = getFile(SD, "/settings.txt");
+    Serial.print("SD Card - ");
+    Serial.println(settingsString);
+    if (settingsString == "null" || settingsString == "") {
+        settingsString = getFile(SPIFFS, "/settings.txt");
+        Serial.print("SPIFFS - ");
+        Serial.println(settingsString);
+        usedSdCard = false;
+    }
     jsettings = JSON.parse(settingsString);
     settings.wifiMode = jsettings["wifiMode"];
     settings.wifiSSID = jsettings["wifiSSID"];
     settings.wifiPass = jsettings["wifiPass"];
-    settings.voyNum = jsettings["voyNum"];
+    settings.voyState = jsettings["voyState"];
     settings.recInt = jsettings["recInt"];
-    settings.en2000 = jsettings["en2000"];
-    settings.en183 = jsettings["en183"];
-    settings.posSrc = jsettings["posSrc"];
-    settings.timeSrc = jsettings["timeSrc"];
-    settings.speedSrc = jsettings["speedSrc"];
-    settings.cogSrc = jsettings["cogSrc"];
-    settings.wtempSrc = jsettings["wtempSrc"];
-    settings.depthSrc = jsettings["depthSrc"];
     settings.depthUnit = jsettings["depthUnit"];
     settings.tempUnit = jsettings["tempUnit"];
     settings.timeZone = jsettings["timeZone"];
+    switch (settings.voyState)
+    {
+        case 0:
+            voyState = OFF;
+            break;
+
+        case 1:
+            voyState = ON;
+            break;
+
+        case 2: 
+        case 4:
+            voyState = AUTO_SPD;
+            break;
+
+        case 3: 
+        case 5:
+            voyState = AUTO_RPM;
+            break;
+        
+        default:
+            break;
+    }
+    if (usedSdCard) {
+        if (!saveSettings()) {crash();}
+        deleteFile(SD, "/settings.txt");
+        delay(500);
+        ESP.restart();      // reboot since wifi ssid does not show up when getting settings from sd card
+    };
     return(true);
 }
 
 bool getSDcardStatus()
 {
-    digitalWrite(LED_SD, !digitalRead(SD_Detect));
-    return(!digitalRead(SD_Detect));
+    digitalWrite(LED_SD, digitalRead(SD_Detect));
+    return(digitalRead(SD_Detect));
 }
 
 void createWifiText()
@@ -236,13 +202,26 @@ void createWifiText()
                 String(ipAddress[2]) + String(".") +\
                 String(ipAddress[3]) + "\r\n"; 
     wifiText += WiFi.macAddress();
-    writeFile("/wifi.txt", wifiText.c_str(), false);
+    writeFile(SD, "/wifi.txt", wifiText.c_str(), false);
 }
 
 void crash() {
     Serial.println("Device Crashed!");
     ESP.restart();
 }
+
+// Timer callback function
+void nmeaTimerCallback(TimerHandle_t xTimer) {
+    // Run the nmeaLoop() function
+    NMEAloop();
+}
+
+// Timer callback function
+void webTimerCallback(TimerHandle_t xTimer) {
+    // rpm = random(650, 700);
+    webLoop();
+}
+
 // ***************************************************
 /**
  * @brief Main program setup function
@@ -253,14 +232,12 @@ void setup()
     delay(500);
 
     pinMode(LED_PWR, OUTPUT);
-    pinMode(LED_0183, OUTPUT);
     pinMode(LED_N2K, OUTPUT);
     pinMode(LED_SD, OUTPUT);
     pinMode(SD_Detect, INPUT_PULLUP);
     pinMode(N2K_STBY, OUTPUT);
 
     digitalWrite(LED_PWR, HIGH);
-    digitalWrite(LED_0183, LOW);
     digitalWrite(LED_N2K, LOW);
     digitalWrite(LED_SD, LOW);
     digitalWrite(N2K_STBY, LOW);
@@ -272,11 +249,15 @@ void setup()
         crash();
     }
 
+    if (getSDcardStatus()) {sdSetup();}
+
     // load settings
     if (!readSettings()) {crash();}
+    delay(500);
 
     if (settings.wifiMode == "lan")     // if in local AP mode, create AP
     {
+        WiFi.softAPsetHostname("nmeatrax");
         WiFi.mode(WIFI_MODE_AP);
         WiFi.softAPConfig(local_ip, gateway, subnet);
         WiFi.softAP(settings.wifiSSID, settings.wifiPass);
@@ -303,16 +284,22 @@ void setup()
 
     // https://forum.arduino.cc/t/esp32-settimeofday-functionality-giving-odd-results/676136
     struct timeval tv;
-    tv.tv_sec = 1661990400;     // Sep 1 2022 00:00
+    tv.tv_sec = 1672560000;     // Jan 1 2023 00:00
     settimeofday(&tv, NULL);    // set default time
     setenv("TZ", getTZdefinition(settings.timeZone), 1);     // set time zone
     tzset();
 
-    if (getSDcardStatus()) {sdSetup();}
     if (!webSetup()) {crash();}
     if (!NMEAsetup()) {crash();}
-    if (!setupN183()) {crash();}
     createWifiText();
+
+    // Create timers
+    TimerHandle_t nmeaTimer = xTimerCreate("NMEATimer", 1 / portTICK_PERIOD_MS, pdTRUE, NULL, nmeaTimerCallback);
+    TimerHandle_t webTimer = xTimerCreate("webTimer", 1000 / portTICK_PERIOD_MS, pdTRUE, NULL, webTimerCallback);
+
+    // Start the timer
+    xTimerStart(nmeaTimer, 0);
+    xTimerStart(webTimer, 0);
 }
 
 // ***************************************************
@@ -323,7 +310,7 @@ void loop()
 {
     static long statDelay = millis();
     static int count = 0;
-    static String sfileName;
+    static int localRecInt;
 
     if (statDelay + 1000 < millis())
     {
@@ -335,54 +322,113 @@ void loop()
         // Serial.println(&timeDetails, "%A, %B %d %Y %H:%M:%S");
 
         // rpm = random(650, 700);
-        // n2kheading = random(15, 30);
-        // n2kwtemp = random(8, 12);
+        // heading = random(15, 30);
+        // wtemp = random(8, 12);
         // otemp = random(104, 108);
         // etemp = random(73, 76);
-        // n2kmag_var = random(14, 16);
+        // mag_var = random(14, 16);
         // leg_tilt = random(0, 25);
         // opres = random(483, 626);
         // battV = random(12.0, 15.0);
         // fuel_rate = random(2, 6);
         // ehours = 122;
-        // fpres = random(680, 690);
         // flevel = random(40.2, 60.9);
         // gear = "N";
-        // n2ktimeString = asctime(&timeDetails);
+        // lat = random(40.0, 60.0);
+        // lon = random(120.0, 140.0);
+        // timeString = asctime(&timeDetails);
 
         getSDcardStatus();
         statDelay = millis();
         count++;
     }
 
-    // create new csv filename with voyage number 
-    if (voyState == START)
-    {
-        std::string n = std::to_string(settings.voyNum);
-        const char *msg = "Voyage";
-        const char *num = n.c_str();
-        sfileName = "/";
-        sfileName += msg;
-        sfileName += num;
-        sfileName += ".csv";
-        settings.voyNum++;
-        if (!saveSettings()) {crash();}
-        voyState = RUN;
+    switch (voyState){
+        case AUTO_RPM:
+            if (rpm==0){
+                voyState=AUTO_RPM_IDLE;
+                endGPXfile(GPXFileName.c_str());
+            }
+            break;
+
+        case AUTO_RPM_IDLE:
+            if (rpm>0){
+                outOfIdle=true;
+                voyState=AUTO_RPM;
+            }
+            break;
+
+        case AUTO_SPD:
+            if (speed==0){
+                voyState=AUTO_SPD_IDLE;
+                endGPXfile(GPXFileName.c_str());
+            }
+            break;
+
+        case AUTO_SPD_IDLE:
+            if (speed>0){
+                outOfIdle=true;
+                voyState=AUTO_SPD;
+            }
+            break;
+        
+        default:
+            break;
     }
 
-    // log the current NMEA data every x seconds
-    if (count >= settings.recInt && voyState == RUN)
-    {
-        // Serial.println("log");
-        count = 0;
-        if (!appendFile(sfileName.c_str(), getCSV().c_str(), false)) {crash();}
+    if (voyState == AUTO_RPM){
+        if (rpm > 3000){
+            localRecInt = 30;
+        } else {
+            localRecInt = settings.recInt;
+        }
+    } else if (voyState == AUTO_SPD){
+        if (speed > 15){
+            localRecInt = 30;
+        } else {
+            localRecInt = settings.recInt;
+        }
+    } else {
+        localRecInt = settings.recInt;
     }
     
-    // if NMEA2000 is enabled, process data
-    if (settings.en2000 == "1") NMEAloop();
+    if ((voyState == AUTO_RPM || voyState == AUTO_SPD || voyState == ON) && count >= localRecInt){
+        static String CSVFileName;
+        static int gpxWPTcount = 1;
 
-    // if NMEA0183 is enabled, process data
-    if (settings.en183 == "1") loopN183();
+        if (outOfIdle) {
+            int voyageNum = 0;
+            gpxWPTcount = 1;
+            String lastCSVfileName;
 
-    webLoop();
+            do
+            {
+                voyageNum++;
+                lastCSVfileName = "Voyage";
+                lastCSVfileName += voyageNum;
+                lastCSVfileName += ".csv";
+            } while (searchForFile(SD, lastCSVfileName.c_str()));
+
+            CSVFileName = "/";
+            CSVFileName += lastCSVfileName;       // current = last because search function failed on search for current file name
+            GPXFileName = "/Voyage";
+            GPXFileName += voyageNum;
+            GPXFileName += ".gpx";
+            createGPXfile(GPXFileName.c_str(), timeString.c_str());
+            outOfIdle = false;
+        }
+        
+        if (!appendFile(SD, CSVFileName.c_str(), getCSV().c_str(), false)) {crash();}
+        if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
+        gpxWPTcount++;
+        count = 0;
+    
+    }
+    // backup settings to sd card when doing ota update
+    if (backupSettings) {
+        if (!writeFile(SD, "/settings.txt", getFile(SPIFFS, "/settings.txt").c_str(), false)){crash();}
+        Serial.println("Backup Complete");
+        backupSettings = false;
+    }
+    vTaskDelay(1/portTICK_PERIOD_MS);
 }

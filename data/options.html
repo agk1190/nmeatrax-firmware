@@ -4,7 +4,6 @@
 <head>
     <title>NMEATrax WebView</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- <meta name="color-scheme" content="dark light"> -->
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="manifest" href="site.webmanifest">
@@ -18,11 +17,16 @@
         <a href="text.html">Text</a>
         <a href="options.html" class="active">Options</a>
     </div><br>
+    <!-- ----------------------------------------- -->
     <div>
         <p>Recording Toggle</p>
         <p class="options" style="display: inline;">Current state: <p class="options" style="display: inline;" id="state">-</p></p>
-        <button type="button" onclick="toggleLog()" id="toggleLogBtn">Start</button>
+        <button type="button" onclick="setLoggingMode(0)" id="logOff">Off</button>
+        <button type="button" onclick="setLoggingMode(1)" id="logOn">On</button>
+        <button type="button" onclick="setLoggingMode(2)" id="logAutoSpeedBtn">Auto by Speed</button>
+        <button type="button" onclick="setLoggingMode(3)" id="logAutoRPMBtn">Auto by RPM</button>
     </div><br>
+    <!-- ----------------------------------------- -->
     <div>
         <p>Recorded Data</p>
         <a href="downloads.html" class="button">Download Logs</a>
@@ -33,6 +37,7 @@
         <button type="button" id="confBut" style="display: none;" onclick="eraseData()">ERASE ALL DATA</button><br>
         <p id="eraseGood" style="display: none;">Erase Complete!</p>
     </div>
+    <!-- ----------------------------------------- -->
     <div>
         <p>WiFi Settings</p>
         <form action="/param">
@@ -48,6 +53,12 @@
         <p class="options">This will reset the WiFi settings and reboot the device</p>
         <button type="button" onclick="EEPROMRequest();">Reset WiFi & Reboot</button>
     </div><br>
+    <!-- ----------------------------------------- -->
+    <div>
+        <p>OTA Firmware Update</p>
+        <a href="update" class="button" onclick="OTAUpdate()">Update</a>
+    </div><br>
+    <!-- ----------------------------------------- -->
     <div>
         <form action="/param">
             <p>Recording Interval (seconds)</p>
@@ -56,6 +67,7 @@
             <input class="button" type="submit" value="Set">
         </form>
     </div><br>
+    <!-- ----------------------------------------- -->
     <div>
         <form action="/param">
             <p>Timezone</p>
@@ -67,94 +79,15 @@
     <div>
         <button class="btn-toggle" id="darkModeBtn" style="display: inline;">Toggle Dark Mode</button>
     </div><br>
+    <!-- ----------------------------------------- -->
     <div>
-        <p>Preferences</p>
-        <button type="button" id="showSetBtn" onclick="toggleSettings()">Show Settings</button><br><br>
-        <table class="text-table" id="setTable" style="display: none;">
-            <tr>
-                <td><p class="Rjust">NMEA 0183</p></td>
-                <td><label class="switch">
-                    <input type="checkbox" onchange="toggleCheckbox(this, 0)" id="en183">
-                    <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">Enabled</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">NMEA 2000</p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 1)" id="en2000">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">Enabled</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">Position | 0183</p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 2)" id="posSrc">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">2000</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">Time | 0183</p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 3)" id="timeSrc">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">2000</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">Speed | 0183</p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 4)" id="speedSrc">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">2000</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">Course | 0183</p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 5)" id="cogSrc">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">2000</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">Water | 0183  </p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 6)" id="wtempSrc">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">2000</p></td>
-            </tr>
-            <tr>
-                <td><p class="Rjust">Depth | 0183  </p></td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 7)" id="depthSrc">
-                        <span class="slider"></span>
-                    </label>
-                </td>
-                <td><p class="Ljust">2000</p></td>
-            </tr>
+        <p>Units</p>
+        <table class="text-table" id="setTable">
             <tr>
                 <td><p class="Rjust">Depth Unit | Feet  </p></td>
                 <td>
                     <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 8)" id="depthUnit">
+                        <input type="checkbox" onchange="toggleCheckbox(this, 0)" id="depthUnit">
                         <span class="slider"></span>
                     </label>
                 </td>
@@ -164,7 +97,7 @@
                 <td><p class="Rjust">Temp Unit | &degC  </p></td>
                 <td>
                     <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 9)" id="tempUnit">
+                        <input type="checkbox" onchange="toggleCheckbox(this, 1)" id="tempUnit">
                         <span class="slider"></span>
                     </label>
                 </td>
@@ -172,7 +105,7 @@
             </tr>
         </table>
     </div>
-    
+    <p style="font-size: small;">Firmware: v2.0 | Ui: v2.0</p>
     <footer class="botnav">
         <h1 class="botnavtext">NMEATrax</h1>
     </footer>
@@ -220,6 +153,13 @@
             xhttp.send();
         }
 
+        function OTAUpdate() {
+            setLoggingMode(0);
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("GET", "/otaUpdate", true);
+            xhttp.send();
+        }
+
         function eraseData() {
             var xhttp = new XMLHttpRequest();
             xhttp.open("GET", "/eraseData", true);
@@ -237,46 +177,36 @@
             document.getElementById('confTxt').style.display = "inline";
         }
 
-        function toggleLog() {
-            if (document.getElementById("toggleLogBtn").innerHTML == "Start") {
-                var xhttp = new XMLHttpRequest();
-                xhttp.open("GET", "/startLog", true);
-                xhttp.send();
-            }
-            else if (document.getElementById("toggleLogBtn").innerHTML == "Stop") {
-                var xhttp = new XMLHttpRequest();
-                xhttp.open("GET", "/stopLog", true);
-                xhttp.send();
-            }
+        function setLoggingMode(index) {
+            var xhr = new XMLHttpRequest();
+            var str = "/loggingMode?";
+            str += index;
+            str += "=1";
+            xhr.open("GET", str, true);
+            xhr.send();
+            setTimeout(getRunState(), 1000);
         }
 
-        setInterval(function getRunState(){
+        function getRunState(){
             var xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
                     if (this.responseText == "0") {
-                        document.getElementById("state").innerHTML = "Disabled";
-                        document.getElementById("toggleLogBtn").innerHTML = "Start";
+                        document.getElementById("state").innerHTML = "OFF";
                     } 
                     else if (this.responseText == "1") {
-                        document.getElementById("state").innerHTML = "Enabled";
-                        document.getElementById("toggleLogBtn").innerHTML = "Stop";
+                        document.getElementById("state").innerHTML = "ON";
+                    }
+                    else if (this.responseText == "2") {
+                        document.getElementById("state").innerHTML = "Auto by Speed";
+                    }
+                    else if (this.responseText == "3") {
+                        document.getElementById("state").innerHTML = "Auto by RPM";
                     }
                 }
             }; 
             xhr.open("GET", "/runState", true);
             xhr.send();
-        }, 1000);
-
-        function toggleSettings(){
-            if (document.getElementById("showSetBtn").innerHTML == "Show Settings") {
-                document.getElementById("showSetBtn").innerHTML = "Hide Settings";
-                document.getElementById("setTable").style.display = "inline";
-            }
-            else if (document.getElementById("showSetBtn").innerHTML == "Hide Settings") {
-                document.getElementById("showSetBtn").innerHTML = "Show Settings";
-                document.getElementById("setTable").style.display = "none";
-            }
         }
 
         function toggleCheckbox(element, index) {
@@ -296,36 +226,12 @@
             xhr.send();
         }
 
-        window.onload = function ( ) {
+        window.onload = function () {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
                     var myObj = JSON.parse(this.responseText);
                     
-                    if (myObj.en183 == "1") document.getElementById("en183").checked = true; 
-                    else document.getElementById("en183").checked = false;
-
-                    if (myObj.en2000 == "1") document.getElementById("en2000").checked = true; 
-                    else document.getElementById("en2000").checked = false;
-
-                    if (myObj.posSrc == "1") document.getElementById("posSrc").checked = true;
-                    else document.getElementById("posSrc").checked = false;
-
-                    if (myObj.timeSrc == "1") document.getElementById("timeSrc").checked = true;
-                    else document.getElementById("timeSrc").checked = false;
-
-                    if (myObj.speedSrc == "1") document.getElementById("speedSrc").checked = true;
-                    else document.getElementById("speedSrc").checked = false;
-
-                    if (myObj.cogSrc == "1") document.getElementById("cogSrc").checked = true;
-                    else document.getElementById("cogSrc").checked = false;
-
-                    if (myObj.wtempSrc == "1") document.getElementById("wtempSrc").checked = true;
-                    else document.getElementById("wtempSrc").checked = false;
-
-                    if (myObj.depthSrc == "1") document.getElementById("depthSrc").checked = true;
-                    else document.getElementById("depthSrc").checked = false;
-
                     if (myObj.depthUnit == "1") document.getElementById("depthUnit").checked = true;
                     else document.getElementById("depthUnit").checked = false;
 
@@ -337,11 +243,13 @@
                     } else {
                         document.getElementById("recInt").innerHTML = "Currently " + myObj.recInt + " second";
                     }
+
                     document.getElementById("tzDisplay").innerHTML = "Currently " + myObj.timeZone;
                 }
             };
             xhttp.open("GET", "/toggleState", true);
             xhttp.send();
+            getRunState();
         }
     </script>
 </body>

@@ -18,6 +18,7 @@
 #include "SPIFFS.h"
 #include "webserv.h"
 #include <ESPmDNS.h>
+#include <AsyncElegantOTA.h>
 
 // WebSever object
 AsyncWebServer server(80);
@@ -33,10 +34,6 @@ extern Settings settings;
 
 // Create an Event Source on /events
 AsyncEventSource events("/events");
-
-// Timer variables for event
-unsigned long lastTime = 0;
-unsigned long timerDelay = 1000;
 
 const char* getTZdefinition(double tz) {
     if (tz == 0)
@@ -144,27 +141,33 @@ bool webSetup() {
 
     // Erase data callback
     server.on("/eraseData", HTTP_GET, [](AsyncWebServerRequest *request){
-        voyState = STOP;
+        voyState = OFF;
         if (!deleteFile(SD, "/")) {
             Serial.println("Erase failed");
             crash();
         } else {
             Serial.println("Erase complete");
         }
-        settings.voyNum = 1;
+        request->send(200, "text/plain", "OK");
+    });
+
+    server.on("/loggingMode", HTTP_GET, [](AsyncWebServerRequest *request){
+        if (request->hasParam("0")) {voyState = OFF; endGPXfile(GPXFileName.c_str());}
+        else if (request->hasParam("1")) {voyState = ON; outOfIdle=true;}
+        else if (request->hasParam("2")) {voyState = AUTO_SPD; outOfIdle=true;}
+        else if (request->hasParam("3")) {voyState = AUTO_RPM; outOfIdle=true;}
+        request->send(200, "text/plain", "OK");
         if (!saveSettings()) {crash();}
     });
 
-    // start logging callback
-    server.on("/startLog", HTTP_GET, [](AsyncWebServerRequest *request){
-        voyState = START;
-        Serial.println("Voyage Mode: START");
-    });
-
-    // stop logging callback
-    server.on("/stopLog", HTTP_GET, [](AsyncWebServerRequest *request){
-        voyState = STOP;
-        Serial.println("Voyage Mode: STOP");
+    // Request for the recording mode
+    server.on("/runState", HTTP_GET, [](AsyncWebServerRequest *request) {
+        String s;
+        if (voyState == OFF) {s="0";}
+        else if (voyState == ON) {s="1";}
+        else if (voyState == AUTO_SPD || voyState == AUTO_SPD_IDLE) {s="2";}
+        else if (voyState == AUTO_RPM || voyState == AUTO_RPM_IDLE) {s="3";}
+        request->send(200, "text/plain", s);
     });
 
     // Get all files on the SD card
@@ -181,10 +184,7 @@ bool webSetup() {
                 filePath += request->getParam("fileName")->value();
             }
             else return;
-        AsyncWebServerResponse *response = request->beginResponse(SD, filePath, getFile(filePath), true);
-        String content = "attachment; filename=";
-        content += request->getParam("fileName")->value();
-        response->addHeader("Content-Disposition",content);
+        AsyncWebServerResponse *response = request->beginResponse(SD, filePath, getFile(SD, filePath), true);
         request->send(response);
         Serial.println("completed download");
     });
@@ -194,16 +194,8 @@ bool webSetup() {
         String inputMessage;
         String inputParam;
         // GET input1 value on <ESP_IP>/update?state=<inputMessage>
-        if (request->hasParam("0")) {settings.en183 = request->getParam("0")->value();}
-        else if (request->hasParam("1")) {settings.en2000 = request->getParam("1")->value();}
-        else if (request->hasParam("2")) {settings.posSrc = request->getParam("2")->value();}
-        else if (request->hasParam("3")) {settings.timeSrc = request->getParam("3")->value();}
-        else if (request->hasParam("4")) {settings.speedSrc = request->getParam("4")->value();}
-        else if (request->hasParam("5")) {settings.cogSrc = request->getParam("5")->value();}
-        else if (request->hasParam("6")) {settings.wtempSrc = request->getParam("6")->value();}
-        else if (request->hasParam("7")) {settings.depthSrc = request->getParam("7")->value();}
-        else if (request->hasParam("8")) {settings.depthUnit = request->getParam("8")->value();}
-        else if (request->hasParam("9")) {settings.tempUnit = request->getParam("9")->value();}
+        if (request->hasParam("0")) {settings.depthUnit = request->getParam("0")->value();}
+        else if (request->hasParam("1")) {settings.tempUnit = request->getParam("1")->value();}
         if (!saveSettings()) {crash();}
         request->send(200, "text/plain", "OK");
     });
@@ -211,14 +203,6 @@ bool webSetup() {
     // Send the current state of the toggle switches
     server.on("/toggleState", HTTP_GET, [] (AsyncWebServerRequest *request) {
         String str = "";
-        values["en183"] = settings.en183;
-        values["en2000"] = settings.en2000;
-        values["posSrc"] = settings.posSrc;
-        values["timeSrc"] = settings.timeSrc;
-        values["speedSrc"] = settings.speedSrc;
-        values["cogSrc"] = settings.cogSrc;
-        values["wtempSrc"] = settings.wtempSrc;
-        values["depthSrc"] = settings.depthSrc;
         values["depthUnit"] = settings.depthUnit;
         values["tempUnit"] = settings.tempUnit;
         values["recInt"] = settings.recInt;
@@ -287,22 +271,17 @@ bool webSetup() {
                                         "{window.location.href = \"/options.html\"}, 5000);</script>");
     });
 
-    // Request for the latest sensor readings
-    // server.on("/readings", HTTP_GET, [](AsyncWebServerRequest *request) {
-    //     String json = JSONValues();
-    //     request->send(200, "application/json", json);
-    //     json = String(); 
-    // });
-
-    // Request for the recording mode
-    server.on("/runState", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String s;
-        if (voyState == STOP) {s="0";}
-        if (voyState == RUN) {s="1";}
-        request->send(200, "text/plain", s);
+    // OTA update safe mode
+    server.on("/otaUpdate", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(200, "text/plain", "OK");
+        digitalWrite(N2K_STBY, HIGH);
+        backupSettings = true;
     });
 
     server.addHandler(&events);
+
+    // Start ElegantOTA
+    AsyncElegantOTA.begin(&server);
 
     // Start server
     server.begin();
@@ -321,10 +300,5 @@ bool webSetup() {
 }
 
 void webLoop() {
-    if ((millis() - lastTime) > timerDelay) {
-        // Send Events to the client with the Sensor Readings Every 10 seconds
-        // events.send("ping", NULL, millis());
-        events.send(JSONValues().c_str(), "new_readings", millis());
-        lastTime = millis();
-    }
+    events.send(JSONValues().c_str(), "new_readings", millis());
 }

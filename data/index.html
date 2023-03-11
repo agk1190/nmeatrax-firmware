@@ -38,10 +38,6 @@
             <canvas id="gauge-opres"></canvas>
         </div>
         <div class="card">
-            <p class="card-title">Fuel Pressure</p>
-            <canvas id="gauge-fpres"></canvas>
-        </div>
-        <div class="card">
             <p class="card-title">Fuel Level</p>
             <canvas id="gauge-flevel"></canvas>
         </div>
@@ -76,6 +72,21 @@
     <script>
 
         var gaugeBGcolor = "#1b1b1f";
+        var signatureBlue = "#0050c7";
+        var textAndTicksColor = "#fff";
+        var needleCircleOuterColor = "#222";
+        var needleCircleInnerColor = "#000";
+        var gaugeBorderColor = "#000";
+        var gaugeFont = "verdana";
+
+        var rpmVal;
+        var etempVal;
+        var otempVal;
+        var opresVal;
+        var flevelVal;
+        var speedVal;
+        var headingVal;
+        
         //https://css-tricks.com/a-complete-guide-to-dark-mode-on-the-web/
         const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
         const currentTheme = localStorage.getItem("theme");
@@ -83,13 +94,17 @@
         if (currentTheme == "dark") {
             document.body.classList.toggle("dark-theme");
             gaugeBGcolor = "#1b1b1f";
+            textAndTicksColor = "#fff";
+            gaugeBorderColor = "#1b1b1f";
         } else if (currentTheme == "light") {
             document.body.classList.toggle("light-theme");
-            gaugeBGcolor = "#e6e6e6";
+            gaugeBGcolor = "#ebebeb";
+            textAndTicksColor = "#000";
+            gaugeBorderColor = "#d4d4d4";
         }
 
         // var celcius;
-        var dUnit;
+        var dUnit = " ft";
         var tUnit = "\u2103";
         
         drawGauges();
@@ -122,14 +137,14 @@
             // Create RPM Gauge
             var gaugeRPM = new RadialGauge({
                 renderTo: 'gauge-rpm',
-                width: 220,
+                width: 300,
                 height: 300,
                 units: "x1000",
                 minValue: 0,
                 maxValue: 6000,
-                colorValueBoxRect: "#049faa",
-                colorValueBoxRectEnd: "#049faa",
-                colorValueBoxBackground: "#c8c8c8",
+                colorValueBoxRect: signatureBlue,
+                colorValueBoxRectEnd: signatureBlue,
+                colorValueBoxBackground: gaugeBGcolor,
                 valueDec: 0,
                 valueInt: 1,
                 majorTicks: [
@@ -142,40 +157,53 @@
                     "6"
                 ],
                 minorTicks: 4,
-                strokeTicks: true,
+                strokeTicks: false,
                 highlights: [
                 {
                     "from": 5500,
                     "to": 6000,
-                    "color": "rgba(200, 50, 50, .75)"
+                    "color": "rgba(255, 0, 0, .50)"
                 }
                 ],
-                colorPlate: gaugeBGcolor,
                 borderShadowWidth: 0,
-                borders: false,
+                borders: true,
+                colorBorderOuter: gaugeBorderColor,
+                colorBorderOuterEnd: gaugeBorderColor,
+                colorPlate: gaugeBGcolor,
+                colorMajorTicks: textAndTicksColor,
+                colorMinorTicks: textAndTicksColor,
+                colorUnits: textAndTicksColor,
+                colorNumbers: textAndTicksColor,
+                colorValueText: textAndTicksColor,
+                fontValue: gaugeFont,
+                fontNumbers: gaugeFont,
                 needleType: "arrow",
-                colorNeedle: "#007F80",
-                colorNeedleEnd: "#007F80",
+                colorNeedle: signatureBlue,
+                colorNeedleEnd: signatureBlue,
+                needleStart: 0,
                 needleWidth: 2,
-                needleCircleSize: 3,
-                colorNeedleCircleOuter: "#007F80",
-                needleCircleOuter: true,
-                needleCircleInner: false,
+                needleCircleSize: 10,
+                colorNeedleCircleOuter: needleCircleOuterColor,
+                colorNeedleCircleOuterEnd: needleCircleOuterColor,
+                colorNeedleCircleInner: needleCircleInnerColor,
+                colorNeedleCircleInnerEnd: needleCircleInnerColor,
+                needleShadow: false,
                 animationDuration: 250,
-                animationRule: "linear"
+                animationRule: "linear",
+                value: rpmVal
             }).draw();
         
             // Create oil pressure Gauge
             var gaugeOpres = new RadialGauge({
                 renderTo: 'gauge-opres',
-                width: 220,
+                width: 300,
                 height: 300,
                 units: "kPa",
                 minValue: 0,
                 maxValue: 1000,
-                colorValueBoxRect: "#049faa",
-                colorValueBoxRectEnd: "#049faa",
-                colorValueBoxBackground: "#f1fbfc",
+                colorValueBoxRect: signatureBlue,
+                colorValueBoxRectEnd: signatureBlue,
+                colorValueBoxBackground: gaugeBGcolor,
                 valueDec: 0,
                 valueInt: 1,
                 majorTicks: [
@@ -187,85 +215,53 @@
                     "1000"
                 ],
                 minorTicks: 4,
-                strokeTicks: true,
+                strokeTicks: false,
                 highlights: [
                 {
                     "from": 800,
                     "to": 1000,
-                    "color": "rgba(200, 50, 50, .75)"
+                    "color": "rgba(255, 0, 0, .50)"
                 }
                 ],
-                colorPlate: gaugeBGcolor,
                 borderShadowWidth: 0,
-                borders: false,
-                needleType: "arrow",
-                colorNeedle: "#007F80",
-                colorNeedleEnd: "#007F80",
-                needleWidth: 2,
-                needleCircleSize: 3,
-                colorNeedleCircleOuter: "#007F80",
-                needleCircleOuter: true,
-                needleCircleInner: false,
-                animationDuration: 250,
-                animationRule: "linear"
-            }).draw();
-
-            // Create fuel pressure Gauge
-            var gaugeFpres = new RadialGauge({
-                renderTo: 'gauge-fpres',
-                width: 220,
-                height: 300,
-                units: "kPa",
-                minValue: 0,
-                maxValue: 1000,
-                colorValueBoxRect: "#049faa",
-                colorValueBoxRectEnd: "#049faa",
-                colorValueBoxBackground: "#f1fbfc",
-                valueDec: 0,
-                valueInt: 1,
-                majorTicks: [
-                    "0",
-                    "200",
-                    "400",
-                    "600",
-                    "800",
-                    "1000"
-                ],
-                minorTicks: 4,
-                strokeTicks: true,
-                highlights: [
-                {
-                    "from": 800,
-                    "to": 1000,
-                    "color": "rgba(200, 50, 50, .75)"
-                }
-                ],
+                borders: true,
+                colorBorderOuter: gaugeBorderColor,
+                colorBorderOuterEnd: gaugeBorderColor,
                 colorPlate: gaugeBGcolor,
-                borderShadowWidth: 0,
-                borders: false,
+                colorMajorTicks: textAndTicksColor,
+                colorMinorTicks: textAndTicksColor,
+                colorUnits: textAndTicksColor,
+                colorNumbers: textAndTicksColor,
+                colorValueText: textAndTicksColor,
+                fontValue: gaugeFont,
+                fontNumbers: gaugeFont,
                 needleType: "arrow",
-                colorNeedle: "#007F80",
-                colorNeedleEnd: "#007F80",
+                colorNeedle: signatureBlue,
+                colorNeedleEnd: signatureBlue,
+                needleStart: 0,
                 needleWidth: 2,
-                needleCircleSize: 3,
-                colorNeedleCircleOuter: "#007F80",
-                needleCircleOuter: true,
-                needleCircleInner: false,
+                needleCircleSize: 10,
+                colorNeedleCircleOuter: needleCircleOuterColor,
+                colorNeedleCircleOuterEnd: needleCircleOuterColor,
+                colorNeedleCircleInner: needleCircleInnerColor,
+                colorNeedleCircleInnerEnd: needleCircleInnerColor,
+                needleShadow: false,
                 animationDuration: 250,
-                animationRule: "linear"
+                animationRule: "linear",
+                value: opresVal
             }).draw();
         
             // Create fuel level Gauge
             var gaugeFlevel = new RadialGauge({
                 renderTo: 'gauge-flevel',
-                width: 220,
+                width: 300,
                 height: 300,
                 units: "%",
                 minValue: 0,
                 maxValue: 100,
-                colorValueBoxRect: "#049faa",
-                colorValueBoxRectEnd: "#049faa",
-                colorValueBoxBackground: "#f1fbfc",
+                colorValueBoxRect: signatureBlue,
+                colorValueBoxRectEnd: signatureBlue,
+                colorValueBoxBackground: gaugeBGcolor,
                 valueDec: 1,
                 valueInt: 1,
                 majorTicks: [
@@ -277,40 +273,53 @@
                     "100"
                 ],
                 minorTicks: 4,
-                strokeTicks: true,
+                strokeTicks: false,
                 highlights: [
                 {
                     "from": 0,
                     "to": 10,
-                    "color": "rgba(200, 50, 50, .75)"
+                    "color": "rgba(255, 0, 0, .50)"
                 }
                 ],
-                colorPlate: gaugeBGcolor,
                 borderShadowWidth: 0,
-                borders: false,
+                borders: true,
+                colorBorderOuter: gaugeBorderColor,
+                colorBorderOuterEnd: gaugeBorderColor,
+                colorPlate: gaugeBGcolor,
+                colorMajorTicks: textAndTicksColor,
+                colorMinorTicks: textAndTicksColor,
+                colorUnits: textAndTicksColor,
+                colorNumbers: textAndTicksColor,
+                colorValueText: textAndTicksColor,
+                fontValue: gaugeFont,
+                fontNumbers: gaugeFont,
                 needleType: "arrow",
-                colorNeedle: "#007F80",
-                colorNeedleEnd: "#007F80",
+                colorNeedle: signatureBlue,
+                colorNeedleEnd: signatureBlue,
+                needleStart: 0,
                 needleWidth: 2,
-                needleCircleSize: 3,
-                colorNeedleCircleOuter: "#007F80",
-                needleCircleOuter: true,
-                needleCircleInner: false,
+                needleCircleSize: 10,
+                colorNeedleCircleOuter: needleCircleOuterColor,
+                colorNeedleCircleOuterEnd: needleCircleOuterColor,
+                colorNeedleCircleInner: needleCircleInnerColor,
+                colorNeedleCircleInnerEnd: needleCircleInnerColor,
+                needleShadow: false,
                 animationDuration: 250,
-                animationRule: "linear"
+                animationRule: "linear",
+                value: flevelVal
             }).draw();
         
             // Create Speed Gauge
             var gaugeSpeed = new RadialGauge({
                 renderTo: 'gauge-speed',
-                width: 220,
+                width: 300,
                 height: 300,
                 units: "Knots",
                 minValue: 0,
                 maxValue: 40,
-                colorValueBoxRect: "#049faa",
-                colorValueBoxRectEnd: "#049faa",
-                colorValueBoxBackground: "#f1fbfc",
+                colorValueBoxRect: signatureBlue,
+                colorValueBoxRectEnd: signatureBlue,
+                colorValueBoxBackground: gaugeBGcolor,
                 valueInt: 1,
                 valueDec: 1,
                 majorTicks: [
@@ -325,42 +334,50 @@
                     "40"
                 ],
                 minorTicks: 5,
-                strokeTicks: true,
+                strokeTicks: false,
                 highlights: [
-                    // {
-                    //     "from": 30,
-                    //     "to": 40,
-                    //     "color": "#03C0C1"
-                    // }
                 ],
-                colorPlate: gaugeBGcolor,
                 borderShadowWidth: 0,
-                borders: false,
+                borders: true,
+                colorBorderOuter: gaugeBorderColor,
+                colorBorderOuterEnd: gaugeBorderColor,
+                colorPlate: gaugeBGcolor,
+                colorMajorTicks: textAndTicksColor,
+                colorMinorTicks: textAndTicksColor,
+                colorUnits: textAndTicksColor,
+                colorNumbers: textAndTicksColor,
+                colorValueText: textAndTicksColor,
+                fontValue: gaugeFont,
+                fontNumbers: gaugeFont,
                 needleType: "arrow",
-                colorNeedle: "#007F80",
-                colorNeedleEnd: "#007F80",
+                colorNeedle: signatureBlue,
+                colorNeedleEnd: signatureBlue,
+                needleStart: 0,
                 needleWidth: 2,
-                needleCircleSize: 3,
-                colorNeedleCircleOuter: "#007F80",
-                needleCircleOuter: true,
-                needleCircleInner: false,
-                animationDuration: 500,
-                animationRule: "linear"
+                needleCircleSize: 10,
+                colorNeedleCircleOuter: needleCircleOuterColor,
+                colorNeedleCircleOuterEnd: needleCircleOuterColor,
+                colorNeedleCircleInner: needleCircleInnerColor,
+                colorNeedleCircleInnerEnd: needleCircleInnerColor,
+                needleShadow: false,
+                animationDuration: 250,
+                animationRule: "linear",
+                value: speedVal
             }).draw();
         
             // Create Heading Gauge
             var gaugeHeading = new RadialGauge({
                 renderTo: 'gauge-heading',
-                width: 220,
+                width: 300,
                 height: 300,
                 units: "Heading",
                 minValue: 0,
                 maxValue: 360,
                 startAngle: 180,
                 ticksAngle: 360,
-                colorValueBoxRect: "#049faa",
-                colorValueBoxRectEnd: "#049faa",
-                colorValueBoxBackground: "#f1fbfc",
+                colorValueBoxRect: signatureBlue,
+                colorValueBoxRectEnd: signatureBlue,
+                colorValueBoxBackground: gaugeBGcolor,
                 valueInt: 1,
                 valueDec: 0,
                 majorTicks: [
@@ -375,27 +392,35 @@
                     "N"
                 ],
                 minorTicks: 2,
-                strokeTicks: true,
+                strokeTicks: false,
                 highlights: [
-                    // {
-                    //     "from": 30,
-                    //     "to": 40,
-                    //     "color": "#03C0C1"
-                    // }
                 ],
-                colorPlate: gaugeBGcolor,
                 borderShadowWidth: 0,
-                borders: false,
+                borders: true,
+                colorBorderOuter: gaugeBorderColor,
+                colorBorderOuterEnd: gaugeBorderColor,
+                colorPlate: gaugeBGcolor,
+                colorMajorTicks: textAndTicksColor,
+                colorMinorTicks: textAndTicksColor,
+                colorUnits: textAndTicksColor,
+                colorNumbers: textAndTicksColor,
+                colorValueText: textAndTicksColor,
+                fontValue: gaugeFont,
+                fontNumbers: gaugeFont,
                 needleType: "arrow",
-                colorNeedle: "#007F80",
-                colorNeedleEnd: "#007F80",
+                colorNeedle: signatureBlue,
+                colorNeedleEnd: signatureBlue,
+                needleStart: 0,
                 needleWidth: 2,
-                needleCircleSize: 3,
-                colorNeedleCircleOuter: "#007F80",
-                needleCircleOuter: true,
-                needleCircleInner: false,
+                needleCircleSize: 10,
+                colorNeedleCircleOuter: needleCircleOuterColor,
+                colorNeedleCircleOuterEnd: needleCircleOuterColor,
+                colorNeedleCircleInner: needleCircleInnerColor,
+                colorNeedleCircleInnerEnd: needleCircleInnerColor,
+                needleShadow: false,
                 animationDuration: 250,
-                animationRule: "linear"
+                animationRule: "linear",
+                value: headingVal
             }).draw();
         
             if (tUnit == "\u2103") {
@@ -409,14 +434,14 @@
             // Create engine temp Gauge
             var gaugeEtemp = new RadialGauge({
                 renderTo: 'gauge-etemp',
-                width: 220,
+                width: 300,
                 height: 300,
                 units: "\u2103",
                 minValue: 0,
                 maxValue: 100,
-                colorValueBoxRect: "#049faa",
-                colorValueBoxRectEnd: "#049faa",
-                colorValueBoxBackground: "#f1fbfc",
+                colorValueBoxRect: signatureBlue,
+                colorValueBoxRectEnd: signatureBlue,
+                colorValueBoxBackground: gaugeBGcolor,
                 valueDec: 0,
                 valueInt: 1,
                 majorTicks: [
@@ -428,40 +453,53 @@
                     "100"
                 ],
                 minorTicks: 4,
-                strokeTicks: true,
+                strokeTicks: false,
                 highlights: [
                 {
                     "from": 90,
                     "to": 100,
-                    "color": "rgba(200, 50, 50, .75)"
+                    "color": "rgba(255, 0, 0, .50)"
                 }
                 ],
-                colorPlate: gaugeBGcolor,
                 borderShadowWidth: 0,
-                borders: false,
+                borders: true,
+                colorBorderOuter: gaugeBorderColor,
+                colorBorderOuterEnd: gaugeBorderColor,
+                colorPlate: gaugeBGcolor,
+                colorMajorTicks: textAndTicksColor,
+                colorMinorTicks: textAndTicksColor,
+                colorUnits: textAndTicksColor,
+                colorNumbers: textAndTicksColor,
+                colorValueText: textAndTicksColor,
+                fontValue: gaugeFont,
+                fontNumbers: gaugeFont,
                 needleType: "arrow",
-                colorNeedle: "#007F80",
-                colorNeedleEnd: "#007F80",
+                colorNeedle: signatureBlue,
+                colorNeedleEnd: signatureBlue,
+                needleStart: 0,
                 needleWidth: 2,
-                needleCircleSize: 3,
-                colorNeedleCircleOuter: "#007F80",
-                needleCircleOuter: true,
-                needleCircleInner: false,
+                needleCircleSize: 10,
+                colorNeedleCircleOuter: needleCircleOuterColor,
+                colorNeedleCircleOuterEnd: needleCircleOuterColor,
+                colorNeedleCircleInner: needleCircleInnerColor,
+                colorNeedleCircleInnerEnd: needleCircleInnerColor,
+                needleShadow: false,
                 animationDuration: 250,
-                animationRule: "linear"
+                animationRule: "linear",
+                value: etempVal
             }).draw();
 
             // Create oil temp Gauge
             var gaugeOtemp = new RadialGauge({
                 renderTo: 'gauge-otemp',
-                width: 220,
+                width: 300,
                 height: 300,
                 units: "\u2103",
                 minValue: 0,
                 maxValue: 140,
-                colorValueBoxRect: "#049faa",
-                colorValueBoxRectEnd: "#049faa",
-                colorValueBoxBackground: "#f1fbfc",
+                colorValueBoxRect: signatureBlue,
+                colorValueBoxRectEnd: signatureBlue,
+                colorValueBoxBackground: gaugeBGcolor,
                 valueDec: 0,
                 valueInt: 1,
                 majorTicks: [
@@ -475,27 +513,40 @@
                     "140"
                 ],
                 minorTicks: 2,
-                strokeTicks: true,
+                strokeTicks: false,
                 highlights: [
                 {
                     "from": 120,
                     "to": 140,
-                    "color": "rgba(200, 50, 50, .75)"
+                    "color": "rgba(255, 0, 0, .50)"
                 }
                 ],
-                colorPlate: gaugeBGcolor,
                 borderShadowWidth: 0,
-                borders: false,
+                borders: true,
+                colorBorderOuter: gaugeBorderColor,
+                colorBorderOuterEnd: gaugeBorderColor,
+                colorPlate: gaugeBGcolor,
+                colorMajorTicks: textAndTicksColor,
+                colorMinorTicks: textAndTicksColor,
+                colorUnits: textAndTicksColor,
+                colorNumbers: textAndTicksColor,
+                colorValueText: textAndTicksColor,
+                fontValue: gaugeFont,
+                fontNumbers: gaugeFont,
                 needleType: "arrow",
-                colorNeedle: "#007F80",
-                colorNeedleEnd: "#007F80",
+                colorNeedle: signatureBlue,
+                colorNeedleEnd: signatureBlue,
+                needleStart: 0,
                 needleWidth: 2,
-                needleCircleSize: 3,
-                colorNeedleCircleOuter: "#007F80",
-                needleCircleOuter: true,
-                needleCircleInner: false,
+                needleCircleSize: 10,
+                colorNeedleCircleOuter: needleCircleOuterColor,
+                colorNeedleCircleOuterEnd: needleCircleOuterColor,
+                colorNeedleCircleInner: needleCircleInnerColor,
+                colorNeedleCircleInnerEnd: needleCircleInnerColor,
+                needleShadow: false,
                 animationDuration: 250,
-                animationRule: "linear"
+                animationRule: "linear",
+                value: otempVal
             }).draw();
         }
 
@@ -503,14 +554,14 @@
             // Create engine temp Gauge F
             var gaugeEtemp = new RadialGauge({
                 renderTo: 'gauge-etemp',
-                width: 220,
+                width: 300,
                 height: 300,
                 units: "\u2109",
                 minValue: 0,
                 maxValue: 240,
-                colorValueBoxRect: "#049faa",
-                colorValueBoxRectEnd: "#049faa",
-                colorValueBoxBackground: "#f1fbfc",
+                colorValueBoxRect: signatureBlue,
+                colorValueBoxRectEnd: signatureBlue,
+                colorValueBoxBackground: gaugeBGcolor,
                 valueDec: 0,
                 valueInt: 1,
                 majorTicks: [
@@ -523,40 +574,53 @@
                     "240"
                 ],
                 minorTicks: 4,
-                strokeTicks: true,
+                strokeTicks: false,
                 highlights: [
                 {
                     "from": 210,
                     "to": 240,
-                    "color": "rgba(200, 50, 50, .75)"
+                    "color": "rgba(255, 0, 0, .50)"
                 }
                 ],
-                colorPlate: gaugeBGcolor,
                 borderShadowWidth: 0,
-                borders: false,
+                borders: true,
+                colorBorderOuter: gaugeBorderColor,
+                colorBorderOuterEnd: gaugeBorderColor,
+                colorPlate: gaugeBGcolor,
+                colorMajorTicks: textAndTicksColor,
+                colorMinorTicks: textAndTicksColor,
+                colorUnits: textAndTicksColor,
+                colorNumbers: textAndTicksColor,
+                colorValueText: textAndTicksColor,
+                fontValue: gaugeFont,
+                fontNumbers: gaugeFont,
                 needleType: "arrow",
-                colorNeedle: "#007F80",
-                colorNeedleEnd: "#007F80",
+                colorNeedle: signatureBlue,
+                colorNeedleEnd: signatureBlue,
+                needleStart: 0,
                 needleWidth: 2,
-                needleCircleSize: 3,
-                colorNeedleCircleOuter: "#007F80",
-                needleCircleOuter: true,
-                needleCircleInner: false,
+                needleCircleSize: 10,
+                colorNeedleCircleOuter: needleCircleOuterColor,
+                colorNeedleCircleOuterEnd: needleCircleOuterColor,
+                colorNeedleCircleInner: needleCircleInnerColor,
+                colorNeedleCircleInnerEnd: needleCircleInnerColor,
+                needleShadow: false,
                 animationDuration: 250,
-                animationRule: "linear"
+                animationRule: "linear",
+                value: etempVal
             }).draw();
 
             // Create oil temp Gauge F
             var gaugeOtemp = new RadialGauge({
                 renderTo: 'gauge-otemp',
-                width: 220,
+                width: 300,
                 height: 300,
                 units: "\u2109",
                 minValue: 0,
                 maxValue: 280,
-                colorValueBoxRect: "#049faa",
-                colorValueBoxRectEnd: "#049faa",
-                colorValueBoxBackground: "#f1fbfc",
+                colorValueBoxRect: signatureBlue,
+                colorValueBoxRectEnd: signatureBlue,
+                colorValueBoxBackground: gaugeBGcolor,
                 valueDec: 0,
                 valueInt: 1,
                 majorTicks: [
@@ -570,27 +634,40 @@
                     "280"
                 ],
                 minorTicks: 2,
-                strokeTicks: true,
+                strokeTicks: false,
                 highlights: [
                 {
                     "from": 240,
                     "to": 280,
-                    "color": "rgba(200, 50, 50, .75)"
+                    "color": "rgba(255, 0, 0, .50)"
                 }
                 ],
-                colorPlate: gaugeBGcolor,
                 borderShadowWidth: 0,
-                borders: false,
+                borders: true,
+                colorBorderOuter: gaugeBorderColor,
+                colorBorderOuterEnd: gaugeBorderColor,
+                colorPlate: gaugeBGcolor,
+                colorMajorTicks: textAndTicksColor,
+                colorMinorTicks: textAndTicksColor,
+                colorUnits: textAndTicksColor,
+                colorNumbers: textAndTicksColor,
+                colorValueText: textAndTicksColor,
+                fontValue: gaugeFont,
+                fontNumbers: gaugeFont,
                 needleType: "arrow",
-                colorNeedle: "#007F80",
-                colorNeedleEnd: "#007F80",
+                colorNeedle: signatureBlue,
+                colorNeedleEnd: signatureBlue,
+                needleStart: 0,
                 needleWidth: 2,
-                needleCircleSize: 3,
-                colorNeedleCircleOuter: "#007F80",
-                needleCircleOuter: true,
-                needleCircleInner: false,
+                needleCircleSize: 10,
+                colorNeedleCircleOuter: needleCircleOuterColor,
+                colorNeedleCircleOuterEnd: needleCircleOuterColor,
+                colorNeedleCircleInner: needleCircleInnerColor,
+                colorNeedleCircleInnerEnd: needleCircleInnerColor,
+                needleShadow: false,
                 animationDuration: 250,
-                animationRule: "linear"
+                animationRule: "linear",
+                value: otempVal
             }).draw();
         }
 
@@ -599,14 +676,13 @@
             var source = new EventSource('/events');
             source.addEventListener('new_readings', function(e) {
                 var myObj = JSON.parse(e.data);
-                gaugeRPM.value = myObj.rpm;
-                gaugeEtemp.value = myObj.etemp;
-                gaugeOtemp.value = myObj.otemp;
-                gaugeOpres.value = myObj.opres;
-                gaugeFpres.value = myObj.fpres;
-                gaugeFlevel.value = myObj.flevel;
-                gaugeSpeed.value = myObj.speed;
-                gaugeHeading.value = myObj.heading;
+                rpmVal = myObj.rpm;
+                etempVal = myObj.etemp;
+                otempVal = myObj.otemp;
+                opresVal = myObj.opres;
+                flevelVal = myObj.flevel;
+                speedVal = myObj.speed;
+                headingVal = myObj.heading;
                 document.getElementById("textDepth").innerHTML = myObj.depth + dUnit;
                 document.getElementById("textWtemp").innerHTML = myObj.wtemp + tUnit;
                 drawGauges();
