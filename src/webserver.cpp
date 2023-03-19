@@ -141,7 +141,7 @@ bool webSetup() {
 
     // Erase data callback
     server.on("/eraseData", HTTP_GET, [](AsyncWebServerRequest *request){
-        voyState = OFF;
+        // voyState = OFF;
         if (!deleteFile(SD, "/")) {
             Serial.println("Erase failed");
             crash();
@@ -179,12 +179,17 @@ bool webSetup() {
     // download data callback
     server.on("/downloadData", HTTP_ANY, [](AsyncWebServerRequest *request){
         String filePath;
-            if (request->hasParam("fileName")) {
-                filePath = "/";
-                filePath += request->getParam("fileName")->value();
-            }
-            else return;
+        if (request->hasParam("fileName")) {
+            filePath = "/";
+            filePath += request->getParam("fileName")->value();
+        }
+        else return;
         AsyncWebServerResponse *response = request->beginResponse(SD, filePath, getFile(SD, filePath), true);
+        if (filePath != "/wifi.txt") {
+            String content = "attachment; filename=";
+            content += request->getParam("fileName")->value();
+            response->addHeader("Content-Disposition",content);
+        }
         request->send(response);
         Serial.println("completed download");
     });

@@ -13,6 +13,13 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 ### In Progress
 
 
+## [2.0.1] - 2023-03-18
+
+### Fixed
+- GPX now records 6 decimal points instead of 2
+- Fixed bug where recording with no data would not let file be downloaded
+
+
 ## [2.0.0] - 2023-03-10
 
 ### Added

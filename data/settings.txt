@@ -6,5 +6,5 @@
     "recInt":5,
     "depthUnit":"0",
     "tempUnit":"0",
-    "timeZone":0
+    "timeZone":-7
 }
