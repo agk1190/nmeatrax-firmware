@@ -145,9 +145,9 @@ bool writeGPXpoint(const char * fileName, int wptNum, double lat, double lon){
     String waypoint;
 
     waypoint = "<wpt lat=\"";
-    waypoint += lat;
+    waypoint += String(lat,6);
     waypoint += "\" lon=\"";
-    waypoint += lon;
+    waypoint += String(lon,6);
     waypoint += "\">\n  <name>";
     waypoint += wptNum;
     waypoint += "</name>\n</wpt>\n";

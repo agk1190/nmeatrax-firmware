@@ -67,7 +67,7 @@ int ehours;
 String gear = "-";
 double flevel;
 uint32_t unixTime;
-String timeString = "-";
+String timeString = "n/a\n";
 
 extern Settings settings;
 
