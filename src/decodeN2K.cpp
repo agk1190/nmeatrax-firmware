@@ -367,8 +367,8 @@ void WaterDepth(const tN2kMsg &N2kMsg) {
                 double tDepth = DepthBelowTransducer+Offset;
                 if (settings.depthUnit == "1") {depth = tDepth;}
                 else {depth = tDepth*3.28084;}
-                Serial.print("Depth: ");
-                Serial.println(depth);
+                // Serial.print("Depth: ");
+                // Serial.println(depth);
             } else {OutputStream->println(" not available");}
         }
     }

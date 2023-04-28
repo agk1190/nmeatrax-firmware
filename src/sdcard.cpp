@@ -2,8 +2,6 @@
  * NMEATrax
  * 
  * NMEATrax SD Card functions
- * 
- * These functions can be found at: Examples > SD > SD_Test
 */
 
 #include "FS.h"
@@ -144,32 +142,31 @@ bool deleteFile(fs::FS &fs, const char * path){
 bool writeGPXpoint(const char * fileName, int wptNum, double lat, double lon){
     String waypoint;
 
-    waypoint = "<wpt lat=\"";
+    waypoint = "<trkpt lat=\"";
     waypoint += String(lat,6);
     waypoint += "\" lon=\"";
     waypoint += String(lon,6);
     waypoint += "\">\n  <name>";
     waypoint += wptNum;
-    waypoint += "</name>\n</wpt>\n";
-    // Serial.println(waypoint);
+    waypoint += "</name>\n</trkpt>\n";
 
     return (appendFile(SD, fileName, waypoint.c_str(), false));
 }
 
-bool createGPXfile(const char * fileName, const char * timeStamp){
+bool createGPXfile(const char * fileName){
     String header;
 
-    header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gpx version=\"1.0\" creator=\"NMEATrax\">\n  <time>";
-    header += timeStamp;
-    header += "</time>\n";
-    // Serial.println(header);
+    header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gpx version=\"1.0\" creator=\"NMEATrax\">\n";
+    header += "<trk>\n<name>";
+    header += fileName;
+    header += "</name>\n<trkseg>\n";
 
     return (appendFile(SD, fileName, header.c_str(), false));
 }
 
 bool endGPXfile(const char * fileName){
     String footer;
-    footer = "</gpx>\n";
+    footer = "</trkseg>\n</trk>\n</gpx>\n";
     return (appendFile(SD, fileName, footer.c_str(), false));
 }
 

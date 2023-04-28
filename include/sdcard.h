@@ -75,10 +75,9 @@ bool writeGPXpoint(const char * fileName, int wptNum, double lat, double lon);
 /**
  * @brief Create and setup gpx file
  * @param fileName GPX filename
- * @param timeStamp Current time stamp
  * @returns True if succeeded
 */
-bool createGPXfile(const char * fileName, const char * timeStamp);
+bool createGPXfile(const char * fileName);
 
 /**
  * @brief Put a </gpx> at the end of the file

@@ -414,7 +414,7 @@ void loop()
             GPXFileName = "/Voyage";
             GPXFileName += voyageNum;
             GPXFileName += ".gpx";
-            createGPXfile(GPXFileName.c_str(), timeString.c_str());
+            createGPXfile(GPXFileName.c_str());
             outOfIdle = false;
         }
         
