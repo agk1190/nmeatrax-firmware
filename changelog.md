@@ -13,6 +13,11 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 ### In Progress
 
 
+## [2.1.0] - 2023-04-27
+
+### Changed
+- GPX file now records as a track with waypoints (prev just waypoints)
+
 ## [2.0.1] - 2023-03-18
 
 ### Fixed
