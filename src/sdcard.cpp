@@ -106,7 +106,7 @@ bool writeFile(fs::FS &fs, const char * path, const char * message, bool newLine
         return(false);
     }
     if(file.print(message)){
-        if (newLine){file.println();}
+        if (newLine){file.print("\r\n");}
     } else {
         Serial.println("Write failed");
         return(false);
@@ -156,7 +156,7 @@ bool writeGPXpoint(const char * fileName, int wptNum, double lat, double lon){
 bool createGPXfile(const char * fileName){
     String header;
 
-    header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gpx version=\"1.0\" creator=\"NMEATrax\">\n";
+    header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gpx version=\"1.1\" creator=\"NMEATrax\">\n";
     header += "<trk>\n<name>";
     header += fileName;
     header += "</name>\n<trkseg>\n";

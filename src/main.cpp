@@ -70,8 +70,8 @@ String getCSV()
         String(lat, 6),         // 14
         String(lon, 6),         // 15
         String(mag_var, 2),       // 16
-        String(settings.tempUnit),  // 17
-        String(settings.depthUnit),  // 18
+        // String(settings.tempUnit),  // 17
+        // String(settings.depthUnit),  // 18
         String(timeString)      // 19
     };
     String rdata;
@@ -395,6 +395,7 @@ void loop()
     if ((voyState == AUTO_RPM || voyState == AUTO_SPD || voyState == ON) && count >= localRecInt){
         static String CSVFileName;
         static int gpxWPTcount = 1;
+        static const char* csvHeaders = "RPM,Engine Temp (C),Oil Temp (C),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Leg Tilt (%),Speed (kn),Heading (*),Depth (ft),Water Temp (C),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp";
 
         if (outOfIdle) {
             int voyageNum = 0;
@@ -415,6 +416,7 @@ void loop()
             GPXFileName += voyageNum;
             GPXFileName += ".gpx";
             createGPXfile(GPXFileName.c_str());
+            writeFile(SD, CSVFileName.c_str(), csvHeaders, true);
             outOfIdle = false;
         }
         

@@ -13,6 +13,17 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 ### In Progress
 
 
+## [3.0.0] - 2023-05-11
+
+### Changed
+- CSV now uses CRLF instead of LF
+- Removed units from CSV file
+- Added header to CSV file
+
+### Fixed
+- Download as file
+
+
 ## [2.1.0] - 2023-04-27
 
 ### Changed

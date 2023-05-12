@@ -184,13 +184,23 @@ bool webSetup() {
             filePath += request->getParam("fileName")->value();
         }
         else return;
-        AsyncWebServerResponse *response = request->beginResponse(SD, filePath, getFile(SD, filePath), true);
-        if (filePath != "/wifi.txt") {
+        AsyncWebServerResponse *response = request->beginResponse(SD, filePath, getFile(SD, filePath), false);
+        String contentType = "";
+        if (filePath == "/wifi.txt") {
+            // contentType = "text/txt";
+            request->send(SD, filePath, getFile(SD, filePath), true);
+        }
+        else if (filePath == "/Voyage1.csv") {
             String content = "attachment; filename=";
             content += request->getParam("fileName")->value();
             response->addHeader("Content-Disposition",content);
+            contentType = "text/csv";
+            response->addHeader("Content-Type", contentType);
+            request->send(response);
         }
-        request->send(response);
+        else if (filePath == "/Voyage1.gpx") {
+            request->send(SD, filePath, getFile(SD, filePath), true);
+        }
         Serial.println("completed download");
     });
 
