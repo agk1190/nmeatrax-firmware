@@ -10,6 +10,16 @@
 
 SPIClass spi = SPIClass(VSPI);
 
+String addCRLF(const String& str) {
+  String result = str;
+  if (result.substring(result.length() - 1) == "\n") {
+    result.replace("\n", "\r\n");
+  } else if (result.length() < 2 || result.substring(result.length() - 2) != "\r\n") {
+    result += "\r\n";
+  }
+  return result;
+}
+
 // created by ChatGPT Jan 28, 2023
 bool searchForFile(fs::FS &fs, const char* fileName) {
     File root = fs.open("/");
@@ -80,17 +90,22 @@ String getFile(fs::FS &fs, String filePath) {
     }
 }
 
-bool appendFile(fs::FS &fs, const char * path, const char * message, bool newLine){
+bool appendFile(fs::FS &fs, const char * path, const char * message, bool ensureCRLF){
     File file = fs.open(path, FILE_APPEND);
+    const char * toSend;
     if (!file){
         Serial.println("Failed to open file for appending");
         return (false);
     }
-    if (file.print(message)){
-        if (newLine)
-        {
-            file.println();
-        }
+    
+    if (ensureCRLF)
+    {
+        toSend = addCRLF(message).c_str();
+    } else {
+        toSend = message;
+    }
+    
+    if (file.print(toSend)){
     } else {
         Serial.println("Append failed");
         return (false);

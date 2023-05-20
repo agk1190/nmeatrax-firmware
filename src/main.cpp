@@ -377,7 +377,7 @@ void loop()
     }
 
     if (voyState == AUTO_RPM){
-        if (rpm > 3000){
+        if (rpm > 3500){
             localRecInt = 30;
         } else {
             localRecInt = settings.recInt;
@@ -395,15 +395,14 @@ void loop()
     if ((voyState == AUTO_RPM || voyState == AUTO_SPD || voyState == ON) && count >= localRecInt){
         static String CSVFileName;
         static int gpxWPTcount = 1;
-        static const char* csvHeaders = "RPM,Engine Temp (C),Oil Temp (C),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Leg Tilt (%),Speed (kn),Heading (*),Depth (ft),Water Temp (C),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp";
 
         if (outOfIdle) {
             int voyageNum = 0;
             gpxWPTcount = 1;
             String lastCSVfileName;
+            const char* csvHeaders = "RPM,Engine Temp (C),Oil Temp (C),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Leg Tilt (%),Speed (kn),Heading (*),Depth (ft),Water Temp (C),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp";
 
-            do
-            {
+            do {
                 voyageNum++;
                 lastCSVfileName = "Voyage";
                 lastCSVfileName += voyageNum;
@@ -420,7 +419,7 @@ void loop()
             outOfIdle = false;
         }
         
-        if (!appendFile(SD, CSVFileName.c_str(), getCSV().c_str(), false)) {crash();}
+        if (!appendFile(SD, CSVFileName.c_str(), getCSV().c_str(), true)) {crash();}
         if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
         gpxWPTcount++;
         count = 0;

@@ -1,8 +1,8 @@
 {
-    "wifiMode":"wan",
+    "wifiMode":"lan",
     "wifiSSID":"NMEATrax",
     "wifiPass":"nmeatrax",
-    "voyState":2,
+    "voyState":3,
     "recInt":5,
     "depthUnit":"0",
     "tempUnit":"0",

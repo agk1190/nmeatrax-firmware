@@ -31,10 +31,10 @@ bool writeFile(fs::FS &fs, const char * path, const char * message, bool newLine
  * @param fs Filesystem to look in
  * @param path The path and file name to appened to
  * @param message The contents to write to the file
- * @param newLine New line at the end of the message (true/false)
+ * @param ensureCRLF Ensure the line ending is always CRLF
  * @returns True if succeeded
 */
-bool appendFile(fs::FS &fs, const char * path, const char * message, bool newLine);
+bool appendFile(fs::FS &fs, const char * path, const char * message, bool ensureCRLF);
 
 /**
  * @brief Delete all files in the path
@@ -91,3 +91,10 @@ bool endGPXfile(const char * fileName);
  * @returns True if succeeded
 */
 bool sdSetup();
+
+/**
+ * @brief Ensure line ending is CRLF
+ * @returns String with CRLF line ending
+ * @author ChatGPT
+*/
+String addCRLF(const String& str);

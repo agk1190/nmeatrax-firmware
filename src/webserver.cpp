@@ -190,7 +190,7 @@ bool webSetup() {
             // contentType = "text/txt";
             request->send(SD, filePath, getFile(SD, filePath), true);
         }
-        else if (filePath == "/Voyage1.csv") {
+        else if (filePath.substring(filePath.length() - 3) == "csv") {
             String content = "attachment; filename=";
             content += request->getParam("fileName")->value();
             response->addHeader("Content-Disposition",content);
@@ -198,7 +198,7 @@ bool webSetup() {
             response->addHeader("Content-Type", contentType);
             request->send(response);
         }
-        else if (filePath == "/Voyage1.gpx") {
+        else if (filePath.substring(filePath.length() - 3) == "gpx") {
             request->send(SD, filePath, getFile(SD, filePath), true);
         }
         Serial.println("completed download");

@@ -15,6 +15,9 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 
 ## [3.0.0] - 2023-05-11
 
+### Added
+- Added ability to ensure CRLF is the line ending
+
 ### Changed
 - CSV now uses CRLF instead of LF
 - Removed units from CSV file
@@ -28,6 +31,7 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 - GPX file now records as a track with waypoints (prev just waypoints)
+
 
 ## [2.0.1] - 2023-03-18
 
