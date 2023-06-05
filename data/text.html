@@ -57,6 +57,10 @@
                     <td><div class="tabledata" id="flevel">-</div></td>
                 </tr>
                 <tr>
+                    <td><div class="bodytext">Fuel Efficiency</div></td>
+                    <td><div class="tabledata" id="lpkm">-</div></td>
+                </tr>
+                <tr>
                     <td><div class="bodytext">Leg Tilt</div></td>
                     <td><div class="tabledata" id="leg_tilt">-</div></td>
                 </tr>
@@ -187,6 +191,7 @@
                 document.getElementById("opres").innerHTML = myObj.opres + " kPa";
                 document.getElementById("fuel_rate").innerHTML = myObj.fuel_rate + " L/h";
                 document.getElementById("flevel").innerHTML = myObj.flevel + "%";
+                document.getElementById("lpkm").innerHTML = myObj.efficiency + " L/km";
                 document.getElementById("leg_tilt").innerHTML = myObj.leg_tilt;
                 document.getElementById("speed").innerHTML = myObj.speed + " kn";
                 document.getElementById("cog").innerHTML = myObj.heading + "&deg";

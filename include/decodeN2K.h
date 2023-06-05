@@ -25,6 +25,7 @@ extern double fuel_rate;
 extern int ehours;
 extern String gear;
 extern double flevel;
+extern double lpkm;
 extern String timeString;
 
 /**

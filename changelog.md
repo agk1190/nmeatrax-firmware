@@ -17,6 +17,7 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 
 ### Added
 - Added ability to ensure CRLF is the line ending
+- Added fuel efficiency value (calculated)
 
 ### Changed
 - CSV now uses CRLF instead of LF

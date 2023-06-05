@@ -11,7 +11,7 @@
  *
  */
 
-#include <tinyGpsPlus.h>
+// #include <tinyGpsPlus.h>
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
@@ -59,20 +59,19 @@ String getCSV()
         String(opres),          // 3
         String(fuel_rate),      // 4
         String(flevel),         // 5
-        String(leg_tilt),       // 6
-        String(speed),          // 7
-        String(heading),        // 8
-        String(depth),          // 9
-        String(wtemp),          // 10
-        String(battV),          // 11
-        String(ehours),         // 12
-        String(gear),           // 13
-        String(lat, 6),         // 14
-        String(lon, 6),         // 15
-        String(mag_var, 2),       // 16
-        // String(settings.tempUnit),  // 17
-        // String(settings.depthUnit),  // 18
-        String(timeString)      // 19
+        String(lpkm, 3),        // 6
+        String(leg_tilt),       // 7
+        String(speed),          // 8
+        String(heading),        // 9
+        String(depth),          // 10
+        String(wtemp),          // 11
+        String(battV),          // 12
+        String(ehours),         // 13
+        String(gear),           // 14
+        String(lat, 6),         // 15
+        String(lon, 6),         // 16
+        String(mag_var, 2),     // 17
+        String(timeString)      // 18
     };
     String rdata;
 
@@ -98,6 +97,7 @@ String JSONValues()
     readings["opres"] = String(opres);
     readings["fuel_rate"] = String(fuel_rate);
     readings["flevel"] = String(flevel);
+    readings["efficiency"] = String(lpkm, 3);
     readings["leg_tilt"] = String(leg_tilt);
     readings["speed"] = String(speed);
     readings["heading"] = String(heading);
@@ -137,12 +137,12 @@ bool readSettings()
     String settingsString;
     bool usedSdCard = true;
     settingsString = getFile(SD, "/settings.txt");
-    Serial.print("SD Card - ");
-    Serial.println(settingsString);
+    // Serial.print("SD Card - ");
+    // Serial.println(settingsString);
     if (settingsString == "null" || settingsString == "") {
         settingsString = getFile(SPIFFS, "/settings.txt");
-        Serial.print("SPIFFS - ");
-        Serial.println(settingsString);
+        // Serial.print("SPIFFS - ");
+        // Serial.println(settingsString);
         usedSdCard = false;
     }
     jsettings = JSON.parse(settingsString);
@@ -330,13 +330,20 @@ void loop()
         // leg_tilt = random(0, 25);
         // opres = random(483, 626);
         // battV = random(12.0, 15.0);
-        // fuel_rate = random(2, 6);
+        // fuel_rate = random(40, 44);
+        // speed = random(22, 24);
         // ehours = 122;
         // flevel = random(40.2, 60.9);
         // gear = "N";
         // lat = random(40.0, 60.0);
         // lon = random(120.0, 140.0);
         // timeString = asctime(&timeDetails);
+
+        if (speed != 0) {
+            lpkm = fuel_rate / (speed*1.852);
+        } else {
+            lpkm = 0;
+        }
 
         getSDcardStatus();
         statDelay = millis();
@@ -400,7 +407,7 @@ void loop()
             int voyageNum = 0;
             gpxWPTcount = 1;
             String lastCSVfileName;
-            const char* csvHeaders = "RPM,Engine Temp (C),Oil Temp (C),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Leg Tilt (%),Speed (kn),Heading (*),Depth (ft),Water Temp (C),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp";
+            const char* csvHeaders = "RPM,Engine Temp (C),Oil Temp (C),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Fuel Efficiency (L/km),Leg Tilt (%),Speed (kn),Heading (*),Depth (ft),Water Temp (C),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp";
 
             do {
                 voyageNum++;

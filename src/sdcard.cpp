@@ -12,10 +12,18 @@ SPIClass spi = SPIClass(VSPI);
 
 String addCRLF(const String& str) {
   String result = str;
-  if (result.substring(result.length() - 1) == "\n") {
-    result.replace("\n", "\r\n");
-  } else if (result.length() < 2 || result.substring(result.length() - 2) != "\r\n") {
-    result += "\r\n";
+//   Serial.print(str);
+//   Serial.print(result.substring(result.length() - 2));
+//   if (result.substring(result.length() - 1) == "\n") {
+//     // result.replace("\n", "\r\n");
+//   } else 
+  if (result.length() < 2 || result.substring(result.length() - 2) != "\r\n") {
+    if (result.substring(result.length() - 1) == "\n") {
+        result.replace("\n", "\r\n");
+    } else {
+        // result += "\r\n";
+        result.concat("\r\n");
+    }
   }
   return result;
 }

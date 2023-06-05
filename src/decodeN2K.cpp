@@ -66,6 +66,7 @@ double fuel_rate;
 int ehours;
 String gear = "-";
 double flevel;
+double lpkm;
 uint32_t unixTime;
 String timeString = "-\r\n";
 
