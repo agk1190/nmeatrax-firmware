@@ -177,30 +177,53 @@ bool webSetup() {
     });
 
     // download data callback
+    // https://www.reddit.com/r/esp32/comments/zs1q9x/download_large_file_from_sd_card_using/
     server.on("/downloadData", HTTP_ANY, [](AsyncWebServerRequest *request){
         String filePath;
+        String contentType = "";
+
         if (request->hasParam("fileName")) {
             filePath = "/";
             filePath += request->getParam("fileName")->value();
-        }
-        else return;
-        AsyncWebServerResponse *response = request->beginResponse(SD, filePath, getFile(SD, filePath), false);
-        String contentType = "";
-        if (filePath == "/wifi.txt") {
-            // contentType = "text/txt";
-            request->send(SD, filePath, getFile(SD, filePath), true);
-        }
-        else if (filePath.substring(filePath.length() - 3) == "csv") {
-            String content = "attachment; filename=";
-            content += request->getParam("fileName")->value();
-            response->addHeader("Content-Disposition",content);
+        } else return;
+
+        if (filePath.substring(filePath.length() - 3) == "csv") {
             contentType = "text/csv";
-            response->addHeader("Content-Type", contentType);
-            request->send(response);
+        } else if (filePath.substring(filePath.length() - 3) == "gpx") {
+            contentType = "text/xml";
+        } else {
+            contentType = "text/plain";
         }
-        else if (filePath.substring(filePath.length() - 3) == "gpx") {
-            request->send(SD, filePath, getFile(SD, filePath), true);
-        }
+
+        File file{SD.open(filePath, FILE_READ)};
+
+        AsyncWebServerResponse *response = request->beginChunkedResponse(
+            contentType,
+            [file](
+                uint8_t* buffer,
+                const size_t max_len,
+                const size_t index) mutable -> size_t
+            {
+                // Serial.print("Max length: ");
+                // Serial.println(max_len);
+
+                // Tried sending less than max length
+                const size_t length{file.read(buffer, (max_len >> 1))};
+                // Serial.print("Length: ");
+                // Serial.println(length);
+
+                if (length == 0){file.close();}
+                return length;
+            });
+
+        // Force download
+        String headerData = "attachment; filename=\"";
+        headerData.concat(filePath.substring(1,filePath.length()));
+        headerData.concat("\"");
+        // Serial.println(headerData);
+        response->addHeader("Content-Disposition", headerData);
+        response->addHeader("Transfer-Encoding", "chunked");
+        request->send(response);
         Serial.println("completed download");
     });
 
@@ -309,6 +332,8 @@ bool webSetup() {
     mdns_init(); 
     mdns_hostname_set(HOSTNAME); 
     mdns_instance_name_set(HOSTNAME); 
+    MDNS.addService("http","tcp",80);
+    MDNS.begin("NMEATrax");
     Serial.printf("MDNS responder started at http://%s.local\n", HOSTNAME);
 
     return(true);

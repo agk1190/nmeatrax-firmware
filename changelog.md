@@ -9,6 +9,7 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
  
 ### Coming Soon
 - Fix WiFi settings not saving correctly
+- Chrome to stay open
 
 ### In Progress
 
@@ -23,6 +24,9 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 - CSV now uses CRLF instead of LF
 - Removed units from CSV file
 - Added header to CSV file
+- Data now shows -273 when unavailable
+- HTML now shows '-' when data is -273
+- Default values now -273 or '-'
 
 ### Fixed
 - Download as file

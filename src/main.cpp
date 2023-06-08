@@ -339,10 +339,10 @@ void loop()
         // lon = random(120.0, 140.0);
         // timeString = asctime(&timeDetails);
 
-        if (speed != 0) {
+        if (speed > 0) {
             lpkm = fuel_rate / (speed*1.852);
         } else {
-            lpkm = 0;
+            lpkm = -273;
         }
 
         getSDcardStatus();
@@ -352,7 +352,7 @@ void loop()
 
     switch (voyState){
         case AUTO_RPM:
-            if (rpm==0){
+            if (rpm <= 0){
                 voyState=AUTO_RPM_IDLE;
                 endGPXfile(GPXFileName.c_str());
             }
@@ -366,7 +366,7 @@ void loop()
             break;
 
         case AUTO_SPD:
-            if (speed==0){
+            if (speed <= 0){
                 voyState=AUTO_SPD_IDLE;
                 endGPXfile(GPXFileName.c_str());
             }

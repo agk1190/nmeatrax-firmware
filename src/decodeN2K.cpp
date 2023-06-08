@@ -47,26 +47,26 @@ tNMEA2000Handler NMEA2000Handlers[]={
     {0,0}
 };
 
-int rpm;
-double depth;
-double speed;
-int heading;
-int etemp;
-int otemp;
-double wtemp;
-double lat;
-double lon;
+int rpm = -273;
+double depth = -273;
+double speed = -273;
+int heading = -273;
+int etemp = -273;
+int otemp = -273;
+double wtemp = -273;
+double lat = -273;
+double lon = -273;
 // double rapidLat;
 // double rapidLon;
-double mag_var;
-int leg_tilt;
-int opres;
-double battV;
-double fuel_rate;
-int ehours;
+double mag_var = -273;
+int leg_tilt = -273;
+int opres = -273;
+double battV = -273;
+double fuel_rate = -273;
+int ehours = -273;
 String gear = "-";
-double flevel;
-double lpkm;
+double flevel = -273;
+double lpkm = -273;
 uint32_t unixTime;
 String timeString = "-\r\n";
 
@@ -130,8 +130,14 @@ void EngineRapid(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  boost pressure (Pa): ",EngineBoostPressure,0,true);
         PrintLabelValWithConversionCheckUnDef("  tilt trim: ",EngineTiltTrim,0,true);
         #endif
-        if (EngineSpeed >= 0 && EngineSpeed <= 10000) rpm = EngineSpeed;
-        if (EngineTiltTrim >= 0 && 100 >= EngineTiltTrim) leg_tilt = EngineTiltTrim;
+        if (!N2kIsNA(EngineSpeed)) {
+            if (EngineSpeed >= 0 && EngineSpeed <= 10000) rpm = EngineSpeed;
+            if (EngineTiltTrim >= 0 && 100 >= EngineTiltTrim) leg_tilt = EngineTiltTrim;
+        } else {
+            rpm = -273;
+            leg_tilt = -273;
+        }
+        
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
@@ -169,6 +175,15 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  engine load (%): ",EngineLoad,0,true);
         PrintLabelValWithConversionCheckUnDef("  engine torque (%): ",EngineTorque,0,true);
         #endif
+        if (N2kIsNA(EngineOilPress)) {
+            etemp = -273;
+            otemp = -273;
+            opres = -273;
+            battV = -273;
+            fuel_rate = -273;
+            ehours = -273;
+            return;
+        }
         if (settings.tempUnit == "1") {
             etemp = ReturnWithConversionCheckUnDef(EngineCoolantTemp, &KelvinToF);
             otemp = ReturnWithConversionCheckUnDef(EngineOilTemp, &KelvinToF);
@@ -213,6 +228,7 @@ void TransmissionParameters(const tN2kMsg &N2kMsg) {
                 gear = "R";
                 break;
             default:
+                gear = "-";
                 break;
         }
         } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
@@ -370,7 +386,12 @@ void WaterDepth(const tN2kMsg &N2kMsg) {
                 else {depth = tDepth*3.28084;}
                 // Serial.print("Depth: ");
                 // Serial.println(depth);
-            } else {OutputStream->println(" not available");}
+            } else {
+                #ifdef DEBUG_EN
+                OutputStream->println(" not available");
+                #endif
+                depth = -273;
+            }
         }
     }
 }
@@ -440,7 +461,11 @@ void FluidLevel(const tN2kMsg &N2kMsg) {
         OutputStream->print(" ("); OutputStream->print(Capacity*Level/100); OutputStream->print(")L");
         OutputStream->print(" capacity :"); OutputStream->println(Capacity);
         #endif
-        if (FluidType == N2kft_Fuel) {flevel = Level;}
+        if (N2kIsNA(flevel)) {
+            flevel = -273;
+        } else {
+            if (FluidType == N2kft_Fuel) {flevel = Level;}
+        }
     }
 }
 

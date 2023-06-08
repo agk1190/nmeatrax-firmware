@@ -679,18 +679,26 @@
             var source = new EventSource('/events');
             source.addEventListener('new_readings', function(e) {
                 var myObj = JSON.parse(e.data);
-                rpmVal = myObj.rpm;
-                etempVal = myObj.etemp;
-                otempVal = myObj.otemp;
-                opresVal = myObj.opres;
-                flevelVal = myObj.flevel;
-                speedVal = myObj.speed;
-                headingVal = myObj.heading;
-                document.getElementById("textDepth").innerHTML = myObj.depth + dUnit;
-                document.getElementById("textWtemp").innerHTML = myObj.wtemp + tUnit;
-                document.getElementById("textLpkm").innerHTML = myObj.efficiency + " L/km";
+                rpmVal = check273(myObj.rpm, "");
+                etempVal = check273(myObj.etemp, "");
+                otempVal = check273(myObj.otemp, "");
+                opresVal = check273(myObj.opres, "");
+                flevelVal = check273(myObj.flevel, "");
+                speedVal = check273(myObj.speed, "");
+                headingVal = check273(myObj.heading, "");
+                document.getElementById("textDepth").innerHTML = check273(myObj.depth, dUnit);
+                document.getElementById("textWtemp").innerHTML = check273(myObj.wtemp, tUnit);
+                document.getElementById("textLpkm").innerHTML = check273(myObj.efficiency, " L/km");
                 drawGauges();
             }, false);
+        }
+
+        function check273(input, unit) {
+            if (input == -273 || input == "-") {
+                return "-";
+            } else {
+                return input + unit;
+            }
         }
 
   </script>
