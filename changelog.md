@@ -27,6 +27,7 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 - Data now shows -273 when unavailable
 - HTML now shows '-' when data is -273
 - Default values now -273 or '-'
+- N2K LED now stays on while there is NMEA activity 
 
 ### Fixed
 - Download as file
