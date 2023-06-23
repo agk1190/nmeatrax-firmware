@@ -91,6 +91,7 @@ String getCSV()
 
 String JSONValues()
 {
+    timeString.remove(timeString.length() - 1, 1);
     readings["rpm"] = String(rpm);
     readings["etemp"] = String(etemp);
     readings["otemp"] = String(otemp);
@@ -109,7 +110,7 @@ String JSONValues()
     readings["lat"] = String(lat, 6);
     readings["lon"] = String(lon, 6);
     readings["mag_var"] = String(mag_var, 2);
-    readings["time"] = String(timeString);
+    readings["time"] = timeString;
 
     String jsonString = JSON.stringify(readings);
     return jsonString;
@@ -230,6 +231,7 @@ void setup()
 {
     Serial.begin(460800);
     delay(500);
+    Serial.println();
 
     pinMode(LED_PWR, OUTPUT);
     pinMode(LED_N2K, OUTPUT);
@@ -385,13 +387,13 @@ void loop()
 
     if (voyState == AUTO_RPM){
         if (rpm > 3500){
-            localRecInt = 30;
+            localRecInt = 15;
         } else {
             localRecInt = settings.recInt;
         }
     } else if (voyState == AUTO_SPD){
         if (speed > 15){
-            localRecInt = 30;
+            localRecInt = 15;
         } else {
             localRecInt = settings.recInt;
         }
@@ -427,7 +429,9 @@ void loop()
         }
         
         if (!appendFile(SD, CSVFileName.c_str(), getCSV().c_str(), true)) {crash();}
-        if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
+        if (lat != -273) {
+            if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
+        }
         gpxWPTcount++;
         count = 0;
     

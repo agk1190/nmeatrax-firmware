@@ -129,7 +129,7 @@ void EngineRapid(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  boost pressure (Pa): ",EngineBoostPressure,0,true);
         PrintLabelValWithConversionCheckUnDef("  tilt trim: ",EngineTiltTrim,0,true);
         #endif
-        rpm = N2kIsNA(EngineSpeed) ? -273 : EngineSpeed;
+        rpm = (!N2kIsNA(EngineSpeed) && EngineSpeed < 10000) ? EngineSpeed : -273;
         leg_tilt = N2kIsNA(EngineTiltTrim) ? -273 : EngineTiltTrim;
         
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
@@ -480,9 +480,26 @@ void NMEAloop()
     NMEA2000.ParseMessages();
     if (n2kKeepAlive + 1000 < millis()) {
         digitalWrite(LED_N2K, LOW);
-        if (n2kKeepAlive + 1100 > millis()) {
-            // clearData();
-            mag_var = -273;
+        if (n2kKeepAlive + 2000 > millis()) {
+            int nValid = -273;
+            rpm = nValid;
+            etemp = nValid;
+            otemp = nValid;
+            opres = nValid;
+            fuel_rate = nValid;
+            flevel = nValid;
+            leg_tilt = nValid;
+            speed = nValid;
+            heading = nValid;
+            depth = nValid;
+            wtemp = nValid;
+            battV = nValid;
+            ehours = nValid;
+            gear = "-";
+            lat = nValid;
+            lon = nValid;
+            mag_var = nValid;
+            timeString = "-";
         }  
     }
 }
