@@ -22,6 +22,7 @@
         <input type="text" name="fileName" placeholder="Voyage1.csv">
         <input class="button" type="submit" value="Download">
     </form>
+    <button type="button" onclick="email()" id="logOff">Email Instead</button><br><br>
     <a href="options.html" class="button">Back</a>
     <footer class="botnav">
         <h1 class="botnavtext">NMEATrax</h1>
@@ -36,6 +37,12 @@
             };
             xhr.open("GET", "/listDir", true);
             xhr.send();
+        }
+
+        function email() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("GET", "/email", true);
+            xhttp.send();
         }
 
         //https://css-tricks.com/a-complete-guide-to-dark-mode-on-the-web/

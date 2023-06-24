@@ -9,9 +9,14 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
  
 ### Coming Soon
 - Fix WiFi settings not saving correctly
-- Chrome to stay open
 
 ### In Progress
+
+
+## [4.0.0] - 2023-06-23
+
+### Added
+- Can send email with recordings
 
 
 ## [3.0.0] - 2023-05-11

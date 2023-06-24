@@ -19,6 +19,7 @@
 #include "webserv.h"
 #include <ESPmDNS.h>
 #include <AsyncElegantOTA.h>
+#include "myemail.h"
 
 // WebSever object
 AsyncWebServer server(80);
@@ -314,6 +315,11 @@ bool webSetup() {
         request->send(200, "text/plain", "OK");
         digitalWrite(N2K_STBY, HIGH);
         backupSettings = true;
+    });
+
+    server.on("/email", HTTP_GET, [] (AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", "OK");
+        xTaskCreate(sendEmail, "Send Email", 8192, NULL, 1, NULL);
     });
 
     server.addHandler(&events);
