@@ -170,7 +170,7 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  engine load (%): ",EngineLoad,0,true);
         PrintLabelValWithConversionCheckUnDef("  engine torque (%): ",EngineTorque,0,true);
         #endif
-        if (settings.tempUnit == "1") {
+        if (settings.isDegF == true) {
             etemp = N2kIsNA(EngineCoolantTemp) ? -273 : ReturnWithConversionCheckUnDef(EngineCoolantTemp, &KelvinToF);
             otemp = N2kIsNA(EngineOilTemp) ? -273 : ReturnWithConversionCheckUnDef(EngineOilTemp, &KelvinToF);
         }
@@ -317,7 +317,7 @@ void Temperature(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef(", set temperature: ",SetTemperature,&KelvinToC,true);
         #endif
         if (TempSource == N2kts_SeaTemperature) {
-            if (settings.tempUnit == "1") {wtemp = N2kIsNA(ActualTemperature) ? -273 : ReturnWithConversionCheckUnDef(ActualTemperature,&KelvinToF);}
+            if (settings.isDegF == true) {wtemp = N2kIsNA(ActualTemperature) ? -273 : ReturnWithConversionCheckUnDef(ActualTemperature,&KelvinToF);}
             else {wtemp = N2kIsNA(ActualTemperature) ? -273 : ReturnWithConversionCheckUnDef(ActualTemperature,&KelvinToC);}
         }
     } else {OutputStream->print("Failed to parse PGN: ");  OutputStream->println(N2kMsg.PGN);}
@@ -355,7 +355,7 @@ void WaterDepth(const tN2kMsg &N2kMsg) {
                 OutputStream->println(DepthBelowTransducer+Offset);
                 #endif
                 double tDepth = DepthBelowTransducer+Offset;
-                if (settings.depthUnit == "1") {depth = tDepth;}
+                if (settings.isMeters == true) {depth = tDepth;}
                 else {depth = tDepth*3.28084;}
                 // Serial.print("Depth: ");
                 // Serial.println(depth);

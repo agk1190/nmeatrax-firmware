@@ -17,16 +17,16 @@
         <a href="text.html">Text</a>
         <a href="options.html" class="active">Options</a>
     </div><br>
-    <!-- ----------------------------------------- -->
+    <!-- --Recording Mode------------------------- -->
     <div>
-        <p>Recording Toggle</p>
-        <p class="options" style="display: inline;">Current state: <p class="options" style="display: inline;" id="state">-</p></p>
-        <button type="button" onclick="setLoggingMode(0)" id="logOff">Off</button>
-        <button type="button" onclick="setLoggingMode(1)" id="logOn">On</button>
-        <button type="button" onclick="setLoggingMode(2)" id="logAutoSpeedBtn">Auto by Speed</button>
-        <button type="button" onclick="setLoggingMode(3)" id="logAutoRPMBtn">Auto by RPM</button>
+        <p>Recording Mode</p>
+        <p class="options" style="display: inline;">Current Mode: <p class="options" style="display: inline;" id="recMode">-</p></p>
+        <button type="button" onclick="set(0, 0, 0)" id="logOff">Off</button>
+        <button type="button" onclick="set(0, 0, 1)" id="logOn">On</button>
+        <button type="button" onclick="set(0, 0, 2)" id="logAutoSpeedBtn">Auto by Speed</button>
+        <button type="button" onclick="set(0, 0, 3)" id="logAutoRPMBtn">Auto by RPM</button>
     </div><br>
-    <!-- ----------------------------------------- -->
+    <!-- --Download------------------------------- -->
     <div>
         <p>Recorded Data</p>
         <a href="downloads.html" class="button">Download Logs</a>
@@ -34,42 +34,42 @@
     </div><br>
     <div>
         <p id="confTxt" style="display: none;">Are you sure you want to erase ALL recorded data?</p><br>
-        <button type="button" id="confBut" style="display: none;" onclick="eraseData()">ERASE ALL DATA</button><br>
+        <button type="button" id="confBut" style="display: none;" onclick="set(4, 0, 0)">ERASE ALL DATA</button><br>
         <p id="eraseGood" style="display: none;">Erase Complete!</p>
     </div>
-    <!-- ----------------------------------------- -->
+    <!-- --WiFi Settings-------------------------- -->
     <div>
         <p>WiFi Settings</p>
-        <form action="/param">
+        <form action="/set">
             <p class="options inline">WiFi SSID</p>
-            <input type="text" name="ssid" placeholder="SSID">
+            <input type="text" name="AP_SSID" placeholder="SSID">
             <input class="button" type="submit" value="Set">
         </form>
-        <form action="/param">
+        <form action="/set">
             <p class="options inline">WiFi Password</p>
-            <input type="text" name="pass" placeholder="Password">
+            <input type="text" name="AP_PASS" placeholder="Password">
             <input class="button" type="submit" value="Set">
         </form><br>
         <p class="options">This will reset the WiFi settings and reboot the device</p>
-        <button type="button" onclick="EEPROMRequest();">Reset WiFi & Reboot</button>
+        <button type="button" onclick="set(3, 0, 0);">Reset WiFi & Reboot</button>
     </div><br>
-    <!-- ----------------------------------------- -->
+    <!-- --OTA Update----------------------------- -->
     <div>
         <p>OTA Firmware Update</p>
-        <a href="update" class="button" onclick="OTAUpdate()">Update</a>
+        <a href="update" class="button" onclick="set(5, 0, 0)">Update</a>
     </div><br>
-    <!-- ----------------------------------------- -->
+    <!-- --Recording Interval--------------------- -->
     <div>
-        <form action="/param">
+        <form action="/set">
             <p>Recording Interval (seconds)</p>
             <p class="options" id="recInt">Currently 5 seconds</p>
-            <input type="number" name="interval" placeholder="Ex. 5">
+            <input type="number" name="recInt" placeholder="Ex. 5">
             <input class="button" type="submit" value="Set">
         </form>
     </div><br>
-    <!-- ----------------------------------------- -->
+    <!-- --Timezone------------------------------- -->
     <div>
-        <form action="/param">
+        <form action="/set">
             <p>Timezone</p>
             <p class="options" id="tzDisplay">Currently -7</p>
             <input type="text" name="timeZone" placeholder="Ex. -7">
@@ -79,7 +79,7 @@
     <div>
         <button class="btn-toggle" id="darkModeBtn" style="display: inline;">Toggle Dark Mode</button>
     </div><br>
-    <!-- ----------------------------------------- -->
+    <!-- --Units---------------------------------- -->
     <div>
         <p>Units</p>
         <table class="text-table" id="setTable">
@@ -87,7 +87,7 @@
                 <td><p class="Rjust">Depth Unit | Feet  </p></td>
                 <td>
                     <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 0)" id="depthUnit">
+                        <input type="checkbox" onchange="set(1, this)" id="isMeters">
                         <span class="slider"></span>
                     </label>
                 </td>
@@ -97,7 +97,7 @@
                 <td><p class="Rjust">Temp Unit | &degC  </p></td>
                 <td>
                     <label class="switch">
-                        <input type="checkbox" onchange="toggleCheckbox(this, 1)" id="tempUnit">
+                        <input type="checkbox" onchange="set(1, this)" id="isDegF">
                         <span class="slider"></span>
                     </label>
                 </td>
@@ -105,7 +105,7 @@
             </tr>
         </table>
     </div>
-    <p style="font-size: small;">Firmware: v4.0.0 | Ui: v2.1.0</p>
+    <p style="font-size: small;">Firmware: v4.0.0 | Ui: v2.2.0</p>
     <footer class="botnav">
         <h1 class="botnavtext">NMEATrax</h1>
     </footer>
@@ -147,96 +147,69 @@
             localStorage.setItem("theme", theme);
         });
 
-        function EEPROMRequest() {
-            var xhttp = new XMLHttpRequest();
-            xhttp.open("GET", "/eraseWiFi", true);
-            xhttp.send();
-        }
-
-        function OTAUpdate() {
-            setLoggingMode(0);
-            var xhttp = new XMLHttpRequest();
-            xhttp.open("GET", "/otaUpdate", true);
-            xhttp.send();
-        }
-
-        function eraseData() {
-            var xhttp = new XMLHttpRequest();
-            xhttp.open("GET", "/eraseData", true);
-            xhttp.send();
-            document.getElementById('eraseGood').style.display = "inline";
-            setTimeout(function() {
-                document.getElementById('confBut').style.display = "none";
-                document.getElementById('confTxt').style.display = "none";
-                document.getElementById('eraseGood').style.display = "none";
-            }, 5000);
-        }
-
         function confirmErase() {
             document.getElementById('confBut').style.display = "inline";
             document.getElementById('confTxt').style.display = "inline";
         }
 
-        function setLoggingMode(index) {
+        function set(path, element, value) {
             var xhr = new XMLHttpRequest();
-            var str = "/loggingMode?";
-            str += index;
-            str += "=1";
-            xhr.open("GET", str, true);
-            xhr.send();
-            setTimeout(getRunState(), 1000);
+            switch (path) {
+                case 0:
+                    var str = "/set?recMode=";
+                    str += value;
+                    xhr.open("POST", str, true);
+                    xhr.send();
+                    setTimeout(get(), 4000);
+                    break;
+                case 1:
+                    var str = "/set?";
+                    str += element.id;
+                    if (element.checked) { 
+                        str += "=true";
+                        xhr.open("POST", str, true);
+                    } else { 
+                        str += "=false";
+                        xhr.open("POST", str, true);
+                    }
+                    xhr.send();
+                    setTimeout(get(), 4000);
+                    break;
+                case 3:
+                    xhr.open("POST", "/set?eraseWiFi=true", true);
+                    xhr.send();
+                    break;
+                case 4:
+                    xhr.open("POST", "/set?eraseData=true", true);
+                    xhr.send();
+                    document.getElementById('eraseGood').style.display = "inline";
+                    setTimeout(function() {
+                        document.getElementById('confBut').style.display = "none";
+                        document.getElementById('confTxt').style.display = "none";
+                        document.getElementById('eraseGood').style.display = "none";
+                    }, 5000);
+                    break;
+                case 5:
+                    set(0, 0, 0);
+                    xhr.open("POST", "/set?otaUpdate=true", true);
+                    xhr.send();
+                    break;
+                default:
+                    break;
+            }
         }
-
-        function getRunState(){
+        
+        function get() {
             var xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
-                    if (this.responseText == "0") {
-                        document.getElementById("state").innerHTML = "OFF";
-                    } 
-                    else if (this.responseText == "1") {
-                        document.getElementById("state").innerHTML = "ON";
-                    }
-                    else if (this.responseText == "2") {
-                        document.getElementById("state").innerHTML = "Auto by Speed";
-                    }
-                    else if (this.responseText == "3") {
-                        document.getElementById("state").innerHTML = "Auto by RPM";
-                    }
-                }
-            }; 
-            xhr.open("GET", "/runState", true);
-            xhr.send();
-        }
-
-        function toggleCheckbox(element, index) {
-            var xhr = new XMLHttpRequest();
-            var str = "/toggles?";
-            str += index;
-            if(element.checked)
-            { 
-                str += "=1";
-                xhr.open("GET", str, true);
-            }
-            else 
-            { 
-                str += "=0";
-                xhr.open("GET", str, true);
-            }
-            xhr.send();
-        }
-
-        window.onload = function () {
-            var xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function() {
-                if (this.readyState == 4 && this.status == 200) {
                     var myObj = JSON.parse(this.responseText);
                     
-                    if (myObj.depthUnit == "1") document.getElementById("depthUnit").checked = true;
-                    else document.getElementById("depthUnit").checked = false;
+                    if (myObj.isMeters == true) document.getElementById("isMeters").checked = true;
+                    else document.getElementById("isMeters").checked = false;
 
-                    if (myObj.tempUnit == "1") document.getElementById("tempUnit").checked = true;
-                    else document.getElementById("tempUnit").checked = false;
+                    if (myObj.isDegF == true) document.getElementById("isDegF").checked = true;
+                    else document.getElementById("isDegF").checked = false;
 
                     if (myObj.recInt > 1) {
                         document.getElementById("recInt").innerHTML = "Currently " + myObj.recInt + " seconds";
@@ -245,12 +218,26 @@
                     }
 
                     document.getElementById("tzDisplay").innerHTML = "Currently " + myObj.timeZone;
+
+                    if (myObj.recMode == 0) {
+                        document.getElementById("recMode").innerHTML = "OFF";
+                    } 
+                    else if (myObj.recMode == 1) {
+                        document.getElementById("recMode").innerHTML = "ON";
+                    }
+                    else if (myObj.recMode == 2 || myObj.recMode == 4) {
+                        document.getElementById("recMode").innerHTML = "Auto by Speed";
+                    }
+                    else if (myObj.recMode == 3 || myObj.recMode == 5) {
+                        document.getElementById("recMode").innerHTML = "Auto by RPM";
+                    }
                 }
             };
-            xhttp.open("GET", "/toggleState", true);
-            xhttp.send();
-            getRunState();
+            xhr.open("GET", "/get", true);
+            xhr.send();
         }
+        
+        window.onload = get();
     </script>
 </body>
 

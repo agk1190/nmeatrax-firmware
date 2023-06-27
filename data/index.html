@@ -113,17 +113,17 @@
         drawGauges();
 
         window.onload = function ( ) {
-            var xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function() {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
                     var myObj = JSON.parse(this.responseText);
 
-                    if (myObj.depthUnit == "1") {
+                    if (myObj.isMeters == true) {
                         dUnit = " m";
                     } else {
                         dUnit = " ft";
                     }
-                    if (myObj.tempUnit == "1") {
+                    if (myObj.isDegF == true) {
                         tUnit = "\u2109";
                     } else {
                         tUnit = "\u2103";
@@ -131,8 +131,8 @@
                     drawGauges();
                 }
             };
-            xhttp.open("GET", "/toggleState", true);
-            xhttp.send();
+            xhr.open("GET", "/get", true);
+            xhr.send();
         }
 
         function drawGauges() {

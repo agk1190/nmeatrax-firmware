@@ -22,7 +22,7 @@
         <input type="text" name="fileName" placeholder="Voyage1.csv">
         <input class="button" type="submit" value="Download">
     </form>
-    <button type="button" onclick="email()" id="logOff">Email Instead</button><br><br>
+    <button type="button" onclick="email()">Email Instead</button><br><br>
     <a href="options.html" class="button">Back</a>
     <footer class="botnav">
         <h1 class="botnavtext">NMEATrax</h1>
@@ -41,7 +41,7 @@
 
         function email() {
             var xhttp = new XMLHttpRequest();
-            xhttp.open("GET", "/email", true);
+            xhttp.open("POST", "/set?email=true", true);
             xhttp.send();
         }
 

@@ -28,10 +28,9 @@ extern Settings settings;
 /* Callback function to get the Email sending status */
 void smtpCallback(SMTP_Status status);
 
-void sendEmail(void *pvParameters)
-{
+void sendEmail(void *pvParameters) {
     Serial.println("Sending Email");
-    if (settings.wifiMode == "lan") {
+    if (settings.isLocalAP) {
         Serial.print("Connecting to AP");
         WiFi.mode(WIFI_MODE_APSTA);
         WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -106,16 +105,16 @@ void sendEmail(void *pvParameters)
     // Serial.println("now for att");
 
     File root = SD.open("/");
-    if (!root){
+    if (!root) {
         Serial.println("Failed to open directory");
         // return;
     }
-    if (!root.isDirectory()){
+    if (!root.isDirectory()) {
         Serial.println("Not a directory");
         // return;
     }
     File file = root.openNextFile();
-    while (file){
+    while (file) {
         if (file.isDirectory()) {} 
         else if (file.name() == "wifi.txt") {}
         else {
@@ -142,18 +141,15 @@ void sendEmail(void *pvParameters)
     // Serial.println("att done");
 
     /* Connect to server with the session config */
-    if (!smtp.connect(&config))
-    {
+    if (!smtp.connect(&config)) {
         ESP_MAIL_PRINTF("Connection error, Status Code: %d, Error Code: %d, Reason: %s", smtp.statusCode(), smtp.errorCode(), smtp.errorReason().c_str());
         vTaskDelete(NULL);
     }
 
-    if (!smtp.isLoggedIn())
-    {
+    if (!smtp.isLoggedIn()) {
         Serial.println("\nNot yet logged in.");
     }
-    else
-    {
+    else {
         if (smtp.isAuthenticated())
             Serial.println("\nSuccessfully logged in.");
         else
@@ -167,7 +163,7 @@ void sendEmail(void *pvParameters)
         Serial.print("Error sending Email, ");
         Serial.println(smtp.errorReason());
     }
-    if (settings.wifiMode == "lan") {
+    if (settings.isLocalAP) {
         WiFi.mode(WIFI_MODE_AP);
     }
     Serial.println("Sent Email");
@@ -175,22 +171,19 @@ void sendEmail(void *pvParameters)
 }
 
 /* Callback function to get the Email sending status */
-void smtpCallback(SMTP_Status status)
-{
+void smtpCallback(SMTP_Status status) {
     /* Print the current status */
     Serial.println(status.info());
 
     /* Print the sending result */
-    if (status.success())
-    {
+    if (status.success()) {
         Serial.println("----------------");
         ESP_MAIL_PRINTF("Message sent success: %d\n", status.completedCount());
         ESP_MAIL_PRINTF("Message sent failled: %d\n", status.failedCount());
         Serial.println("----------------\n");
         struct tm dt;
 
-        for (size_t i = 0; i < smtp.sendingResult.size(); i++)
-        {
+        for (size_t i = 0; i < smtp.sendingResult.size(); i++) {
             /* Get the result item */
             SMTP_Result result = smtp.sendingResult.getItem(i);
             time_t ts = (time_t)result.timestamp;

@@ -155,20 +155,20 @@
         var meters = false;
 
         window.onload = function ( ) {
-            var xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function() {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
                     var myObj = JSON.parse(this.responseText);
 
-                    if (myObj.depthUnit == "1") meters = true;
+                    if (myObj.isMeters == true) meters = true;
                     else meters = false;
 
-                    if (myObj.tempUnit == "1") celcius = false;
+                    if (myObj.isDegF == true) celcius = false;
                     else celcius = true;
                 }
             };
-            xhttp.open("GET", "/toggleState", true);
-            xhttp.send();
+            xhr.open("GET", "/get", true);
+            xhr.send();
         }
 
         function getTempUnit() {
