@@ -124,6 +124,9 @@ bool webSetup() {
     // serve content of root of web server directory
     server.serveStatic("/", SPIFFS, "/");
 
+    // serve content of sd card
+    server.serveStatic("/sdCard", SD, "/");
+
     // redirect request to 192.168.1.1 to 192.168.1.1/index.html
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) { 
         request->redirect("/index.html"); 
@@ -133,57 +136,6 @@ bool webSetup() {
     server.on("/listDir", HTTP_GET, [](AsyncWebServerRequest *request) {
         String fileList = listDir(SD, "/", 0);
         request->send(200, "text/plain", fileList);
-    });
-
-    // download data callback
-    // https://www.reddit.com/r/esp32/comments/zs1q9x/download_large_file_from_sd_card_using/
-    server.on("/downloadData", HTTP_ANY, [](AsyncWebServerRequest *request) {
-        String filePath;
-        String contentType = "";
-
-        if (request->hasParam("fileName")) {
-            filePath = "/";
-            filePath += request->getParam("fileName")->value();
-        } else return;
-
-        if (filePath.substring(filePath.length() - 3) == "csv") {
-            contentType = "text/csv";
-        } else if (filePath.substring(filePath.length() - 3) == "gpx") {
-            contentType = "text/xml";
-        } else {
-            contentType = "text/plain";
-        }
-
-        File file{SD.open(filePath, FILE_READ)};
-
-        AsyncWebServerResponse *response = request->beginChunkedResponse(
-            contentType,
-            [file](
-                uint8_t* buffer,
-                const size_t max_len,
-                const size_t index) mutable -> size_t
-            {
-                // Serial.print("Max length: ");
-                // Serial.println(max_len);
-
-                // Tried sending less than max length
-                const size_t length{file.read(buffer, (max_len >> 1))};
-                // Serial.print("Length: ");
-                // Serial.println(length);
-
-                if (length == 0){file.close();}
-                return length;
-            });
-
-        // Force download
-        String headerData = "attachment; filename=\"";
-        headerData.concat(filePath.substring(1,filePath.length()));
-        headerData.concat("\"");
-        // Serial.println(headerData);
-        response->addHeader("Content-Disposition", headerData);
-        response->addHeader("Transfer-Encoding", "chunked");
-        request->send(response);
-        Serial.println("completed download");
     });
 
     // all functions related to doing or setting something

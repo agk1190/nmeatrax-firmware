@@ -69,9 +69,8 @@ String listDir(fs::FS &fs, const char * dirname, uint8_t levels){
         if (file.isDirectory()){
             if (levels){listDir(fs, file.name(), levels - 1);}
         } else {
-            fileList += "<p>";
             fileList += file.name();
-            fileList += "</p>";
+            fileList += ",";
         }
         file = root.openNextFile();
     }
