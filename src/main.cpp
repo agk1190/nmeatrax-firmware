@@ -333,7 +333,10 @@ void loop()
         // timeString = asctime(&timeDetails);
 
         if (speed > 0) {
-            lpkm = fuel_rate / (speed*1.852);
+            double _fuel_rate = 0;
+            if (fuel_rate == -273) {_fuel_rate = 0;}
+            else {_fuel_rate = fuel_rate;}
+            lpkm = _fuel_rate / (speed*1.852);
         } else {
             lpkm = -273;
         }

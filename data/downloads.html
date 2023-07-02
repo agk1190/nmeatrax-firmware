@@ -20,6 +20,7 @@
     <p id="fileList">No Logs</p>
     <button type="button" onclick="email()">Email Instead</button><br><br>
     <a href="options.html" class="button">Back</a>
+    <p id="emailText" class="options"></p>
     <footer class="botnav">
         <h1 class="botnavtext">NMEATrax</h1>
     </footer>
@@ -48,6 +49,7 @@
 
         function email() {
             var xhttp = new XMLHttpRequest();
+            document.getElementById("emailText").innerHTML = "";
             xhttp.open("POST", "/set?email=true", true);
             xhttp.send();
         }
@@ -62,6 +64,16 @@
             document.getElementById("mainBody").style.colorScheme = "dark";
         } else if (currentTheme == "light") {
             document.body.classList.toggle("light-theme");
+        }
+
+        if (!!window.EventSource) {
+            var source = new EventSource('/NMEATrax');
+            source.addEventListener('emailData', function(e) {
+                var s = "<p class=\"options\">";
+                    s += e.data;
+                    s += "</p><br>";
+                document.getElementById("emailText").innerHTML += s;
+            }, false);
         }
     </script>
 </body>

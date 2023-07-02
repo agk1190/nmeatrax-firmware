@@ -182,8 +182,8 @@
         }
 
         if (!!window.EventSource) {
-            var source = new EventSource('/events');
-            source.addEventListener('new_readings', function(e) {
+            var source = new EventSource('/NMEATrax');
+            source.addEventListener('nmeaData', function(e) {
                 var myObj = JSON.parse(e.data);
                 document.getElementById("rpm").innerHTML = check273(myObj.rpm, "");
                 document.getElementById("etemp").innerHTML = check273(myObj.etemp, getTempUnit());

@@ -676,8 +676,8 @@
 
         // recieve and parse new data
         if (!!window.EventSource) {
-            var source = new EventSource('/events');
-            source.addEventListener('new_readings', function(e) {
+            var source = new EventSource('/NMEATrax');
+            source.addEventListener('nmeaData', function(e) {
                 var myObj = JSON.parse(e.data);
                 rpmVal = check273(myObj.rpm, "");
                 etempVal = check273(myObj.etemp, "");

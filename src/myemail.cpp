@@ -18,6 +18,7 @@
 #include "myemail.h"
 #include "decodeN2K.h"
 #include "main.h"
+#include "webserv.h"
 
 /* The SMTP Session object used for Email sending */
 SMTPSession smtp;
@@ -28,19 +29,70 @@ extern Settings settings;
 /* Callback function to get the Email sending status */
 void smtpCallback(SMTP_Status status);
 
+String WIFI_SSID[] = {WIFI_SSID0, WIFI_SSID1, WIFI_SSID2, WIFI_SSID3};
+
 void sendEmail(void *pvParameters) {
-    Serial.println("Sending Email");
+    String chosenSSID = "";
+    // Serial.println("Sending Email");
+    sendEmailData("Starting...");
+
     if (settings.isLocalAP) {
-        Serial.print("Connecting to AP");
+        // Serial.println("Connecting to AP");
         WiFi.mode(WIFI_MODE_APSTA);
-        WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-        while (WiFi.status() != WL_CONNECTED) {
-            Serial.print(".");
-            vTaskDelay(200 / portTICK_PERIOD_MS);
+
+        // Serial.println("scan start");
+        sendEmailData("Started scan of access points");
+        // WiFi.scanNetworks will give total found wifi networks
+        int n = WiFi.scanNetworks();
+        // Serial.println("scan done");
+        sendEmailData("Completed scan of access points");
+        if (n == 0) {
+            // Serial.println("no networks found");
+            sendEmailData("No WiFi networks found. Failed to send email.");
+            vTaskDelete(NULL);
+        } else {
+            // Serial.print(n);
+            // Serial.println(" networks found");
+            for (int i = 0; i < n; ++i) {
+                // Print SSID and signal strength
+                for (int j = 0; j < WIFI_SSID->length(); j++)
+                {
+                    if (WiFi.SSID(i) == WIFI_SSID[j])
+                    {
+                        // Serial.print("chose ");
+                        // Serial.println(WiFi.SSID(i));
+                        String s = "Chose ";
+                        s += WiFi.SSID(i);
+                        sendEmailData(s);
+                        chosenSSID = WiFi.SSID(i);
+                    }
+                }
+                
+                // Serial.print(i + 1);
+                // Serial.print(": ");
+                // Serial.print(WiFi.SSID(i));
+                // Serial.print(" (");
+                // Serial.print(WiFi.RSSI(i));
+                // Serial.println(")");
+                vTaskDelay(10 / portTICK_PERIOD_MS);
+            }
         }
-        Serial.println();
-        Serial.println("IP address: ");
-        Serial.println(WiFi.localIP());
+        String s = "Connecting to ";
+        s += chosenSSID;
+        sendEmailData(s);
+        if (chosenSSID != emptyString) {
+            WiFi.begin(chosenSSID.c_str(), WIFI_PASSWORD);
+            while (WiFi.status() != WL_CONNECTED) {
+                // Serial.print(".");
+                vTaskDelay(200 / portTICK_PERIOD_MS);
+            }
+            // Serial.println();
+            // Serial.println("IP address: ");
+            // Serial.println(WiFi.localIP());
+            sendEmailData("Connnect to access point");
+        } else {
+            vTaskDelete(NULL);
+        }
     }
 
     /** Enable the debug via Serial port
@@ -106,11 +158,11 @@ void sendEmail(void *pvParameters) {
 
     File root = SD.open("/");
     if (!root) {
-        Serial.println("Failed to open directory");
+        // Serial.println("Failed to open directory");
         // return;
     }
     if (!root.isDirectory()) {
-        Serial.println("Not a directory");
+        // Serial.println("Not a directory");
         // return;
     }
     File file = root.openNextFile();
@@ -138,49 +190,51 @@ void sendEmail(void *pvParameters) {
         file = root.openNextFile();
     }
 
-    // Serial.println("att done");
-
     /* Connect to server with the session config */
     if (!smtp.connect(&config)) {
-        ESP_MAIL_PRINTF("Connection error, Status Code: %d, Error Code: %d, Reason: %s", smtp.statusCode(), smtp.errorCode(), smtp.errorReason().c_str());
+        // ESP_MAIL_PRINTF("Connection error, Status Code: %d, Error Code: %d, Reason: %s", smtp.statusCode(), smtp.errorCode(), smtp.errorReason().c_str());
+        sendEmailData("Connection error. Failed to send email.");
         vTaskDelete(NULL);
     }
 
     if (!smtp.isLoggedIn()) {
-        Serial.println("\nNot yet logged in.");
+        // Serial.println("\nNot yet logged in.");
     }
     else {
-        if (smtp.isAuthenticated())
-            Serial.println("\nSuccessfully logged in.");
-        else
-            Serial.println("\nConnected with no Auth.");
+        if (smtp.isAuthenticated()) {
+            // Serial.println("\nSuccessfully logged in.");
+        } else {
+            // Serial.println("\nConnected with no Auth.");
+        }
     }
 
-    // Serial.println("sending mail");
+    sendEmailData("Sending email...");
 
     /* Start sending the Email and close the session */
     if (!MailClient.sendMail(&smtp, &message, true)) {
-        Serial.print("Error sending Email, ");
-        Serial.println(smtp.errorReason());
+        // Serial.print("Error sending Email, ");
+        // Serial.println(smtp.errorReason());
+        sendEmailData("Failed to send email.");
     }
     if (settings.isLocalAP) {
         WiFi.mode(WIFI_MODE_AP);
     }
-    Serial.println("Sent Email");
+    // Serial.println("Sent Email");
+    sendEmailData("Email sent successfully!");
     vTaskDelete(NULL);
 }
 
 /* Callback function to get the Email sending status */
 void smtpCallback(SMTP_Status status) {
     /* Print the current status */
-    Serial.println(status.info());
+    // Serial.println(status.info());
 
     /* Print the sending result */
     if (status.success()) {
-        Serial.println("----------------");
-        ESP_MAIL_PRINTF("Message sent success: %d\n", status.completedCount());
-        ESP_MAIL_PRINTF("Message sent failled: %d\n", status.failedCount());
-        Serial.println("----------------\n");
+        // Serial.println("----------------");
+        // ESP_MAIL_PRINTF("Message sent success: %d\n", status.completedCount());
+        // ESP_MAIL_PRINTF("Message sent failed: %d\n", status.failedCount());
+        // Serial.println("----------------\n");
         struct tm dt;
 
         for (size_t i = 0; i < smtp.sendingResult.size(); i++) {
@@ -189,13 +243,13 @@ void smtpCallback(SMTP_Status status) {
             time_t ts = (time_t)result.timestamp;
             localtime_r(&ts, &dt);
 
-            ESP_MAIL_PRINTF("Message No: %d\n", i + 1);
-            ESP_MAIL_PRINTF("Status: %s\n", result.completed ? "success" : "failed");
-            ESP_MAIL_PRINTF("Date/Time: %d/%d/%d %d:%d:%d\n", dt.tm_year + 1900, dt.tm_mon + 1, dt.tm_mday, dt.tm_hour, dt.tm_min, dt.tm_sec);
-            ESP_MAIL_PRINTF("Recipient: %s\n", result.recipients.c_str());
-            ESP_MAIL_PRINTF("Subject: %s\n", result.subject.c_str());
+            // ESP_MAIL_PRINTF("Message No: %d\n", i + 1);
+            // ESP_MAIL_PRINTF("Status: %s\n", result.completed ? "success" : "failed");
+            // ESP_MAIL_PRINTF("Date/Time: %d/%d/%d %d:%d:%d\n", dt.tm_year + 1900, dt.tm_mon + 1, dt.tm_mday, dt.tm_hour, dt.tm_min, dt.tm_sec);
+            // ESP_MAIL_PRINTF("Recipient: %s\n", result.recipients.c_str());
+            // ESP_MAIL_PRINTF("Subject: %s\n", result.subject.c_str());
         }
-        Serial.println("----------------\n");
+        // Serial.println("----------------\n");
 
         // You need to clear sending result as the memory usage will grow up.
         smtp.sendingResult.clear();

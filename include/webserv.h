@@ -25,6 +25,11 @@ const char* getTZdefinition(double tz);
 bool webSetup();
 
 /**
- * @brief Run webserver updating
+ * @brief Send new NMEA data
 */
 void webLoop();
+
+/**
+ * @brief Send email progress
+*/
+void sendEmailData(String text);

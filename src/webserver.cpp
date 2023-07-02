@@ -30,8 +30,8 @@ WiFiManager wifiManager;
 // Structure to store device settings
 extern Settings settings;
 
-// Create an Event Source on /events
-AsyncEventSource events("/events");
+// Create an Event Source on /NMEATrax
+AsyncEventSource NMEATrax("/NMEATrax");
 
 const char* getTZdefinition(double tz) {
     if (tz == 0)
@@ -240,7 +240,7 @@ bool webSetup() {
         request->send(200, "application/json", JSON.stringify(values));
     });
 
-    server.addHandler(&events);
+    server.addHandler(&NMEATrax);
 
     // Start ElegantOTA
     AsyncElegantOTA.begin(&server);
@@ -264,5 +264,9 @@ bool webSetup() {
 }
 
 void webLoop() {
-    events.send(JSONValues().c_str(), "new_readings", millis());
+    NMEATrax.send(JSONValues().c_str(), "nmeaData", millis());
+}
+
+void sendEmailData(String text) {
+    NMEATrax.send(text.c_str(), "emailData", millis());
 }
