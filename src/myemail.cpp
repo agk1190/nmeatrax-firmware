@@ -15,6 +15,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <ESP_Mail_Client.h>
+#include <ESP32Ping.h>
 #include "myemail.h"
 #include "decodeN2K.h"
 #include "main.h"
@@ -49,6 +50,7 @@ void sendEmail(void *pvParameters) {
         if (n == 0) {
             // Serial.println("no networks found");
             sendEmailData("No WiFi networks found. Failed to send email.");
+            WiFi.mode(WIFI_MODE_AP);
             vTaskDelete(NULL);
         } else {
             // Serial.print(n);
@@ -79,21 +81,45 @@ void sendEmail(void *pvParameters) {
         }
         String s = "Connecting to ";
         s += chosenSSID;
+        s += " using ";
+        s += WIFI_PASSWORD;
         sendEmailData(s);
         if (chosenSSID != emptyString) {
             WiFi.begin(chosenSSID.c_str(), WIFI_PASSWORD);
-            while (WiFi.status() != WL_CONNECTED) {
+            unsigned long t = millis();
+            while ((WiFi.status() != WL_CONNECTED) && ((t + 20000) > millis())) {
                 // Serial.print(".");
                 vTaskDelay(200 / portTICK_PERIOD_MS);
+            }
+            if ((t + 20000) < millis() || WiFi.status() != WL_CONNECTED)
+            {
+                String f = "Failed to connect to access point: ";
+                f += WiFi.status();
+                sendEmailData(f);
+                WiFi.mode(WIFI_MODE_AP);
+                vTaskDelete(NULL);
             }
             // Serial.println();
             // Serial.println("IP address: ");
             // Serial.println(WiFi.localIP());
-            sendEmailData("Connnect to access point");
+            sendEmailData("Connnected to access point");
         } else {
             vTaskDelete(NULL);
         }
     }
+
+    sendEmailData("Testing for internet...");
+    unsigned long t = millis();
+    while (!Ping.ping("smtp.gmail.com") && (t + 20000) > millis()) {
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+    }
+    if ((t + 20000) < millis())
+    {
+        sendEmailData("Not connected to internet");
+        if (settings.isLocalAP) {WiFi.mode(WIFI_MODE_AP);}
+        vTaskDelete(NULL);
+    }
+    sendEmailData("Connected to internet");
 
     /** Enable the debug via Serial port
      * none debug or 0
@@ -194,13 +220,14 @@ void sendEmail(void *pvParameters) {
     if (!smtp.connect(&config)) {
         // ESP_MAIL_PRINTF("Connection error, Status Code: %d, Error Code: %d, Reason: %s", smtp.statusCode(), smtp.errorCode(), smtp.errorReason().c_str());
         sendEmailData("Connection error. Failed to send email.");
+        sendEmailData(smtp.errorReason().c_str());
+        if (settings.isLocalAP) {WiFi.mode(WIFI_MODE_AP);}
         vTaskDelete(NULL);
     }
 
     if (!smtp.isLoggedIn()) {
         // Serial.println("\nNot yet logged in.");
-    }
-    else {
+    } else {
         if (smtp.isAuthenticated()) {
             // Serial.println("\nSuccessfully logged in.");
         } else {
