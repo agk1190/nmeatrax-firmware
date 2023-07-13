@@ -34,48 +34,32 @@ String WIFI_SSID[] = {WIFI_SSID0, WIFI_SSID1, WIFI_SSID2, WIFI_SSID3};
 
 void sendEmail(void *pvParameters) {
     String chosenSSID = "";
-    // Serial.println("Sending Email");
     sendEmailData("Starting...");
+    bool exit = false;
 
     if (settings.isLocalAP) {
-        // Serial.println("Connecting to AP");
         WiFi.mode(WIFI_MODE_APSTA);
 
-        // Serial.println("scan start");
         sendEmailData("Started scan of access points");
-        // WiFi.scanNetworks will give total found wifi networks
         int n = WiFi.scanNetworks();
-        // Serial.println("scan done");
         sendEmailData("Completed scan of access points");
         if (n == 0) {
-            // Serial.println("no networks found");
             sendEmailData("No WiFi networks found. Failed to send email.");
             WiFi.mode(WIFI_MODE_AP);
             vTaskDelete(NULL);
         } else {
-            // Serial.print(n);
-            // Serial.println(" networks found");
-            for (int i = 0; i < n; ++i) {
-                // Print SSID and signal strength
-                for (int j = 0; j < WIFI_SSID->length(); j++)
-                {
-                    if (WiFi.SSID(i) == WIFI_SSID[j])
-                    {
-                        // Serial.print("chose ");
-                        // Serial.println(WiFi.SSID(i));
+            for (int i = 0; i < n; ++i) {   // for each access point found
+                if (exit) break;
+                for (int j = 0; j < WIFI_SSID->length(); j++) {     // for each selectable access point
+                    if (WiFi.SSID(i) == WIFI_SSID[j]) {
                         String s = "Chose ";
                         s += WiFi.SSID(i);
                         sendEmailData(s);
                         chosenSSID = WiFi.SSID(i);
+                        exit = true;
+                        break;
                     }
                 }
-                
-                // Serial.print(i + 1);
-                // Serial.print(": ");
-                // Serial.print(WiFi.SSID(i));
-                // Serial.print(" (");
-                // Serial.print(WiFi.RSSI(i));
-                // Serial.println(")");
                 vTaskDelay(10 / portTICK_PERIOD_MS);
             }
         }
@@ -88,7 +72,6 @@ void sendEmail(void *pvParameters) {
             WiFi.begin(chosenSSID.c_str(), WIFI_PASSWORD);
             unsigned long t = millis();
             while ((WiFi.status() != WL_CONNECTED) && ((t + 20000) > millis())) {
-                // Serial.print(".");
                 vTaskDelay(200 / portTICK_PERIOD_MS);
             }
             if ((t + 20000) < millis() || WiFi.status() != WL_CONNECTED)
@@ -99,9 +82,6 @@ void sendEmail(void *pvParameters) {
                 WiFi.mode(WIFI_MODE_AP);
                 vTaskDelete(NULL);
             }
-            // Serial.println();
-            // Serial.println("IP address: ");
-            // Serial.println(WiFi.localIP());
             sendEmailData("Connnected to access point");
         } else {
             vTaskDelete(NULL);
@@ -163,10 +143,15 @@ void sendEmail(void *pvParameters) {
     message.sender.name = SENDER_NAME;
     message.sender.email = AUTHOR_EMAIL;
 
-    String mysubject = timeString;
+    time_t now;
+    struct tm timeDetails;
+    time(&now);
+    localtime_r(&now, &timeDetails);
+    String mysubject = asctime(&timeDetails);
     mysubject.concat(" Recordings");
     message.subject = mysubject;
     message.addRecipient(RECIPIENT_NAME, RECIPIENT_EMAIL);
+    message.addRecipient(RECIPIENT_NAME2, RECIPIENT_EMAIL2);
 
     /** Two alternative content versions are sending in this example e.g. plain text and html */
     String htmlMsg = "New voyage recordings!";
@@ -179,8 +164,6 @@ void sendEmail(void *pvParameters) {
 
     /* The attachment data item */
     SMTP_Attachment att;
-
-    // Serial.println("now for att");
 
     File root = SD.open("/");
     if (!root) {
