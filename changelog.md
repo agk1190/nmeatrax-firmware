@@ -13,10 +13,15 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 ### In Progress
 
 
-## [4.0.0] - 2023-06-23
+## [4.0.0] - 2023-07-17
 
 ### Added
 - Can send email with recordings
+
+### Changed
+- SD card files now exposed to ./sdCard. No more download fn.
+- Reduced number of server web events
+- Renamed SSE handler
 
 
 ## [3.0.0] - 2023-05-11
