@@ -57,6 +57,10 @@
                     <td><div class="tabledata" id="flevel">-</div></td>
                 </tr>
                 <tr>
+                    <td><div class="bodytext">Fuel Efficiency</div></td>
+                    <td><div class="tabledata" id="lpkm">-</div></td>
+                </tr>
+                <tr>
                     <td><div class="bodytext">Leg Tilt</div></td>
                     <td><div class="tabledata" id="leg_tilt">-</div></td>
                 </tr>
@@ -122,9 +126,9 @@
                     <td><div class="bodytext">Battery Voltage</div></td>
                     <td><div class="tabledata" id="battV">-</div></td>
                 </tr>
-                <tr style="height: 40px">
+                <tr>
                     <td><div class="bodytext">Time</div></td>
-                    <td style="height: 60px;"><div class="tabledata" id="time">-</div></td>
+                    <td><div class="tabledata" id="time">-</div></td>
                 </tr>
             </table>
         </div>
@@ -151,20 +155,20 @@
         var meters = false;
 
         window.onload = function ( ) {
-            var xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function() {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
                     var myObj = JSON.parse(this.responseText);
 
-                    if (myObj.depthUnit == "1") meters = true;
+                    if (myObj.isMeters == true) meters = true;
                     else meters = false;
 
-                    if (myObj.tempUnit == "1") celcius = false;
+                    if (myObj.isDegF == true) celcius = false;
                     else celcius = true;
                 }
             };
-            xhttp.open("GET", "/toggleState", true);
-            xhttp.send();
+            xhr.open("GET", "/get", true);
+            xhr.send();
         }
 
         function getTempUnit() {
@@ -178,28 +182,37 @@
         }
 
         if (!!window.EventSource) {
-            var source = new EventSource('/events');
-            source.addEventListener('new_readings', function(e) {
+            var source = new EventSource('/NMEATrax');
+            source.addEventListener('nmeaData', function(e) {
                 var myObj = JSON.parse(e.data);
-                document.getElementById("rpm").innerHTML = myObj.rpm;
-                document.getElementById("etemp").innerHTML = myObj.etemp + getTempUnit();
-                document.getElementById("otemp").innerHTML = myObj.otemp + getTempUnit();
-                document.getElementById("opres").innerHTML = myObj.opres + " kPa";
-                document.getElementById("fuel_rate").innerHTML = myObj.fuel_rate + " L/h";
-                document.getElementById("flevel").innerHTML = myObj.flevel + "%";
-                document.getElementById("leg_tilt").innerHTML = myObj.leg_tilt;
-                document.getElementById("speed").innerHTML = myObj.speed + " kn";
-                document.getElementById("cog").innerHTML = myObj.heading + "&deg";
-                document.getElementById("depth").innerHTML = myObj.depth + getDistUnit();
-                document.getElementById("wtemp").innerHTML = myObj.wtemp + getTempUnit();
-                document.getElementById("battV").innerHTML = myObj.battV + " V";
-                document.getElementById("ehours").innerHTML = myObj.ehours;
-                document.getElementById("gear").innerHTML = myObj.gear;
-                document.getElementById("lat").innerHTML = myObj.lat;
-                document.getElementById("lon").innerHTML = myObj.lon;
-                document.getElementById("mag_var").innerHTML = myObj.mag_var + "&deg";
-                document.getElementById("time").innerHTML = myObj.time;
+                document.getElementById("rpm").innerHTML = check273(myObj.rpm, "");
+                document.getElementById("etemp").innerHTML = check273(myObj.etemp, getTempUnit());
+                document.getElementById("otemp").innerHTML = check273(myObj.otemp, getTempUnit());
+                document.getElementById("opres").innerHTML = check273(myObj.opres, " kpa");
+                document.getElementById("fuel_rate").innerHTML = check273(myObj.fuel_rate, " L/h");
+                document.getElementById("flevel").innerHTML = check273(myObj.flevel, "%");
+                document.getElementById("lpkm").innerHTML = check273(myObj.efficiency, " L/km");
+                document.getElementById("leg_tilt").innerHTML = check273(myObj.leg_tilt, "%");
+                document.getElementById("speed").innerHTML = check273(myObj.speed, " kn");
+                document.getElementById("cog").innerHTML = check273(myObj.heading, "&deg");
+                document.getElementById("depth").innerHTML = check273(myObj.depth, getDistUnit());
+                document.getElementById("wtemp").innerHTML = check273(myObj.wtemp, getTempUnit());
+                document.getElementById("battV").innerHTML = check273(myObj.battV, " V");
+                document.getElementById("ehours").innerHTML = check273(myObj.ehours, "");
+                document.getElementById("gear").innerHTML = check273(myObj.gear, "");
+                document.getElementById("lat").innerHTML = check273(myObj.lat, "");
+                document.getElementById("lon").innerHTML = check273(myObj.lon, "");
+                document.getElementById("mag_var").innerHTML = check273(myObj.mag_var, "&deg");
+                document.getElementById("time").innerHTML = check273(myObj.time, "");
             }, false);
+        }
+
+        function check273(input, unit) {
+            if (input == -273 || input == "-") {
+                return "-";
+            } else {
+                return input + unit;
+            }
         }
     </script>
 </body>

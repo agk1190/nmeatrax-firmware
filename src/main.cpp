@@ -11,7 +11,7 @@
  *
  */
 
-#include <tinyGpsPlus.h>
+// #include <tinyGpsPlus.h>
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
@@ -59,20 +59,19 @@ String getCSV()
         String(opres),          // 3
         String(fuel_rate),      // 4
         String(flevel),         // 5
-        String(leg_tilt),       // 6
-        String(speed),          // 7
-        String(heading),        // 8
-        String(depth),          // 9
-        String(wtemp),          // 10
-        String(battV),          // 11
-        String(ehours),         // 12
-        String(gear),           // 13
-        String(lat, 6),         // 14
-        String(lon, 6),         // 15
-        String(mag_var, 2),       // 16
-        String(settings.tempUnit),  // 17
-        String(settings.depthUnit),  // 18
-        String(timeString)      // 19
+        String(lpkm, 3),        // 6
+        String(leg_tilt),       // 7
+        String(speed),          // 8
+        String(heading),        // 9
+        String(depth),          // 10
+        String(wtemp),          // 11
+        String(battV),          // 12
+        String(ehours),         // 13
+        String(gear),           // 14
+        String(lat, 6),         // 15
+        String(lon, 6),         // 16
+        String(mag_var, 2),     // 17
+        String(timeString)      // 18
     };
     String rdata;
 
@@ -92,12 +91,14 @@ String getCSV()
 
 String JSONValues()
 {
+    timeString.remove(timeString.length() - 1, 1);
     readings["rpm"] = String(rpm);
     readings["etemp"] = String(etemp);
     readings["otemp"] = String(otemp);
     readings["opres"] = String(opres);
     readings["fuel_rate"] = String(fuel_rate);
     readings["flevel"] = String(flevel);
+    readings["efficiency"] = String(lpkm, 3);
     readings["leg_tilt"] = String(leg_tilt);
     readings["speed"] = String(speed);
     readings["heading"] = String(heading);
@@ -109,7 +110,7 @@ String JSONValues()
     readings["lat"] = String(lat, 6);
     readings["lon"] = String(lon, 6);
     readings["mag_var"] = String(mag_var, 2);
-    readings["time"] = String(timeString);
+    readings["time"] = timeString;
 
     String jsonString = JSON.stringify(readings);
     return jsonString;
@@ -118,15 +119,15 @@ String JSONValues()
 bool saveSettings()
 {
     settings.voyState = voyState;
-    jsettings["wifiMode"] = settings.wifiMode;
+    jsettings["isLocalAP"] = settings.isLocalAP;
     // jsettings["wifiSSID"] = settings.wifiSSID;
     // jsettings["wifiPass"] = settings.wifiPass;
     jsettings["wifiSSID"] = "NMEATrax";
     jsettings["wifiPass"] = "nmeatrax";
     jsettings["voyState"] = settings.voyState;
     jsettings["recInt"] = settings.recInt;
-    jsettings["depthUnit"] = settings.depthUnit;
-    jsettings["tempUnit"] = settings.tempUnit;
+    jsettings["isMeters"] = settings.isMeters;
+    jsettings["isDegF"] = settings.isDegF;
     jsettings["timeZone"] = settings.timeZone;
     String settingsString = JSON.stringify(jsettings);
     return(writeFile(SPIFFS, "/settings.txt", settingsString.c_str(), false));
@@ -137,25 +138,24 @@ bool readSettings()
     String settingsString;
     bool usedSdCard = true;
     settingsString = getFile(SD, "/settings.txt");
-    Serial.print("SD Card - ");
-    Serial.println(settingsString);
+    // Serial.print("SD Card - ");
+    // Serial.println(settingsString);
     if (settingsString == "null" || settingsString == "") {
         settingsString = getFile(SPIFFS, "/settings.txt");
-        Serial.print("SPIFFS - ");
-        Serial.println(settingsString);
+        // Serial.print("SPIFFS - ");
+        // Serial.println(settingsString);
         usedSdCard = false;
     }
     jsettings = JSON.parse(settingsString);
-    settings.wifiMode = jsettings["wifiMode"];
+    settings.isLocalAP = jsettings["isLocalAP"];
     settings.wifiSSID = jsettings["wifiSSID"];
     settings.wifiPass = jsettings["wifiPass"];
     settings.voyState = jsettings["voyState"];
     settings.recInt = jsettings["recInt"];
-    settings.depthUnit = jsettings["depthUnit"];
-    settings.tempUnit = jsettings["tempUnit"];
+    settings.isMeters = jsettings["isMeters"];
+    settings.isDegF = jsettings["isDegF"];
     settings.timeZone = jsettings["timeZone"];
-    switch (settings.voyState)
-    {
+    switch (settings.voyState) {
         case 0:
             voyState = OFF;
             break;
@@ -186,14 +186,12 @@ bool readSettings()
     return(true);
 }
 
-bool getSDcardStatus()
-{
+bool getSDcardStatus() {
     digitalWrite(LED_SD, digitalRead(SD_Detect));
     return(digitalRead(SD_Detect));
 }
 
-void createWifiText()
-{
+void createWifiText() {
     //https://forum.arduino.cc/t/how-to-manipulate-ipaddress-variables-convert-to-string/222693/6
     String wifiText;
     IPAddress ipAddress = WiFi.localIP();
@@ -230,6 +228,7 @@ void setup()
 {
     Serial.begin(460800);
     delay(500);
+    Serial.println();
 
     pinMode(LED_PWR, OUTPUT);
     pinMode(LED_N2K, OUTPUT);
@@ -243,8 +242,7 @@ void setup()
     digitalWrite(N2K_STBY, LOW);
 
     // Initialize SPIFFS
-    if (!SPIFFS.begin(true))
-    {
+    if (!SPIFFS.begin(true)) {
         Serial.println("An Error has occurred while mounting SPIFFS");
         crash();
     }
@@ -255,8 +253,7 @@ void setup()
     if (!readSettings()) {crash();}
     delay(500);
 
-    if (settings.wifiMode == "lan")     // if in local AP mode, create AP
-    {
+    if (settings.isLocalAP) {     // if in local AP mode, create AP
         WiFi.softAPsetHostname("nmeatrax");
         WiFi.mode(WIFI_MODE_AP);
         WiFi.softAPConfig(local_ip, gateway, subnet);
@@ -264,19 +261,16 @@ void setup()
         delay(100);
         Serial.println("Started NMEA Access Point");
     }
-    else        // if the device should connect to an Access Point
-    {
+    else {       // if the device should connect to an Access Point
         bool connected;
         wifiManager.setAPStaticIPConfig(local_ip, gateway, subnet);
         connected = wifiManager.autoConnect("NMEATrax");
-        if (connected)
-        {
-            settings.wifiMode = "wan";
+        if (connected) {
+            settings.isLocalAP = false;
             if (!saveSettings()) {crash();}
         }
-        else
-        {
-            settings.wifiMode = "lan";
+        else {
+            settings.isLocalAP = true;
             if (!saveSettings()) {crash();}
             ESP.restart();
         }
@@ -312,8 +306,7 @@ void loop()
     static int count = 0;
     static int localRecInt;
 
-    if (statDelay + 1000 < millis())
-    {
+    if (statDelay + 1000 < millis()) {
         // time keeping
         time_t now;
         struct tm timeDetails;
@@ -330,7 +323,8 @@ void loop()
         // leg_tilt = random(0, 25);
         // opres = random(483, 626);
         // battV = random(12.0, 15.0);
-        // fuel_rate = random(2, 6);
+        // fuel_rate = random(40, 44);
+        // speed = random(22, 24);
         // ehours = 122;
         // flevel = random(40.2, 60.9);
         // gear = "N";
@@ -338,35 +332,44 @@ void loop()
         // lon = random(120.0, 140.0);
         // timeString = asctime(&timeDetails);
 
+        if (speed > 0) {
+            double _fuel_rate = 0;
+            if (fuel_rate == -273) {_fuel_rate = 0;}
+            else {_fuel_rate = fuel_rate;}
+            lpkm = _fuel_rate / (speed*1.852);
+        } else {
+            lpkm = -273;
+        }
+
         getSDcardStatus();
         statDelay = millis();
         count++;
     }
 
-    switch (voyState){
+    switch (voyState) {
         case AUTO_RPM:
-            if (rpm==0){
+            if (rpm <= 0) {
                 voyState=AUTO_RPM_IDLE;
                 endGPXfile(GPXFileName.c_str());
             }
             break;
 
         case AUTO_RPM_IDLE:
-            if (rpm>0){
+            if (rpm>0) {
                 outOfIdle=true;
                 voyState=AUTO_RPM;
             }
             break;
 
         case AUTO_SPD:
-            if (speed==0){
+            if (speed <= 0) {
                 voyState=AUTO_SPD_IDLE;
                 endGPXfile(GPXFileName.c_str());
             }
             break;
 
         case AUTO_SPD_IDLE:
-            if (speed>0){
+            if (speed>0) {
                 outOfIdle=true;
                 voyState=AUTO_SPD;
             }
@@ -376,15 +379,15 @@ void loop()
             break;
     }
 
-    if (voyState == AUTO_RPM){
-        if (rpm > 3000){
-            localRecInt = 30;
+    if (voyState == AUTO_RPM) {
+        if (rpm > 3500) {
+            localRecInt = 15;
         } else {
             localRecInt = settings.recInt;
         }
-    } else if (voyState == AUTO_SPD){
-        if (speed > 15){
-            localRecInt = 30;
+    } else if (voyState == AUTO_SPD) {
+        if (speed > 15) {
+            localRecInt = 15;
         } else {
             localRecInt = settings.recInt;
         }
@@ -392,7 +395,7 @@ void loop()
         localRecInt = settings.recInt;
     }
     
-    if ((voyState == AUTO_RPM || voyState == AUTO_SPD || voyState == ON) && count >= localRecInt){
+    if ((voyState == AUTO_RPM || voyState == AUTO_SPD || voyState == ON) && count >= localRecInt) {
         static String CSVFileName;
         static int gpxWPTcount = 1;
 
@@ -400,9 +403,9 @@ void loop()
             int voyageNum = 0;
             gpxWPTcount = 1;
             String lastCSVfileName;
+            const char* csvHeaders = "RPM,Engine Temp (C),Oil Temp (C),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Fuel Efficiency (L/km),Leg Tilt (%),Speed (kn),Heading (*),Depth (ft),Water Temp (C),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp";
 
-            do
-            {
+            do {
                 voyageNum++;
                 lastCSVfileName = "Voyage";
                 lastCSVfileName += voyageNum;
@@ -414,12 +417,15 @@ void loop()
             GPXFileName = "/Voyage";
             GPXFileName += voyageNum;
             GPXFileName += ".gpx";
-            createGPXfile(GPXFileName.c_str(), timeString.c_str());
+            createGPXfile(GPXFileName.c_str());
+            writeFile(SD, CSVFileName.c_str(), csvHeaders, true);
             outOfIdle = false;
         }
         
-        if (!appendFile(SD, CSVFileName.c_str(), getCSV().c_str(), false)) {crash();}
-        if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
+        if (!appendFile(SD, CSVFileName.c_str(), getCSV().c_str(), true)) {crash();}
+        if (lat != -273) {
+            if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
+        }
         gpxWPTcount++;
         count = 0;
     

@@ -29,7 +29,6 @@ void WaterDepth(const tN2kMsg &N2kMsg);
 void Temperature(const tN2kMsg &N2kMsg);
 void COGSOG(const tN2kMsg &N2kMsg);
 void GNSS(const tN2kMsg &N2kMsg);
-// void PositionRapid(const tN2kMsg &N2kMsg);
 void MagneticVariation(const tN2kMsg &N2kMsg);
 void FluidLevel(const tN2kMsg &N2kMsg);
 
@@ -42,32 +41,32 @@ tNMEA2000Handler NMEA2000Handlers[]={
     {128267L,&WaterDepth},
     {129026L,&COGSOG},
     {129029L,&GNSS},
-    // {129025L,&PositionRapid},
     {130312L,&Temperature},
     {0,0}
 };
 
-int rpm;
-double depth;
-double speed;
-int heading;
-int etemp;
-int otemp;
-double wtemp;
-double lat;
-double lon;
-// double rapidLat;
-// double rapidLon;
-double mag_var;
-int leg_tilt;
-int opres;
-double battV;
-double fuel_rate;
-int ehours;
+int rpm = -273;
+double depth = -273;
+double speed = -273;
+int heading = -273;
+int etemp = -273;
+int otemp = -273;
+double wtemp = -273;
+double lat = -273;
+double lon = -273;
+double mag_var = -273;
+int leg_tilt = -273;
+int opres = -273;
+double battV = -273;
+double fuel_rate = -273;
+int ehours = -273;
 String gear = "-";
-double flevel;
+double flevel = -273;
+double lpkm = -273;
 uint32_t unixTime;
-String timeString = "n/a\n";
+String timeString = "-\r\n";
+
+double n2kKeepAlive;
 
 extern Settings settings;
 
@@ -122,6 +121,7 @@ void EngineRapid(const tN2kMsg &N2kMsg) {
     int8_t EngineTiltTrim;
     
     digitalWrite(LED_N2K, HIGH);
+    n2kKeepAlive = millis();
     if (ParseN2kEngineParamRapid(N2kMsg,EngineInstance,EngineSpeed,EngineBoostPressure,EngineTiltTrim) ) {
         #ifdef DEBUG_EN
         PrintLabelValWithConversionCheckUnDef("Engine rapid params: ",EngineInstance,0,true);
@@ -129,8 +129,9 @@ void EngineRapid(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  boost pressure (Pa): ",EngineBoostPressure,0,true);
         PrintLabelValWithConversionCheckUnDef("  tilt trim: ",EngineTiltTrim,0,true);
         #endif
-        if (EngineSpeed >= 0 && EngineSpeed <= 10000) rpm = EngineSpeed;
-        if (EngineTiltTrim >= 0 && 100 >= EngineTiltTrim) leg_tilt = EngineTiltTrim;
+        rpm = (!N2kIsNA(EngineSpeed) && EngineSpeed < 10000) ? EngineSpeed : -273;
+        leg_tilt = N2kIsNA(EngineTiltTrim) ? -273 : EngineTiltTrim;
+        
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
@@ -151,6 +152,7 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
     tN2kEngineDiscreteStatus2 Status2;
     
     digitalWrite(LED_N2K, HIGH);
+    n2kKeepAlive = millis();
     if (ParseN2kEngineDynamicParam(N2kMsg,EngineInstance,EngineOilPress,EngineOilTemp,EngineCoolantTemp,
                                     AltenatorVoltage,FuelRate,EngineHours,
                                     EngineCoolantPress,EngineFuelPress,
@@ -168,18 +170,18 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  engine load (%): ",EngineLoad,0,true);
         PrintLabelValWithConversionCheckUnDef("  engine torque (%): ",EngineTorque,0,true);
         #endif
-        if (settings.tempUnit == "1") {
-            etemp = ReturnWithConversionCheckUnDef(EngineCoolantTemp, &KelvinToF);
-            otemp = ReturnWithConversionCheckUnDef(EngineOilTemp, &KelvinToF);
+        if (settings.isDegF == true) {
+            etemp = N2kIsNA(EngineCoolantTemp) ? -273 : ReturnWithConversionCheckUnDef(EngineCoolantTemp, &KelvinToF);
+            otemp = N2kIsNA(EngineOilTemp) ? -273 : ReturnWithConversionCheckUnDef(EngineOilTemp, &KelvinToF);
         }
         else {
-            etemp = ReturnWithConversionCheckUnDef(EngineCoolantTemp, &KelvinToC);
-            otemp = ReturnWithConversionCheckUnDef(EngineOilTemp, &KelvinToC);
+            etemp = N2kIsNA(EngineCoolantTemp) ? -273 : ReturnWithConversionCheckUnDef(EngineCoolantTemp, &KelvinToC);
+            otemp = N2kIsNA(EngineOilTemp) ? -273 : ReturnWithConversionCheckUnDef(EngineOilTemp, &KelvinToC);
         }
-        opres = ReturnWithConversionCheckUnDef(EngineOilPress, 0)/1000;
-        battV = ReturnWithConversionCheckUnDef(AltenatorVoltage, 0);
-        fuel_rate = ReturnWithConversionCheckUnDef(FuelRate, 0);
-        ehours = ReturnWithConversionCheckUnDef(EngineHours, &SecondsToh);
+        opres = N2kIsNA(EngineOilPress) ? -273 : ReturnWithConversionCheckUnDef(EngineOilPress, 0)/1000;
+        battV = N2kIsNA(AltenatorVoltage) ? -273 : ReturnWithConversionCheckUnDef(AltenatorVoltage, 0);
+        fuel_rate = N2kIsNA(FuelRate) ? -273 : ReturnWithConversionCheckUnDef(FuelRate, 0);
+        ehours = N2kIsNA(EngineHours) ? -273 : ReturnWithConversionCheckUnDef(EngineHours, &SecondsToh);
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
@@ -192,6 +194,7 @@ void TransmissionParameters(const tN2kMsg &N2kMsg) {
     unsigned char DiscreteStatus1;
     
     digitalWrite(LED_N2K, HIGH);
+    n2kKeepAlive = millis();
     if (ParseN2kTransmissionParameters(N2kMsg,EngineInstance, TransmissionGear, OilPressure, OilTemperature, DiscreteStatus1) ) {
         #ifdef DEBUG_EN
         PrintLabelValWithConversionCheckUnDef("Transmission params: ",EngineInstance,0,true);
@@ -212,6 +215,7 @@ void TransmissionParameters(const tN2kMsg &N2kMsg) {
                 gear = "R";
                 break;
             default:
+                gear = "-";
                 break;
         }
         } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
@@ -225,6 +229,7 @@ void COGSOG(const tN2kMsg &N2kMsg) {
     double SOG;
     
     digitalWrite(LED_N2K, HIGH);
+    n2kKeepAlive = millis();
     if (ParseN2kCOGSOGRapid(N2kMsg,SID,HeadingReference,COG,SOG) ) {
         #ifdef DEBUG_EN
                         OutputStream->println("COG/SOG:");
@@ -234,8 +239,8 @@ void COGSOG(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  SOG (m/s): ",SOG,0,true);
         #endif
         if (HeadingReference == 0 || HeadingReference == 1) {
-            speed = ReturnWithConversionCheckUnDef(SOG,&msToKnots);
-            heading = ReturnWithConversionCheckUnDef(COG,&RadToDeg);
+            speed = N2kIsNA(SOG) ? -273 : ReturnWithConversionCheckUnDef(SOG,&msToKnots);
+            heading = N2kIsNA(COG) ? -273 : ReturnWithConversionCheckUnDef(COG,&RadToDeg);
         }
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -260,6 +265,7 @@ void GNSS(const tN2kMsg &N2kMsg) {
     double AgeOfCorrection;
 
     digitalWrite(LED_N2K, HIGH);
+    n2kKeepAlive = millis();
     if (ParseN2kGNSS(N2kMsg,SID,DaysSince1970,SecondsSinceMidnight,
                 Latitude,Longitude,Altitude,
                 GNSStype,GNSSmethod,
@@ -282,8 +288,8 @@ void GNSS(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  geoidal separation: ",GeoidalSeparation,0,true);
         PrintLabelValWithConversionCheckUnDef("  reference stations: ",nReferenceStations,0,true);
         #endif
-        lat = Latitude;
-        lon = Longitude;
+        lat = N2kIsNA(Latitude) ? -273 : Latitude;
+        lon = N2kIsNA(Longitude) ? -273 : Longitude;
         unixTime = ((DaysSince1970*86400)+SecondsSinceMidnight);
         unixTime = unixTime+(settings.timeZone*3600);
         time_t epoch = unixTime;
@@ -294,22 +300,6 @@ void GNSS(const tN2kMsg &N2kMsg) {
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
-// void PositionRapid(const tN2kMsg &N2kMsg) {
-//     double Latitude;
-//     double Longitude;
-
-//     digitalWrite(LED_N2K, HIGH);
-//     if (ParseN2kPositionRapid(N2kMsg,Latitude,Longitude) ) {
-//         #ifdef DEBUG_EN
-//                         OutputStream->println("Position info:");
-//         PrintLabelValWithConversionCheckUnDef("  latitude: ",Latitude,0,true,9);
-//         PrintLabelValWithConversionCheckUnDef("  longitude: ",Longitude,0,true,9);
-//         #endif
-//         rapidLat = Latitude;
-//         rapidLon = Longitude;
-//     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
-// }
-
 //*****************************************************************************
 void Temperature(const tN2kMsg &N2kMsg) {
     unsigned char SID;
@@ -319,6 +309,7 @@ void Temperature(const tN2kMsg &N2kMsg) {
     double SetTemperature;
     
     digitalWrite(LED_N2K, HIGH);
+    n2kKeepAlive = millis();
     if (ParseN2kTemperature(N2kMsg,SID,TempInstance,TempSource,ActualTemperature,SetTemperature) ) {
         #ifdef DEBUG_EN
                         OutputStream->print("Temperature source: "); PrintN2kEnumType(TempSource,OutputStream,false);
@@ -326,8 +317,8 @@ void Temperature(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef(", set temperature: ",SetTemperature,&KelvinToC,true);
         #endif
         if (TempSource == N2kts_SeaTemperature) {
-            if (settings.tempUnit == "1") {wtemp = ReturnWithConversionCheckUnDef(ActualTemperature,&KelvinToF);}
-            else {wtemp = ReturnWithConversionCheckUnDef(ActualTemperature,&KelvinToC);}
+            if (settings.isDegF == true) {wtemp = N2kIsNA(ActualTemperature) ? -273 : ReturnWithConversionCheckUnDef(ActualTemperature,&KelvinToF);}
+            else {wtemp = N2kIsNA(ActualTemperature) ? -273 : ReturnWithConversionCheckUnDef(ActualTemperature,&KelvinToC);}
         }
     } else {OutputStream->print("Failed to parse PGN: ");  OutputStream->println(N2kMsg.PGN);}
 }
@@ -339,6 +330,7 @@ void WaterDepth(const tN2kMsg &N2kMsg) {
     double Offset;
 
     digitalWrite(LED_N2K, HIGH);
+    n2kKeepAlive = millis();
     if (ParseN2kWaterDepth(N2kMsg,SID,DepthBelowTransducer,Offset)) {
         if (N2kIsNA(Offset) || Offset == 0) {
             #ifdef DEBUG_EN
@@ -351,25 +343,28 @@ void WaterDepth(const tN2kMsg &N2kMsg) {
             }
             #endif
         } else {
+            #ifdef DEBUG_EN
             if (Offset>0) {
-                #ifdef DEBUG_EN
                 OutputStream->print("Water depth:");
-                #endif
             } else {
-                #ifdef DEBUG_EN
                 OutputStream->print("Depth below keel:");
-                #endif
             }
+            #endif
             if (!N2kIsNA(DepthBelowTransducer)) {
                 #ifdef DEBUG_EN
                 OutputStream->println(DepthBelowTransducer+Offset);
                 #endif
                 double tDepth = DepthBelowTransducer+Offset;
-                if (settings.depthUnit == "1") {depth = tDepth;}
+                if (settings.isMeters == true) {depth = tDepth;}
                 else {depth = tDepth*3.28084;}
-                Serial.print("Depth: ");
-                Serial.println(depth);
-            } else {OutputStream->println(" not available");}
+                // Serial.print("Depth: ");
+                // Serial.println(depth);
+            } else {
+                #ifdef DEBUG_EN
+                OutputStream->println(" not available");
+                #endif
+                depth = -273;
+            }
         }
     }
 }
@@ -404,6 +399,7 @@ void FluidLevel(const tN2kMsg &N2kMsg) {
     double Capacity=0;
 
     digitalWrite(LED_N2K, HIGH);
+    n2kKeepAlive = millis();
     if (ParseN2kFluidLevel(N2kMsg,Instance,FluidType,Level,Capacity) ) {
         #ifdef DEBUG_EN
         switch (FluidType) {
@@ -439,7 +435,7 @@ void FluidLevel(const tN2kMsg &N2kMsg) {
         OutputStream->print(" ("); OutputStream->print(Capacity*Level/100); OutputStream->print(")L");
         OutputStream->print(" capacity :"); OutputStream->println(Capacity);
         #endif
-        if (FluidType == N2kft_Fuel) {flevel = Level;}
+        flevel = (!N2kIsNA(Level) && FluidType == N2kft_Fuel) ? Level : -273;
     }
 }
 
@@ -450,6 +446,7 @@ void MagneticVariation(const tN2kMsg &N2kMsg) {
     double Variation;
     
     digitalWrite(LED_N2K, HIGH);
+    n2kKeepAlive = millis();
     if (ParseN2kMagneticVariation(N2kMsg,SID, Source, AgeOfService, Variation) ) {
         #ifdef DEBUG_EN
                         OutputStream->println("Magnetic Variation:");
@@ -457,7 +454,7 @@ void MagneticVariation(const tN2kMsg &N2kMsg) {
                         OutputStream->print("  Variation Source: "); PrintN2kEnumType(Source,OutputStream,true);
         PrintLabelValWithConversionCheckUnDef("  Variation ",Variation,&RadToDeg,true);
         #endif
-        mag_var = ReturnWithConversionCheckUnDef(Variation, &RadToDeg);
+        mag_var = N2kIsNA(Variation) ? -273 : ReturnWithConversionCheckUnDef(Variation, &RadToDeg);
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
@@ -481,5 +478,28 @@ void HandleNMEA2000Msg(const tN2kMsg &N2kMsg) {
 void NMEAloop() 
 { 
     NMEA2000.ParseMessages();
-    digitalWrite(LED_N2K, LOW);
+    if (n2kKeepAlive + 1000 < millis()) {
+        digitalWrite(LED_N2K, LOW);
+        if (n2kKeepAlive + 2000 > millis()) {
+            int nValid = -273;
+            rpm = nValid;
+            etemp = nValid;
+            otemp = nValid;
+            opres = nValid;
+            fuel_rate = nValid;
+            flevel = nValid;
+            leg_tilt = nValid;
+            speed = nValid;
+            heading = nValid;
+            depth = nValid;
+            wtemp = nValid;
+            battV = nValid;
+            ehours = nValid;
+            gear = "-";
+            lat = nValid;
+            lon = nValid;
+            mag_var = nValid;
+            timeString = "-";
+        }  
+    }
 }

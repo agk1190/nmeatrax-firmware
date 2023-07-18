@@ -2,8 +2,6 @@
  * NMEATrax
  * 
  * NMEATrax SD Card functions
- * 
- * These functions can be found at: Examples > SD > SD_Test
 */
 
 #include "FS.h"
@@ -11,6 +9,24 @@
 #include "sdcard.h"
 
 SPIClass spi = SPIClass(VSPI);
+
+String addCRLF(const String& str) {
+  String result = str;
+//   Serial.print(str);
+//   Serial.print(result.substring(result.length() - 2));
+//   if (result.substring(result.length() - 1) == "\n") {
+//     // result.replace("\n", "\r\n");
+//   } else 
+  if (result.length() < 2 || result.substring(result.length() - 2) != "\r\n") {
+    if (result.substring(result.length() - 1) == "\n") {
+        result.replace("\n", "\r\n");
+    } else {
+        // result += "\r\n";
+        result.concat("\r\n");
+    }
+  }
+  return result;
+}
 
 // created by ChatGPT Jan 28, 2023
 bool searchForFile(fs::FS &fs, const char* fileName) {
@@ -53,9 +69,8 @@ String listDir(fs::FS &fs, const char * dirname, uint8_t levels){
         if (file.isDirectory()){
             if (levels){listDir(fs, file.name(), levels - 1);}
         } else {
-            fileList += "<p>";
             fileList += file.name();
-            fileList += "</p>";
+            fileList += ",";
         }
         file = root.openNextFile();
     }
@@ -82,17 +97,22 @@ String getFile(fs::FS &fs, String filePath) {
     }
 }
 
-bool appendFile(fs::FS &fs, const char * path, const char * message, bool newLine){
+bool appendFile(fs::FS &fs, const char * path, const char * message, bool ensureCRLF){
     File file = fs.open(path, FILE_APPEND);
+    const char * toSend;
     if (!file){
         Serial.println("Failed to open file for appending");
         return (false);
     }
-    if (file.print(message)){
-        if (newLine)
-        {
-            file.println();
-        }
+    
+    if (ensureCRLF)
+    {
+        toSend = addCRLF(message).c_str();
+    } else {
+        toSend = message;
+    }
+    
+    if (file.print(toSend)){
     } else {
         Serial.println("Append failed");
         return (false);
@@ -108,7 +128,7 @@ bool writeFile(fs::FS &fs, const char * path, const char * message, bool newLine
         return(false);
     }
     if(file.print(message)){
-        if (newLine){file.println();}
+        if (newLine){file.print("\r\n");}
     } else {
         Serial.println("Write failed");
         return(false);
@@ -144,32 +164,31 @@ bool deleteFile(fs::FS &fs, const char * path){
 bool writeGPXpoint(const char * fileName, int wptNum, double lat, double lon){
     String waypoint;
 
-    waypoint = "<wpt lat=\"";
+    waypoint = "<trkpt lat=\"";
     waypoint += String(lat,6);
     waypoint += "\" lon=\"";
     waypoint += String(lon,6);
     waypoint += "\">\n  <name>";
     waypoint += wptNum;
-    waypoint += "</name>\n</wpt>\n";
-    // Serial.println(waypoint);
+    waypoint += "</name>\n</trkpt>\n";
 
     return (appendFile(SD, fileName, waypoint.c_str(), false));
 }
 
-bool createGPXfile(const char * fileName, const char * timeStamp){
+bool createGPXfile(const char * fileName){
     String header;
 
-    header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gpx version=\"1.0\" creator=\"NMEATrax\">\n  <time>";
-    header += timeStamp;
-    header += "</time>\n";
-    // Serial.println(header);
+    header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gpx version=\"1.1\" creator=\"NMEATrax\">\n";
+    header += "<trk>\n<name>";
+    header += fileName;
+    header += "</name>\n<trkseg>\n";
 
     return (appendFile(SD, fileName, header.c_str(), false));
 }
 
 bool endGPXfile(const char * fileName){
     String footer;
-    footer = "</gpx>\n";
+    footer = "</trkseg>\n</trk>\n</gpx>\n";
     return (appendFile(SD, fileName, footer.c_str(), false));
 }
 

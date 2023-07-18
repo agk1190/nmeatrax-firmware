@@ -13,6 +13,42 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 ### In Progress
 
 
+## [4.0.0] - 2023-07-17
+
+### Added
+- Can send email with recordings
+
+### Changed
+- SD card files now exposed to ./sdCard. No more download fn.
+- Reduced number of server web events
+- Renamed SSE handler
+
+
+## [3.0.0] - 2023-05-11
+
+### Added
+- Added ability to ensure CRLF is the line ending
+- Added fuel efficiency value (calculated)
+
+### Changed
+- CSV now uses CRLF instead of LF
+- Removed units from CSV file
+- Added header to CSV file
+- Data now shows -273 when unavailable
+- HTML now shows '-' when data is -273
+- Default values now -273 or '-'
+- N2K LED now stays on while there is NMEA activity 
+
+### Fixed
+- Download as file
+
+
+## [2.1.0] - 2023-04-27
+
+### Changed
+- GPX file now records as a track with waypoints (prev just waypoints)
+
+
 ## [2.0.1] - 2023-03-18
 
 ### Fixed

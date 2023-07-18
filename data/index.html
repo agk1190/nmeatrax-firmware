@@ -41,6 +41,10 @@
             <p class="card-title">Fuel Level</p>
             <canvas id="gauge-flevel"></canvas>
         </div>
+        <div class="card">
+            <p class="card-title">Fuel Efficiency</p>
+            <p id="textLpkm" style="font-size: 60px;">-</p>
+        </div>
         </div><br>
         <h2>GPS</h2>
         <div class="card-grid">
@@ -62,7 +66,6 @@
         <div class="card">
             <p class="card-title">Water Temp</p>
             <p id="textWtemp" style="font-size: 60px;">-</p>
-            <p id="test"></p>
         </div>
         </div>
     </div>
@@ -110,17 +113,17 @@
         drawGauges();
 
         window.onload = function ( ) {
-            var xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function() {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
                     var myObj = JSON.parse(this.responseText);
 
-                    if (myObj.depthUnit == "1") {
+                    if (myObj.isMeters == true) {
                         dUnit = " m";
                     } else {
                         dUnit = " ft";
                     }
-                    if (myObj.tempUnit == "1") {
+                    if (myObj.isDegF == true) {
                         tUnit = "\u2109";
                     } else {
                         tUnit = "\u2103";
@@ -128,8 +131,8 @@
                     drawGauges();
                 }
             };
-            xhttp.open("GET", "/toggleState", true);
-            xhttp.send();
+            xhr.open("GET", "/get", true);
+            xhr.send();
         }
 
         function drawGauges() {
@@ -673,20 +676,29 @@
 
         // recieve and parse new data
         if (!!window.EventSource) {
-            var source = new EventSource('/events');
-            source.addEventListener('new_readings', function(e) {
+            var source = new EventSource('/NMEATrax');
+            source.addEventListener('nmeaData', function(e) {
                 var myObj = JSON.parse(e.data);
-                rpmVal = myObj.rpm;
-                etempVal = myObj.etemp;
-                otempVal = myObj.otemp;
-                opresVal = myObj.opres;
-                flevelVal = myObj.flevel;
-                speedVal = myObj.speed;
-                headingVal = myObj.heading;
-                document.getElementById("textDepth").innerHTML = myObj.depth + dUnit;
-                document.getElementById("textWtemp").innerHTML = myObj.wtemp + tUnit;
+                rpmVal = check273(myObj.rpm, "");
+                etempVal = check273(myObj.etemp, "");
+                otempVal = check273(myObj.otemp, "");
+                opresVal = check273(myObj.opres, "");
+                flevelVal = check273(myObj.flevel, "");
+                speedVal = check273(myObj.speed, "");
+                headingVal = check273(myObj.heading, "");
+                document.getElementById("textDepth").innerHTML = check273(myObj.depth, dUnit);
+                document.getElementById("textWtemp").innerHTML = check273(myObj.wtemp, tUnit);
+                document.getElementById("textLpkm").innerHTML = check273(myObj.efficiency, " L/km");
                 drawGauges();
             }, false);
+        }
+
+        function check273(input, unit) {
+            if (input == -273 || input == "-") {
+                return "-";
+            } else {
+                return input + unit;
+            }
         }
 
   </script>
