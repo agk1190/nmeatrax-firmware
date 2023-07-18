@@ -16,13 +16,11 @@
         <a href="text.html">Text</a>
         <a href="options.html" class="active">Options</a>
     </div><br>
+    <p class="options">Click on the file you wish to download</p>
     <p id="fileList">No Logs</p>
-    <form action="/downloadData">
-        <p class="options" style="padding-left: 5%; padding-right: 5%;">Enter the name of the file you wish to download from the list above</p>
-        <input type="text" name="fileName" placeholder="Voyage1.csv">
-        <input class="button" type="submit" value="Download">
-    </form>
+    <button type="button" onclick="email()">Email Instead</button><br><br>
     <a href="options.html" class="button">Back</a>
+    <p id="emailText" class="options"></p>
     <footer class="botnav">
         <h1 class="botnavtext">NMEATrax</h1>
     </footer>
@@ -31,11 +29,29 @@
             var xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
-                    document.getElementById("fileList").innerHTML = this.responseText;
+                    var response = this.responseText.split(',');
+                    var http = "";
+                    for (var item in response) {
+                        if (response[item] != "") {
+                            http += "<a class=\"list\" download=\"true\" href=\"/sdCard/";
+                            http += response[item];
+                            http += "\">";
+                            http += response[item];
+                            http += "</a><br>\r\n";
+                        }
+                    }
+                    document.getElementById("fileList").innerHTML = http;
                 }
             };
             xhr.open("GET", "/listDir", true);
             xhr.send();
+        }
+
+        function email() {
+            var xhttp = new XMLHttpRequest();
+            document.getElementById("emailText").innerHTML = "";
+            xhttp.open("POST", "/set?email=true", true);
+            xhttp.send();
         }
 
         //https://css-tricks.com/a-complete-guide-to-dark-mode-on-the-web/
@@ -48,6 +64,16 @@
             document.getElementById("mainBody").style.colorScheme = "dark";
         } else if (currentTheme == "light") {
             document.body.classList.toggle("light-theme");
+        }
+
+        if (!!window.EventSource) {
+            var source = new EventSource('/NMEATrax');
+            source.addEventListener('emailData', function(e) {
+                var s = "<p class=\"options\">";
+                    s += e.data;
+                    s += "</p><br>";
+                document.getElementById("emailText").innerHTML += s;
+            }, false);
         }
     </script>
 </body>

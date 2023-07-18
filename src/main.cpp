@@ -119,15 +119,15 @@ String JSONValues()
 bool saveSettings()
 {
     settings.voyState = voyState;
-    jsettings["wifiMode"] = settings.wifiMode;
+    jsettings["isLocalAP"] = settings.isLocalAP;
     // jsettings["wifiSSID"] = settings.wifiSSID;
     // jsettings["wifiPass"] = settings.wifiPass;
     jsettings["wifiSSID"] = "NMEATrax";
     jsettings["wifiPass"] = "nmeatrax";
     jsettings["voyState"] = settings.voyState;
     jsettings["recInt"] = settings.recInt;
-    jsettings["depthUnit"] = settings.depthUnit;
-    jsettings["tempUnit"] = settings.tempUnit;
+    jsettings["isMeters"] = settings.isMeters;
+    jsettings["isDegF"] = settings.isDegF;
     jsettings["timeZone"] = settings.timeZone;
     String settingsString = JSON.stringify(jsettings);
     return(writeFile(SPIFFS, "/settings.txt", settingsString.c_str(), false));
@@ -147,16 +147,15 @@ bool readSettings()
         usedSdCard = false;
     }
     jsettings = JSON.parse(settingsString);
-    settings.wifiMode = jsettings["wifiMode"];
+    settings.isLocalAP = jsettings["isLocalAP"];
     settings.wifiSSID = jsettings["wifiSSID"];
     settings.wifiPass = jsettings["wifiPass"];
     settings.voyState = jsettings["voyState"];
     settings.recInt = jsettings["recInt"];
-    settings.depthUnit = jsettings["depthUnit"];
-    settings.tempUnit = jsettings["tempUnit"];
+    settings.isMeters = jsettings["isMeters"];
+    settings.isDegF = jsettings["isDegF"];
     settings.timeZone = jsettings["timeZone"];
-    switch (settings.voyState)
-    {
+    switch (settings.voyState) {
         case 0:
             voyState = OFF;
             break;
@@ -187,14 +186,12 @@ bool readSettings()
     return(true);
 }
 
-bool getSDcardStatus()
-{
+bool getSDcardStatus() {
     digitalWrite(LED_SD, digitalRead(SD_Detect));
     return(digitalRead(SD_Detect));
 }
 
-void createWifiText()
-{
+void createWifiText() {
     //https://forum.arduino.cc/t/how-to-manipulate-ipaddress-variables-convert-to-string/222693/6
     String wifiText;
     IPAddress ipAddress = WiFi.localIP();
@@ -245,8 +242,7 @@ void setup()
     digitalWrite(N2K_STBY, LOW);
 
     // Initialize SPIFFS
-    if (!SPIFFS.begin(true))
-    {
+    if (!SPIFFS.begin(true)) {
         Serial.println("An Error has occurred while mounting SPIFFS");
         crash();
     }
@@ -257,8 +253,7 @@ void setup()
     if (!readSettings()) {crash();}
     delay(500);
 
-    if (settings.wifiMode == "lan")     // if in local AP mode, create AP
-    {
+    if (settings.isLocalAP) {     // if in local AP mode, create AP
         WiFi.softAPsetHostname("nmeatrax");
         WiFi.mode(WIFI_MODE_AP);
         WiFi.softAPConfig(local_ip, gateway, subnet);
@@ -266,19 +261,16 @@ void setup()
         delay(100);
         Serial.println("Started NMEA Access Point");
     }
-    else        // if the device should connect to an Access Point
-    {
+    else {       // if the device should connect to an Access Point
         bool connected;
         wifiManager.setAPStaticIPConfig(local_ip, gateway, subnet);
         connected = wifiManager.autoConnect("NMEATrax");
-        if (connected)
-        {
-            settings.wifiMode = "wan";
+        if (connected) {
+            settings.isLocalAP = false;
             if (!saveSettings()) {crash();}
         }
-        else
-        {
-            settings.wifiMode = "lan";
+        else {
+            settings.isLocalAP = true;
             if (!saveSettings()) {crash();}
             ESP.restart();
         }
@@ -314,8 +306,7 @@ void loop()
     static int count = 0;
     static int localRecInt;
 
-    if (statDelay + 1000 < millis())
-    {
+    if (statDelay + 1000 < millis()) {
         // time keeping
         time_t now;
         struct tm timeDetails;
@@ -342,7 +333,10 @@ void loop()
         // timeString = asctime(&timeDetails);
 
         if (speed > 0) {
-            lpkm = fuel_rate / (speed*1.852);
+            double _fuel_rate = 0;
+            if (fuel_rate == -273) {_fuel_rate = 0;}
+            else {_fuel_rate = fuel_rate;}
+            lpkm = _fuel_rate / (speed*1.852);
         } else {
             lpkm = -273;
         }
@@ -352,30 +346,30 @@ void loop()
         count++;
     }
 
-    switch (voyState){
+    switch (voyState) {
         case AUTO_RPM:
-            if (rpm <= 0){
+            if (rpm <= 0) {
                 voyState=AUTO_RPM_IDLE;
                 endGPXfile(GPXFileName.c_str());
             }
             break;
 
         case AUTO_RPM_IDLE:
-            if (rpm>0){
+            if (rpm>0) {
                 outOfIdle=true;
                 voyState=AUTO_RPM;
             }
             break;
 
         case AUTO_SPD:
-            if (speed <= 0){
+            if (speed <= 0) {
                 voyState=AUTO_SPD_IDLE;
                 endGPXfile(GPXFileName.c_str());
             }
             break;
 
         case AUTO_SPD_IDLE:
-            if (speed>0){
+            if (speed>0) {
                 outOfIdle=true;
                 voyState=AUTO_SPD;
             }
@@ -385,14 +379,14 @@ void loop()
             break;
     }
 
-    if (voyState == AUTO_RPM){
-        if (rpm > 3500){
+    if (voyState == AUTO_RPM) {
+        if (rpm > 3500) {
             localRecInt = 15;
         } else {
             localRecInt = settings.recInt;
         }
-    } else if (voyState == AUTO_SPD){
-        if (speed > 15){
+    } else if (voyState == AUTO_SPD) {
+        if (speed > 15) {
             localRecInt = 15;
         } else {
             localRecInt = settings.recInt;
@@ -401,7 +395,7 @@ void loop()
         localRecInt = settings.recInt;
     }
     
-    if ((voyState == AUTO_RPM || voyState == AUTO_SPD || voyState == ON) && count >= localRecInt){
+    if ((voyState == AUTO_RPM || voyState == AUTO_SPD || voyState == ON) && count >= localRecInt) {
         static String CSVFileName;
         static int gpxWPTcount = 1;
 

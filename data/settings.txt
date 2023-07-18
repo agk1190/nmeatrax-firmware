@@ -1,10 +1,10 @@
 {
-    "wifiMode":"lan",
+    "isLocalAP":true,
     "wifiSSID":"NMEATrax",
     "wifiPass":"nmeatrax",
     "voyState":3,
     "recInt":5,
-    "depthUnit":"0",
-    "tempUnit":"0",
+    "isMeters":false,
+    "isDegF":false,
     "timeZone":-7
 }

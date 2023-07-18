@@ -40,15 +40,14 @@ enum voyState {
 */
 extern enum voyState voyState;
 
-struct settings
-{
-    String wifiMode;
+struct settings {
+    bool isLocalAP;
     const char *wifiSSID;
     const char *wifiPass;
     int voyState;
     int recInt;
-    String depthUnit;
-    String tempUnit;
+    bool isMeters;
+    bool isDegF;
     double timeZone;
 };
 
