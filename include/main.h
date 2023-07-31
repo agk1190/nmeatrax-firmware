@@ -79,3 +79,9 @@ String JSONValues();
  * @brief Called when something fails
 */
 void crash();
+
+/**
+ * @brief Check if SD card is present.
+ * @return True if present
+*/
+bool getSDcardStatus();

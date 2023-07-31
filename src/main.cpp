@@ -174,7 +174,6 @@ bool readSettings()
     return success;
 }
 
-// returns true if detected
 bool getSDcardStatus() {
     digitalWrite(LED_SD, digitalRead(SD_Detect));
     return(digitalRead(SD_Detect));
@@ -376,7 +375,7 @@ void loop()
         localRecInt = settings.recInt;
     }
     
-    if ((recMode == AUTO_RPM || recMode == AUTO_SPD || recMode == ON) && count >= localRecInt) {
+    if ((recMode == AUTO_RPM || recMode == AUTO_SPD || recMode == ON) && count >= localRecInt && getSDcardStatus()) {
         static String CSVFileName;
         static int gpxWPTcount = 1;
 
