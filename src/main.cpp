@@ -24,6 +24,7 @@
 #include "sdkconfig.h"
 #include <FREERTOS/FreeRTOS.h>
 #include <FREERTOS/timers.h>
+#include <Preferences.h>
 
 // Local NMEATrax access point IP settings
 IPAddress local_ip(192, 168, 1, 1);
@@ -36,7 +37,9 @@ JSONVar readings;
 // Json variable to store data to save to SPIFFS
 JSONVar jsettings;
 
-enum voyState voyState;
+Preferences preferences;
+
+enum recMode recMode;
 
 // Structure to store device settings
 Settings settings;
@@ -118,74 +121,60 @@ String JSONValues()
 
 bool saveSettings()
 {
-    settings.voyState = voyState;
-    jsettings["isLocalAP"] = settings.isLocalAP;
-    // jsettings["wifiSSID"] = settings.wifiSSID;
-    // jsettings["wifiPass"] = settings.wifiPass;
-    jsettings["wifiSSID"] = "NMEATrax";
-    jsettings["wifiPass"] = "nmeatrax";
-    jsettings["voyState"] = settings.voyState;
-    jsettings["recInt"] = settings.recInt;
-    jsettings["isMeters"] = settings.isMeters;
-    jsettings["isDegF"] = settings.isDegF;
-    jsettings["timeZone"] = settings.timeZone;
-    String settingsString = JSON.stringify(jsettings);
-    return(writeFile(SPIFFS, "/settings.txt", settingsString.c_str(), false));
+    bool success = false;
+    success = preferences.begin("settings");
+    preferences.putBool("isLocalAP", settings.isLocalAP);
+    preferences.putString("wifiSSID", settings.wifiSSID);
+    preferences.putString("wifiPass", settings.wifiPass);
+    preferences.putInt("recMode", settings.recMode);
+    preferences.putInt("recInt", settings.recInt);
+    preferences.putBool("isMeters", settings.isMeters);
+    preferences.putBool("isDegF", settings.isDegF);
+    preferences.putInt("timeZone", settings.timeZone);
+    preferences.end();
+    return success;
 }
 
 bool readSettings()
 {
-    String settingsString;
-    bool usedSdCard = true;
-    settingsString = getFile(SD, "/settings.txt");
-    // Serial.print("SD Card - ");
-    // Serial.println(settingsString);
-    if (settingsString == "null" || settingsString == "") {
-        settingsString = getFile(SPIFFS, "/settings.txt");
-        // Serial.print("SPIFFS - ");
-        // Serial.println(settingsString);
-        usedSdCard = false;
-    }
-    jsettings = JSON.parse(settingsString);
-    settings.isLocalAP = jsettings["isLocalAP"];
-    settings.wifiSSID = jsettings["wifiSSID"];
-    settings.wifiPass = jsettings["wifiPass"];
-    settings.voyState = jsettings["voyState"];
-    settings.recInt = jsettings["recInt"];
-    settings.isMeters = jsettings["isMeters"];
-    settings.isDegF = jsettings["isDegF"];
-    settings.timeZone = jsettings["timeZone"];
-    switch (settings.voyState) {
+    bool success = false;
+    success = preferences.begin("settings");
+    settings.isLocalAP = preferences.getBool("isLocalAP", false);
+    settings.wifiSSID = preferences.getString("wifiSSID", "NMEATrax").c_str();
+    settings.wifiPass = preferences.getString("wifiPass", "nmeatrax").c_str();
+    settings.recMode = preferences.getInt("recMode", 5);
+    settings.recInt = preferences.getInt("recInt", 5);
+    settings.isMeters = preferences.getBool("isMeters", false);
+    settings.isDegF = preferences.getBool("isDegF", false);
+    settings.timeZone = preferences.getInt("timeZone", 0);
+    preferences.end();
+
+    switch (settings.recMode) {
         case 0:
-            voyState = OFF;
+            recMode = OFF;
             break;
 
         case 1:
-            voyState = ON;
+            recMode = ON;
             break;
 
         case 2: 
         case 4:
-            voyState = AUTO_SPD;
+            recMode = AUTO_SPD_IDLE;
             break;
 
         case 3: 
         case 5:
-            voyState = AUTO_RPM;
+            recMode = AUTO_RPM_IDLE;
             break;
         
         default:
             break;
     }
-    if (usedSdCard) {
-        if (!saveSettings()) {crash();}
-        deleteFile(SD, "/settings.txt");
-        delay(500);
-        ESP.restart();      // reboot since wifi ssid does not show up when getting settings from sd card
-    };
-    return(true);
+    return success;
 }
 
+// returns true if detected
 bool getSDcardStatus() {
     digitalWrite(LED_SD, digitalRead(SD_Detect));
     return(digitalRead(SD_Detect));
@@ -193,14 +182,15 @@ bool getSDcardStatus() {
 
 void createWifiText() {
     //https://forum.arduino.cc/t/how-to-manipulate-ipaddress-variables-convert-to-string/222693/6
-    String wifiText;
-    IPAddress ipAddress = WiFi.localIP();
-    wifiText = String(ipAddress[0]) + String(".") +\
-                String(ipAddress[1]) + String(".") +\
-                String(ipAddress[2]) + String(".") +\
-                String(ipAddress[3]) + "\r\n"; 
-    wifiText += WiFi.macAddress();
-    writeFile(SD, "/wifi.txt", wifiText.c_str(), false);
+    if (getSDcardStatus()) {
+        IPAddress ipAddress = WiFi.localIP();
+        String wifiText = String(ipAddress[0]) + String(".") +\
+                        String(ipAddress[1]) + String(".") +\
+                        String(ipAddress[2]) + String(".") +\
+                        String(ipAddress[3]) + "\r\n"; 
+        wifiText += WiFi.macAddress();
+        writeFile(SD, "/wifi.txt", wifiText.c_str(), false);
+    }
 }
 
 void crash() {
@@ -332,24 +322,15 @@ void loop()
         // lon = random(120.0, 140.0);
         // timeString = asctime(&timeDetails);
 
-        if (speed > 0) {
-            double _fuel_rate = 0;
-            if (fuel_rate == -273) {_fuel_rate = 0;}
-            else {_fuel_rate = fuel_rate;}
-            lpkm = _fuel_rate / (speed*1.852);
-        } else {
-            lpkm = -273;
-        }
-
         getSDcardStatus();
         statDelay = millis();
         count++;
     }
 
-    switch (voyState) {
+    switch (recMode) {
         case AUTO_RPM:
             if (rpm <= 0) {
-                voyState=AUTO_RPM_IDLE;
+                recMode=AUTO_RPM_IDLE;
                 endGPXfile(GPXFileName.c_str());
             }
             break;
@@ -357,13 +338,13 @@ void loop()
         case AUTO_RPM_IDLE:
             if (rpm>0) {
                 outOfIdle=true;
-                voyState=AUTO_RPM;
+                recMode=AUTO_RPM;
             }
             break;
 
         case AUTO_SPD:
             if (speed <= 0) {
-                voyState=AUTO_SPD_IDLE;
+                recMode=AUTO_SPD_IDLE;
                 endGPXfile(GPXFileName.c_str());
             }
             break;
@@ -371,7 +352,7 @@ void loop()
         case AUTO_SPD_IDLE:
             if (speed>0) {
                 outOfIdle=true;
-                voyState=AUTO_SPD;
+                recMode=AUTO_SPD;
             }
             break;
         
@@ -379,13 +360,13 @@ void loop()
             break;
     }
 
-    if (voyState == AUTO_RPM) {
+    if (recMode == AUTO_RPM) {
         if (rpm > 3500) {
             localRecInt = 15;
         } else {
             localRecInt = settings.recInt;
         }
-    } else if (voyState == AUTO_SPD) {
+    } else if (recMode == AUTO_SPD) {
         if (speed > 15) {
             localRecInt = 15;
         } else {
@@ -395,7 +376,7 @@ void loop()
         localRecInt = settings.recInt;
     }
     
-    if ((voyState == AUTO_RPM || voyState == AUTO_SPD || voyState == ON) && count >= localRecInt) {
+    if ((recMode == AUTO_RPM || recMode == AUTO_SPD || recMode == ON) && count >= localRecInt) {
         static String CSVFileName;
         static int gpxWPTcount = 1;
 
@@ -429,12 +410,6 @@ void loop()
         gpxWPTcount++;
         count = 0;
     
-    }
-    // backup settings to sd card when doing ota update
-    if (backupSettings) {
-        if (!writeFile(SD, "/settings.txt", getFile(SPIFFS, "/settings.txt").c_str(), false)){crash();}
-        Serial.println("Backup Complete");
-        backupSettings = false;
     }
     vTaskDelay(1/portTICK_PERIOD_MS);
 }

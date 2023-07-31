@@ -182,6 +182,16 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
         battV = N2kIsNA(AltenatorVoltage) ? -273 : ReturnWithConversionCheckUnDef(AltenatorVoltage, 0);
         fuel_rate = N2kIsNA(FuelRate) ? -273 : ReturnWithConversionCheckUnDef(FuelRate, 0);
         ehours = N2kIsNA(EngineHours) ? -273 : ReturnWithConversionCheckUnDef(EngineHours, &SecondsToh);
+
+        if (speed > 0) {
+            double _fuel_rate = 0;
+            if (fuel_rate == -273) {_fuel_rate = 0;}
+            else {_fuel_rate = fuel_rate;}
+            lpkm = _fuel_rate / (speed*1.852);
+        } else {
+            lpkm = -273;
+        }
+
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
@@ -291,11 +301,13 @@ void GNSS(const tN2kMsg &N2kMsg) {
         lat = N2kIsNA(Latitude) ? -273 : Latitude;
         lon = N2kIsNA(Longitude) ? -273 : Longitude;
         unixTime = ((DaysSince1970*86400)+SecondsSinceMidnight);
-        unixTime = unixTime+(settings.timeZone*3600);
-        time_t epoch = unixTime;
-        timeString = asctime(gmtime(&epoch));
+        // unixTime = unixTime+(settings.timeZone*3600);
+        time_t n2kTime = unixTime+(settings.timeZone*3600);
+        timeString = asctime(gmtime(&n2kTime));
         struct timeval tv;
         tv.tv_sec = unixTime;
+        // struct timezone tz;
+        // tz.tz_minuteswest = abs(settings.timeZone)*60;
         settimeofday(&tv, NULL);    // set ESP32 time to GPS time
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }

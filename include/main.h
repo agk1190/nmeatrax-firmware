@@ -20,7 +20,7 @@ extern String GPXFileName;
 extern bool backupSettings;
 
 // SD card recording state
-enum voyState {
+enum recMode {
     OFF = 0,
     ON = 1,
     AUTO_SPD = 2,
@@ -38,13 +38,13 @@ enum voyState {
  * @param AUTO_SPD_IDLE
  * @param AUTO_RPM_IDLE
 */
-extern enum voyState voyState;
+extern enum recMode recMode;
 
 struct settings {
     bool isLocalAP;
     const char *wifiSSID;
     const char *wifiPass;
-    int voyState;
+    int recMode;
     int recInt;
     bool isMeters;
     bool isDegF;

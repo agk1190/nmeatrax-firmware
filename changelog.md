@@ -13,6 +13,15 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 ### In Progress
 
 
+## [5.0.0] - 2023-07-30
+
+### Changed
+- Preferences/settings are now saved in non-volatile memory
+- Renamed voyState to recMode
+- Fix time in email subject
+- No longer set recMode to off for OTA update
+
+
 ## [4.0.0] - 2023-07-17
 
 ### Added

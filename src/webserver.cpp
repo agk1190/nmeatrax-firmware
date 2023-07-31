@@ -201,23 +201,23 @@ bool webSetup() {
             int mode = atoi(request->getParam("recMode")->value().c_str());
             switch (mode) {
             case 0:
-                voyState = OFF;
+                recMode = OFF;
                 endGPXfile(GPXFileName.c_str());
                 break;
             case 1:
-                voyState = ON;
+                recMode = ON;
                 outOfIdle = true;
                 break;
             case 2:
-                voyState = AUTO_SPD;
+                recMode = AUTO_SPD;
                 outOfIdle = true;
                 break;
             case 3:
-                voyState = AUTO_RPM;
+                recMode = AUTO_RPM;
                 outOfIdle = true;
                 break;
             default:
-                voyState = OFF;
+                recMode = OFF;
                 endGPXfile(GPXFileName.c_str());
                 break;
             }
@@ -236,7 +236,7 @@ bool webSetup() {
         values["isDegF"] = settings.isDegF;
         values["recInt"] = settings.recInt;
         values["timeZone"] = settings.timeZone;
-        values["recMode"] = voyState;
+        values["recMode"] = recMode;
         request->send(200, "application/json", JSON.stringify(values));
     });
 
