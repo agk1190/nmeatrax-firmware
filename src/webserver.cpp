@@ -125,7 +125,7 @@ bool webSetup() {
     server.serveStatic("/", SPIFFS, "/");
 
     // serve content of sd card
-    server.serveStatic("/sdCard", SD, "/");
+    if (getSDcardStatus()) {server.serveStatic("/sdCard", SD, "/");}   
 
     // redirect request to 192.168.1.1 to 192.168.1.1/index.html
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) { 
@@ -134,8 +134,12 @@ bool webSetup() {
 
     // Get all files on the SD card
     server.on("/listDir", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String fileList = listDir(SD, "/", 0);
-        request->send(200, "text/plain", fileList);
+        if (getSDcardStatus()) {
+            String fileList = listDir(SD, "/", 0);
+            request->send(200, "text/plain", fileList);
+        } else {
+            request->send(200, "text/plain", "");
+        }
     });
 
     // all functions related to doing or setting something
@@ -201,24 +205,22 @@ bool webSetup() {
             int mode = atoi(request->getParam("recMode")->value().c_str());
             switch (mode) {
             case 0:
-                voyState = OFF;
-                endGPXfile(GPXFileName.c_str());
+                recMode = OFF;
+                if (getSDcardStatus()) endGPXfile(GPXFileName.c_str());
                 break;
             case 1:
-                voyState = ON;
+                recMode = ON;
                 outOfIdle = true;
                 break;
             case 2:
-                voyState = AUTO_SPD;
-                outOfIdle = true;
+                recMode = AUTO_SPD_IDLE;
                 break;
             case 3:
-                voyState = AUTO_RPM;
-                outOfIdle = true;
+                recMode = AUTO_RPM_IDLE;
                 break;
             default:
-                voyState = OFF;
-                endGPXfile(GPXFileName.c_str());
+                recMode = OFF;
+                if (getSDcardStatus()) endGPXfile(GPXFileName.c_str());
                 break;
             }
             if (!saveSettings()) {crash();}
@@ -236,7 +238,7 @@ bool webSetup() {
         values["isDegF"] = settings.isDegF;
         values["recInt"] = settings.recInt;
         values["timeZone"] = settings.timeZone;
-        values["recMode"] = voyState;
+        values["recMode"] = recMode;
         request->send(200, "application/json", JSON.stringify(values));
     });
 
