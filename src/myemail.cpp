@@ -35,7 +35,6 @@ String WIFI_SSID[] = {WIFI_SSID0, WIFI_SSID1, WIFI_SSID2, WIFI_SSID3};
 void sendEmail(void *pvParameters) {
     String chosenSSID = "";
     sendEmailData("Starting...");
-    bool exit = false;
 
     if (settings.isLocalAP) {
         WiFi.mode(WIFI_MODE_APSTA);
@@ -48,15 +47,16 @@ void sendEmail(void *pvParameters) {
             WiFi.mode(WIFI_MODE_AP);
             vTaskDelete(NULL);
         } else {
+            bool _exit = false;
             for (int i = 0; i < n; ++i) {   // for each access point found
-                if (exit) break;
+                if (_exit) break;
                 for (int j = 0; j < WIFI_SSID->length(); j++) {     // for each selectable access point
                     if (WiFi.SSID(i) == WIFI_SSID[j]) {
                         String s = "Chose ";
                         s += WiFi.SSID(i);
                         sendEmailData(s);
                         chosenSSID = WiFi.SSID(i);
-                        exit = true;
+                        _exit = true;
                         break;
                     }
                 }
@@ -167,14 +167,15 @@ void sendEmail(void *pvParameters) {
 
     File root = SD.open("/");
     if (!root) {
-        // Serial.println("Failed to open directory");
-        // return;
+        sendEmailData("Failed to read SD card!");
+        vTaskDelete(NULL);
     }
     if (!root.isDirectory()) {
-        // Serial.println("Not a directory");
-        // return;
+        sendEmailData("Failed to read SD card!");
+        vTaskDelete(NULL);
     }
     File file = root.openNextFile();
+    sendEmailData("Adding attachments...");
     while (file) {
         if (file.isDirectory()) {} 
         else if (file.name() == "wifi.txt") {}
@@ -225,6 +226,7 @@ void sendEmail(void *pvParameters) {
         // Serial.print("Error sending Email, ");
         // Serial.println(smtp.errorReason());
         sendEmailData("Failed to send email.");
+        vTaskDelete(NULL);
     }
     if (settings.isLocalAP) {
         WiFi.mode(WIFI_MODE_AP);

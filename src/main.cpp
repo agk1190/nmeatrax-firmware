@@ -60,7 +60,7 @@ String getCSV()
         String(etemp),          // 1
         String(otemp),          // 2
         String(opres),          // 3
-        String(fuel_rate),      // 4
+        String(fuel_rate, 1),   // 4
         String(flevel),         // 5
         String(lpkm, 3),        // 6
         String(leg_tilt),       // 7
@@ -99,7 +99,7 @@ String JSONValues()
     readings["etemp"] = String(etemp);
     readings["otemp"] = String(otemp);
     readings["opres"] = String(opres);
-    readings["fuel_rate"] = String(fuel_rate);
+    readings["fuel_rate"] = String(fuel_rate, 1);
     readings["flevel"] = String(flevel);
     readings["efficiency"] = String(lpkm, 3);
     readings["leg_tilt"] = String(leg_tilt);
@@ -148,6 +148,9 @@ bool readSettings()
     settings.isDegF = preferences.getBool("isDegF", false);
     settings.timeZone = preferences.getInt("timeZone", 0);
     preferences.end();
+
+    settings.wifiSSID = "NMEATrax";
+    settings.wifiPass = "nmeatrax";
 
     switch (settings.recMode) {
         case 0:

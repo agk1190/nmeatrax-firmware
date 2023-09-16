@@ -13,7 +13,7 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 ### In Progress
 
 
-## [5.0.0] - 2023-07-30
+## [5.0.0] - 2023-09-16
 
 ### Changed
 - Preferences/settings are now saved in non-volatile memory
