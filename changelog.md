@@ -21,6 +21,7 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 - Fix time in email subject
 - No longer set recMode to off for OTA update
 - Added getSDcardStatus checks
+- NMEA now on loop(), other tasks now on timer
 
 
 ## [4.0.0] - 2023-07-17

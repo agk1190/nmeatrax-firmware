@@ -44,9 +44,13 @@ enum recMode recMode;
 // Structure to store device settings
 Settings settings;
 
+Timings timings;
+
 bool outOfIdle = true;
 String GPXFileName;
 bool backupSettings;
+
+bool testBG = false;
 
 /**
  * @brief Complie data in CSV format to send to the user.
@@ -94,6 +98,17 @@ String getCSV()
 
 String JSONValues()
 {
+    String _s = String(timings.webTook);
+    _s.concat("/");
+    _s.concat(timings.webRest);
+    _s.concat(" ");
+    _s.concat(timings.bgTook);
+    _s.concat("/");
+    _s.concat(timings.bgRest);
+    _s.concat(" ");
+    _s.concat(timings.nmeaTook);
+    _s.concat("/");
+    _s.concat(timings.nmeaRest);
     timeString.remove(timeString.length() - 1, 1);
     readings["rpm"] = String(rpm);
     readings["etemp"] = String(etemp);
@@ -114,6 +129,7 @@ String JSONValues()
     readings["lon"] = String(lon, 6);
     readings["mag_var"] = String(mag_var, 2);
     readings["time"] = timeString;
+    readings["timings"] = _s;
 
     String jsonString = JSON.stringify(readings);
     return jsonString;
@@ -201,15 +217,34 @@ void crash() {
 }
 
 // Timer callback function
-void nmeaTimerCallback(TimerHandle_t xTimer) {
-    // Run the nmeaLoop() function
-    NMEAloop();
-}
+// void nmeaTimerCallback(TimerHandle_t xTimer) {
+//     // Run the nmeaLoop() function
+//     NMEAloop();
+// }
 
 // Timer callback function
 void webTimerCallback(TimerHandle_t xTimer) {
-    // rpm = random(650, 700);
+    static int webRunTime;
+    static int webRestTime = 0;
+    timings.webRest = millis() - webRestTime;
+    webRunTime = millis();
     webLoop();
+    timings.webTook = (millis() - webRunTime);
+    webRestTime = millis();
+}
+
+void bgTimerCallback(TimerHandle_t xTimer) {
+    TaskHandle_t xHandle = NULL;
+    static int bgRunTime;
+    static int bgRestTime = 0;
+    timings.bgRest = millis() - bgRestTime;
+    bgRunTime = millis();
+    if (!testBG) {
+        testBG = true;
+        xTaskCreate(vBackgroundTasks, "bgTasks", 4096, (void *) 1, 3, &xHandle);
+    }
+    timings.bgTook = millis() - bgRunTime;
+    bgRestTime = millis();
 }
 
 // ***************************************************
@@ -280,12 +315,14 @@ void setup()
     createWifiText();
 
     // Create timers
-    TimerHandle_t nmeaTimer = xTimerCreate("NMEATimer", 1 / portTICK_PERIOD_MS, pdTRUE, NULL, nmeaTimerCallback);
+    // TimerHandle_t nmeaTimer = xTimerCreate("NMEATimer", 1 / portTICK_PERIOD_MS, pdTRUE, NULL, nmeaTimerCallback);
     TimerHandle_t webTimer = xTimerCreate("webTimer", 1000 / portTICK_PERIOD_MS, pdTRUE, NULL, webTimerCallback);
+    TimerHandle_t bgTimer = xTimerCreate("bgTimer", 1000 / portTICK_PERIOD_MS, pdTRUE, NULL, bgTimerCallback);
 
     // Start the timer
-    xTimerStart(nmeaTimer, 0);
+    // xTimerStart(nmeaTimer, 0);
     xTimerStart(webTimer, 0);
+    xTimerStart(bgTimer, 0);
 }
 
 // ***************************************************
@@ -294,40 +331,50 @@ void setup()
 */
 void loop()
 {
-    static long statDelay = millis();
+    static int nmeaRunTime;
+    static int nmeaRestTime = 0;
+    timings.nmeaRest = millis() - nmeaRestTime;
+    nmeaRunTime = millis();
+    NMEAloop();
+    timings.nmeaTook = millis() - nmeaRunTime;
+    nmeaRestTime = millis();
+    // Serial.println(millis() - nmeaRunTime);
+}
+
+void vBackgroundTasks(void * pvParameters)
+{
+    // static long statDelay = millis();
     static int count = 0;
     static int localRecInt;
 
-    if (statDelay + 1000 < millis()) {
-        // time keeping
-        time_t now;
-        struct tm timeDetails;
-        time(&now);
-        localtime_r(&now, &timeDetails);
-        // Serial.println(&timeDetails, "%A, %B %d %Y %H:%M:%S");
+    // time keeping
+    // time_t now;
+    // struct tm timeDetails;
+    // time(&now);
+    // localtime_r(&now, &timeDetails);
+    // Serial.println(&timeDetails, "%A, %B %d %Y %H:%M:%S");
 
-        // rpm = random(650, 700);
-        // heading = random(15, 30);
-        // wtemp = random(8, 12);
-        // otemp = random(104, 108);
-        // etemp = random(73, 76);
-        // mag_var = random(14, 16);
-        // leg_tilt = random(0, 25);
-        // opres = random(483, 626);
-        // battV = random(12.0, 15.0);
-        // fuel_rate = random(40, 44);
-        // speed = random(22, 24);
-        // ehours = 122;
-        // flevel = random(40.2, 60.9);
-        // gear = "N";
-        // lat = random(40.0, 60.0);
-        // lon = random(120.0, 140.0);
-        // timeString = asctime(&timeDetails);
+    // rpm = random(650, 700);
+    // heading = random(15, 30);
+    // wtemp = random(8, 12);
+    // otemp = random(104, 108);
+    // etemp = random(73, 76);
+    // mag_var = random(14, 16);
+    // leg_tilt = random(0, 25);
+    // opres = random(483, 626);
+    // battV = random(12.0, 15.0);
+    // fuel_rate = random(40, 44);
+    // speed = random(22, 24);
+    // ehours = 122;
+    // flevel = random(40.2, 60.9);
+    // gear = "N";
+    // lat = random(40.0, 60.0);
+    // lon = random(120.0, 140.0);
+    // timeString = asctime(&timeDetails);
 
-        getSDcardStatus();
-        statDelay = millis();
-        count++;
-    }
+    getSDcardStatus();
+    // statDelay = millis();
+    count++;
 
     switch (recMode) {
         case AUTO_RPM:
@@ -365,6 +412,8 @@ void loop()
     if (recMode == AUTO_RPM) {
         if (rpm > 3500) {
             localRecInt = 15;
+        } else if (rpm > 4100) {
+            localRecInt = 1;
         } else {
             localRecInt = settings.recInt;
         }
@@ -387,14 +436,12 @@ void loop()
             gpxWPTcount = 1;
             String lastCSVfileName;
             const char* csvHeaders = "RPM,Engine Temp (C),Oil Temp (C),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Fuel Efficiency (L/km),Leg Tilt (%),Speed (kn),Heading (*),Depth (ft),Water Temp (C),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp";
-
             do {
                 voyageNum++;
                 lastCSVfileName = "Voyage";
                 lastCSVfileName += voyageNum;
                 lastCSVfileName += ".csv";
             } while (searchForFile(SD, lastCSVfileName.c_str()));
-
             CSVFileName = "/";
             CSVFileName += lastCSVfileName;       // current = last because search function failed on search for current file name
             GPXFileName = "/Voyage";
@@ -411,7 +458,7 @@ void loop()
         }
         gpxWPTcount++;
         count = 0;
-    
     }
-    vTaskDelay(1/portTICK_PERIOD_MS);
+    testBG = false;
+    vTaskDelete(NULL);
 }

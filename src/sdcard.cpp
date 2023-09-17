@@ -31,24 +31,39 @@ String addCRLF(const String& str) {
 // created by ChatGPT Jan 28, 2023
 bool searchForFile(fs::FS &fs, const char* fileName) {
     File root = fs.open("/");
-    while (true) {
-        File entry = root.openNextFile();
-        if (!entry) {
-            // no more files
-            break;
-        }
-        if (entry.isDirectory()) {
-            // skip directories
-            continue;
-        }
-        if (strcmp(entry.name(), fileName) == 0) {
+    File file = root.openNextFile();
+    while (file) {
+        // if (file.isDirectory()) {
+        //     continue;   // skip directories
+        // }
+        if (strcmp(file.name(), fileName) == 0) {
             Serial.print("Found file: ");
-            Serial.println(entry.name());
-            entry.close();
+            Serial.println(file.name());
+            file.close();
             return true;
         }
-        entry.close();
+        file = root.openNextFile();
     }
+    
+    // while (true) {
+    //     File file = root.openNextFile();
+    //     if (!file) {
+    //         // no more files
+    //         break;
+    //     }
+    //     if (file.isDirectory()) {
+    //         // skip directories
+    //         continue;
+    //     }
+    //     if (strcmp(file.name(), fileName) == 0) {
+    //         Serial.print("Found file: ");
+    //         Serial.println(file.name());
+    //         file.close();
+    //         return true;
+    //     }
+    //     file.close();
+    //     vTaskDelay(10 / portTICK_PERIOD_MS);
+    // }
     Serial.println("File not found");
     return false;
 }
