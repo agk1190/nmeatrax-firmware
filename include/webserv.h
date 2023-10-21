@@ -33,3 +33,8 @@ void webLoop();
  * @brief Send email progress
 */
 void sendEmailData(String text);
+
+/**
+ * @brief Init websocket
+*/
+void initWebSocket();

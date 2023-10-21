@@ -89,6 +89,9 @@
         var flevelVal;
         var speedVal;
         var headingVal;
+
+        var gateway = `ws://${window.location.hostname}/ws`;
+        var websocket;
         
         //https://css-tricks.com/a-complete-guide-to-dark-mode-on-the-web/
         const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
@@ -113,6 +116,7 @@
         drawGauges();
 
         window.onload = function ( ) {
+            initWebSocket();
             var xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
@@ -133,6 +137,24 @@
             };
             xhr.open("GET", "/get", true);
             xhr.send();
+        }
+
+        function initWebSocket() {
+            console.log('Trying to open a WebSocket connection…');
+            websocket = new WebSocket(gateway);
+            websocket.onopen = onOpen;
+            websocket.onclose = onClose;
+            websocket.onmessage = onMessage;
+        }
+
+        // When websocket is established, call the getReadings() function
+        function onOpen(event) {
+            console.log('Connection opened');
+        }
+
+        function onClose(event) {
+            console.log('Connection closed');
+            setTimeout(initWebSocket, 2000);
         }
 
         function drawGauges() {
@@ -675,22 +697,19 @@
         }
 
         // recieve and parse new data
-        if (!!window.EventSource) {
-            var source = new EventSource('/NMEATrax');
-            source.addEventListener('nmeaData', function(e) {
-                var myObj = JSON.parse(e.data);
-                rpmVal = check273(myObj.rpm, "");
-                etempVal = check273(myObj.etemp, "");
-                otempVal = check273(myObj.otemp, "");
-                opresVal = check273(myObj.opres, "");
-                flevelVal = check273(myObj.flevel, "");
-                speedVal = check273(myObj.speed, "");
-                headingVal = check273(myObj.heading, "");
-                document.getElementById("textDepth").innerHTML = check273(myObj.depth, dUnit);
-                document.getElementById("textWtemp").innerHTML = check273(myObj.wtemp, tUnit);
-                document.getElementById("textLpkm").innerHTML = check273(myObj.efficiency, " L/km");
-                drawGauges();
-            }, false);
+        function onMessage(event) {
+            var myObj = JSON.parse(event.data);
+            rpmVal = check273(myObj.rpm, "");
+            etempVal = check273(myObj.etemp, "");
+            otempVal = check273(myObj.otemp, "");
+            opresVal = check273(myObj.opres, "");
+            flevelVal = check273(myObj.flevel, "");
+            speedVal = check273(myObj.speed, "");
+            headingVal = check273(myObj.heading, "");
+            document.getElementById("textDepth").innerHTML = check273(myObj.depth, dUnit);
+            document.getElementById("textWtemp").innerHTML = check273(myObj.wtemp, tUnit);
+            document.getElementById("textLpkm").innerHTML = check273(myObj.efficiency, " L/km");
+            drawGauges();
         }
 
         function check273(input, unit) {

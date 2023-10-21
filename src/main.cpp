@@ -257,6 +257,12 @@ void setup()
     delay(500);
     Serial.println();
 
+    // Initialize SPIFFS
+    if (!SPIFFS.begin(true)) {
+        Serial.println("An Error has occurred while mounting SPIFFS");
+        crash();
+    }
+
     pinMode(LED_PWR, OUTPUT);
     pinMode(LED_N2K, OUTPUT);
     pinMode(LED_SD, OUTPUT);
@@ -267,12 +273,6 @@ void setup()
     digitalWrite(LED_N2K, LOW);
     digitalWrite(LED_SD, LOW);
     digitalWrite(N2K_STBY, LOW);
-
-    // Initialize SPIFFS
-    if (!SPIFFS.begin(true)) {
-        Serial.println("An Error has occurred while mounting SPIFFS");
-        crash();
-    }
 
     if (getSDcardStatus()) {sdSetup();}
 

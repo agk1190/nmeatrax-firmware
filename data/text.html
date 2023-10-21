@@ -58,7 +58,7 @@
                 </tr>
                 <tr>
                     <td><div class="bodytext">Fuel Efficiency</div></td>
-                    <td><div class="tabledata" id="lpkm">-</div></td>
+                    <td><div class="tabledata" id="efficiency">-</div></td>
                 </tr>
                 <tr>
                     <td><div class="bodytext">Leg Tilt</div></td>
@@ -97,7 +97,7 @@
                 </tr>
                 <tr>
                     <td><div class="bodytext">Heading</div></td>
-                    <td><div class="tabledata" id="cog">-</div></td>
+                    <td><div class="tabledata" id="heading">-</div></td>
                 </tr>
                 <tr>
                     <td><div class="bodytext">Mag. Variation</div></td>
@@ -158,7 +158,65 @@
         var celcius = true;
         var meters = false;
 
+        var gateway = `ws://${window.location.hostname}/ws`;
+        var websocket;
+        // Init web socket when the page loads
+        // window.addEventListener('load', onload);
+
+        // function onload(event) {
+        //     initWebSocket();
+        // }
+
+        // function getReadings(){
+        //     websocket.send("getReadings");
+        // }
+
+        function initWebSocket() {
+            console.log('Trying to open a WebSocket connection…');
+            websocket = new WebSocket(gateway);
+            websocket.onopen = onOpen;
+            websocket.onclose = onClose;
+            websocket.onmessage = onMessage;
+        }
+
+        // When websocket is established, call the getReadings() function
+        function onOpen(event) {
+            console.log('Connection opened');
+            // getReadings();
+        }
+
+        function onClose(event) {
+            console.log('Connection closed');
+            setTimeout(initWebSocket, 2000);
+        }
+
+        // Function that receives the message from the ESP32 with the readings
+        function onMessage(event) {
+            var myObj = JSON.parse(event.data);
+            document.getElementById("rpm").innerHTML = check273(myObj.rpm, "");
+            document.getElementById("etemp").innerHTML = check273(myObj.etemp, getTempUnit());
+            document.getElementById("otemp").innerHTML = check273(myObj.otemp, getTempUnit());
+            document.getElementById("opres").innerHTML = check273(myObj.opres, " kpa");
+            document.getElementById("fuel_rate").innerHTML = check273(myObj.fuel_rate, " L/h");
+            document.getElementById("flevel").innerHTML = check273(myObj.flevel, "%");
+            document.getElementById("efficiency").innerHTML = check273(myObj.efficiency, " L/km");
+            document.getElementById("leg_tilt").innerHTML = check273(myObj.leg_tilt, "%");
+            document.getElementById("speed").innerHTML = check273(myObj.speed, " kn");
+            document.getElementById("heading").innerHTML = check273(myObj.heading, "&deg");
+            document.getElementById("depth").innerHTML = check273(myObj.depth, getDistUnit());
+            document.getElementById("wtemp").innerHTML = check273(myObj.wtemp, getTempUnit());
+            document.getElementById("battV").innerHTML = check273(myObj.battV, " V");
+            document.getElementById("ehours").innerHTML = check273(myObj.ehours, "");
+            document.getElementById("gear").innerHTML = check273(myObj.gear, "");
+            document.getElementById("lat").innerHTML = check273(myObj.lat, "");
+            document.getElementById("lon").innerHTML = check273(myObj.lon, "");
+            document.getElementById("mag_var").innerHTML = check273(myObj.mag_var, "&deg");
+            document.getElementById("time").innerHTML = check273(myObj.time, "");
+            document.getElementById("timings").innerHTML = myObj.timings;
+        }
+
         window.onload = function ( ) {
+            initWebSocket();
             var xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
@@ -183,33 +241,6 @@
         function getDistUnit() {
             if (meters) {return " m"}
             else return " ft"
-        }
-
-        if (!!window.EventSource) {
-            var source = new EventSource('/NMEATrax');
-            source.addEventListener('nmeaData', function(e) {
-                var myObj = JSON.parse(e.data);
-                document.getElementById("rpm").innerHTML = check273(myObj.rpm, "");
-                document.getElementById("etemp").innerHTML = check273(myObj.etemp, getTempUnit());
-                document.getElementById("otemp").innerHTML = check273(myObj.otemp, getTempUnit());
-                document.getElementById("opres").innerHTML = check273(myObj.opres, " kpa");
-                document.getElementById("fuel_rate").innerHTML = check273(myObj.fuel_rate, " L/h");
-                document.getElementById("flevel").innerHTML = check273(myObj.flevel, "%");
-                document.getElementById("lpkm").innerHTML = check273(myObj.efficiency, " L/km");
-                document.getElementById("leg_tilt").innerHTML = check273(myObj.leg_tilt, "%");
-                document.getElementById("speed").innerHTML = check273(myObj.speed, " kn");
-                document.getElementById("cog").innerHTML = check273(myObj.heading, "&deg");
-                document.getElementById("depth").innerHTML = check273(myObj.depth, getDistUnit());
-                document.getElementById("wtemp").innerHTML = check273(myObj.wtemp, getTempUnit());
-                document.getElementById("battV").innerHTML = check273(myObj.battV, " V");
-                document.getElementById("ehours").innerHTML = check273(myObj.ehours, "");
-                document.getElementById("gear").innerHTML = check273(myObj.gear, "");
-                document.getElementById("lat").innerHTML = check273(myObj.lat, "");
-                document.getElementById("lon").innerHTML = check273(myObj.lon, "");
-                document.getElementById("mag_var").innerHTML = check273(myObj.mag_var, "&deg");
-                document.getElementById("time").innerHTML = check273(myObj.time, "");
-                document.getElementById("timings").innerHTML = myObj.timings;
-            }, false);
         }
 
         function check273(input, unit) {
