@@ -13,10 +13,10 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 ### In Progress
 
 
-## [6.0.0] - 2023-10-21
+## [6.0.0] - 2023-12-31
 
 ### Changed
-- Now using websockets for nmea data
+- Now using websockets for NMEA data
 
 ## [5.0.0] - 2023-09-16
 

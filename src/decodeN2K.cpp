@@ -500,6 +500,7 @@ void NMEAloop()
             opres = nValid;
             fuel_rate = nValid;
             flevel = nValid;
+            lpkm = nValid;
             leg_tilt = nValid;
             speed = nValid;
             heading = nValid;
