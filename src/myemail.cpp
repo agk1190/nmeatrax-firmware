@@ -118,7 +118,7 @@ void sendEmail(void *pvParameters) {
     config.server.port = SMTP_PORT;
     config.login.email = AUTHOR_EMAIL;
     config.login.password = AUTHOR_PASSWORD;
-    config.login.user_domain = "mydomain.net";
+    config.login.user_domain = F("127.0.0.1");
 
     /*
     Set the NTP config time
@@ -252,8 +252,8 @@ void smtpCallback(SMTP_Status status) {
         for (size_t i = 0; i < smtp.sendingResult.size(); i++) {
             /* Get the result item */
             SMTP_Result result = smtp.sendingResult.getItem(i);
-            time_t ts = (time_t)result.timestamp;
-            localtime_r(&ts, &dt);
+            // time_t ts = (time_t)result.timestamp;
+            // localtime_r(&ts, &dt);
 
             // ESP_MAIL_PRINTF("Message No: %d\n", i + 1);
             // ESP_MAIL_PRINTF("Status: %s\n", result.completed ? "success" : "failed");

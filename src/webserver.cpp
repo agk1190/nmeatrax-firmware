@@ -24,6 +24,10 @@
 // WebSever object
 AsyncWebServer server(80);
 
+// Create a WebSocket object
+AsyncWebSocket ws("/ws");
+AsyncWebSocket emws("/emws");
+
 // WiFi manager object
 WiFiManager wifiManager;
 
@@ -125,7 +129,9 @@ bool webSetup() {
     server.serveStatic("/", SPIFFS, "/");
 
     // serve content of sd card
-    if (getSDcardStatus()) {server.serveStatic("/sdCard", SD, "/");}   
+    if (getSDcardStatus()) {server.serveStatic("/sdCard", SD, "/");}
+
+    initWebSocket();
 
     // redirect request to 192.168.1.1 to 192.168.1.1/index.html
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) { 
@@ -265,10 +271,37 @@ bool webSetup() {
     return(true);
 }
 
+void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+  switch (type) {
+    case WS_EVT_CONNECT:
+      Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+      break;
+    case WS_EVT_DISCONNECT:
+      Serial.printf("WebSocket client #%u disconnected\n", client->id());
+      break;
+    case WS_EVT_DATA:
+    //   handleWebSocketMessage(arg, data, len);
+      break;
+    case WS_EVT_PONG:
+    case WS_EVT_ERROR:
+      break;
+  }
+}
+
+void initWebSocket() {
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
+  emws.onEvent(onEvent);
+  server.addHandler(&emws);
+}
+
 void webLoop() {
-    NMEATrax.send(JSONValues().c_str(), "nmeaData", millis());
+    ws.textAll(JSONValues());
+    ws.cleanupClients();
 }
 
 void sendEmailData(String text) {
-    NMEATrax.send(text.c_str(), "emailData", millis());
+    // NMEATrax.send(text.c_str(), "emailData", millis());
+    emws.textAll(text);
+    emws.cleanupClients();
 }
