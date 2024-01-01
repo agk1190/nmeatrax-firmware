@@ -98,18 +98,9 @@ String getCSV()
 
 String JSONValues()
 {
-    String _s = String(timings.webTook);
-    _s.concat("/");
-    _s.concat(timings.webRest);
-    _s.concat(" ");
-    _s.concat(timings.bgTook);
-    _s.concat("/");
-    _s.concat(timings.bgRest);
-    _s.concat(" ");
-    _s.concat(timings.nmeaTook);
-    _s.concat("/");
-    _s.concat(timings.nmeaRest);
-    timeString.remove(timeString.length() - 1, 1);
+    if (timeString.endsWith("\n") || timeString.endsWith("\r")) {
+        timeString.remove(timeString.length() - 1, 1);
+    }
     readings["rpm"] = String(rpm);
     readings["etemp"] = String(etemp);
     readings["otemp"] = String(otemp);
@@ -129,7 +120,6 @@ String JSONValues()
     readings["lon"] = String(lon, 6);
     readings["mag_var"] = String(mag_var, 2);
     readings["time"] = timeString;
-    readings["timings"] = _s;
 
     String jsonString = JSON.stringify(readings);
     return jsonString;
@@ -257,6 +247,12 @@ void setup()
     delay(500);
     Serial.println();
 
+    // Initialize SPIFFS
+    if (!SPIFFS.begin(true)) {
+        Serial.println("An Error has occurred while mounting SPIFFS");
+        crash();
+    }
+
     pinMode(LED_PWR, OUTPUT);
     pinMode(LED_N2K, OUTPUT);
     pinMode(LED_SD, OUTPUT);
@@ -267,12 +263,6 @@ void setup()
     digitalWrite(LED_N2K, LOW);
     digitalWrite(LED_SD, LOW);
     digitalWrite(N2K_STBY, LOW);
-
-    // Initialize SPIFFS
-    if (!SPIFFS.begin(true)) {
-        Serial.println("An Error has occurred while mounting SPIFFS");
-        crash();
-    }
 
     if (getSDcardStatus()) {sdSetup();}
 
@@ -410,15 +400,15 @@ void vBackgroundTasks(void * pvParameters)
     }
 
     if (recMode == AUTO_RPM) {
-        if (rpm > 3500) {
-            localRecInt = 15;
-        } else if (rpm > 4100) {
+        if (rpm > 3900) {
             localRecInt = 1;
+        } else if (rpm > 3700) {
+            localRecInt = 15;
         } else {
             localRecInt = settings.recInt;
         }
     } else if (recMode == AUTO_SPD) {
-        if (speed > 15) {
+        if (speed > 20) {
             localRecInt = 15;
         } else {
             localRecInt = settings.recInt;
