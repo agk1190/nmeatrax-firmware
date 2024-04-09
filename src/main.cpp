@@ -44,8 +44,6 @@ enum recMode recMode;
 // Structure to store device settings
 Settings settings;
 
-Timings timings;
-
 bool outOfIdle = true;
 String GPXFileName;
 bool backupSettings;
@@ -120,6 +118,7 @@ String JSONValues()
     readings["lon"] = String(lon, 6);
     readings["mag_var"] = String(mag_var, 2);
     readings["time"] = timeString;
+    readings["evcErrorMsg"] = evcErrorMsg;
 
     String jsonString = JSON.stringify(readings);
     return jsonString;
@@ -207,34 +206,16 @@ void crash() {
 }
 
 // Timer callback function
-// void nmeaTimerCallback(TimerHandle_t xTimer) {
-//     // Run the nmeaLoop() function
-//     NMEAloop();
-// }
-
-// Timer callback function
 void webTimerCallback(TimerHandle_t xTimer) {
-    static int webRunTime;
-    static int webRestTime = 0;
-    timings.webRest = millis() - webRestTime;
-    webRunTime = millis();
     webLoop();
-    timings.webTook = (millis() - webRunTime);
-    webRestTime = millis();
 }
 
 void bgTimerCallback(TimerHandle_t xTimer) {
     TaskHandle_t xHandle = NULL;
-    static int bgRunTime;
-    static int bgRestTime = 0;
-    timings.bgRest = millis() - bgRestTime;
-    bgRunTime = millis();
     if (!testBG) {
         testBG = true;
         xTaskCreate(vBackgroundTasks, "bgTasks", 4096, (void *) 1, 3, &xHandle);
     }
-    timings.bgTook = millis() - bgRunTime;
-    bgRestTime = millis();
 }
 
 // ***************************************************
@@ -305,12 +286,10 @@ void setup()
     createWifiText();
 
     // Create timers
-    // TimerHandle_t nmeaTimer = xTimerCreate("NMEATimer", 1 / portTICK_PERIOD_MS, pdTRUE, NULL, nmeaTimerCallback);
     TimerHandle_t webTimer = xTimerCreate("webTimer", 1000 / portTICK_PERIOD_MS, pdTRUE, NULL, webTimerCallback);
     TimerHandle_t bgTimer = xTimerCreate("bgTimer", 1000 / portTICK_PERIOD_MS, pdTRUE, NULL, bgTimerCallback);
 
     // Start the timer
-    // xTimerStart(nmeaTimer, 0);
     xTimerStart(webTimer, 0);
     xTimerStart(bgTimer, 0);
 }
@@ -321,19 +300,11 @@ void setup()
 */
 void loop()
 {
-    static int nmeaRunTime;
-    static int nmeaRestTime = 0;
-    timings.nmeaRest = millis() - nmeaRestTime;
-    nmeaRunTime = millis();
     NMEAloop();
-    timings.nmeaTook = millis() - nmeaRunTime;
-    nmeaRestTime = millis();
-    // Serial.println(millis() - nmeaRunTime);
 }
 
 void vBackgroundTasks(void * pvParameters)
 {
-    // static long statDelay = millis();
     static int count = 0;
     static int localRecInt;
 
@@ -361,9 +332,9 @@ void vBackgroundTasks(void * pvParameters)
     // lat = random(40.0, 60.0);
     // lon = random(120.0, 140.0);
     // timeString = asctime(&timeDetails);
+    // evcErrorMsg = getEngineStatus1(random(0, 65535)).c_str();
 
     getSDcardStatus();
-    // statDelay = millis();
     count++;
 
     switch (recMode) {
@@ -402,8 +373,6 @@ void vBackgroundTasks(void * pvParameters)
     if (recMode == AUTO_RPM) {
         if (rpm > 3900) {
             localRecInt = 1;
-        } else if (rpm > 3700) {
-            localRecInt = 15;
         } else {
             localRecInt = settings.recInt;
         }

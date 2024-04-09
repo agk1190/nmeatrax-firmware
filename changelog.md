@@ -13,10 +13,20 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 ### In Progress
 
 
+## [7.0.0] - 2024-04-07
+
+### Added
+- Added engine error/status message support
+
+### Changed
+- Updated OTA library
+
+
 ## [6.0.0] - 2023-12-31
 
 ### Changed
 - Now using websockets for NMEA data
+
 
 ## [5.0.0] - 2023-09-16
 

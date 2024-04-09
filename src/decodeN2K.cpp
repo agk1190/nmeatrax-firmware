@@ -65,14 +65,82 @@ double flevel = -273;
 double lpkm = -273;
 uint32_t unixTime;
 String timeString = "-\r\n";
+String evcErrorMsg = "-";
 
-double n2kKeepAlive;
+double evcKeepAlive;
+double gpsKeepAlive;
 
 extern Settings settings;
 
 Stream *OutputStream;
 
 void HandleNMEA2000Msg(const tN2kMsg &N2kMsg);
+
+std::string getEngineStatus1(const tN2kDD206& status) {
+    std::string result;
+    const char* tN2kEngineStatus1Strs[] = { 
+        "Check Engine", 
+        "Over Temperature", 
+        "Low Oil Pressure", 
+        "Low Oil Level", 
+        "Low Fuel Pressure", 
+        "Low Voltage", 
+        "Low Coolant Level", 
+        "Water Flow", 
+        "Water in Fuel", 
+        "Charge Indicator", 
+        "Preheat Indicator", 
+        "High Boost Pressure", 
+        "Rev Limit Exceeded", 
+        "EGR System", 
+        "Throttle Position Sensor", 
+        "Engine Emergency Stop Mode", 
+    };
+
+    for (int i = 0; i < 16; ++i) {
+        if (status.Status & (1 << i)) {
+            if (!result.empty()) {
+                result += ", "; // Add a separator if this isn't the first entry
+            }
+            result += tN2kEngineStatus1Strs[i];
+        }
+    }
+
+    return result;
+}
+
+std::string getEngineStatus2(const tN2kDD223& status) {
+    std::string result;
+    const char* tN2kEngineStatus2Strs[] = { 
+        "Warning Level 1", 
+        "Warning Level 2", 
+        "Power Reduction", 
+        "Maintenance Needed", 
+        "Engine Comm Error", 
+        "Secondary Throttle", 
+        "Neutral Start Protect", 
+        "Engine Shutting Down", 
+        "Reserved", 
+        "Reserved", 
+        "Reserved", 
+        "Reserved", 
+        "Reserved", 
+        "Reserved", 
+        "Reserved",  
+        "Reserved", 
+    };
+
+    for (int i = 0; i < 16; ++i) {
+        if (status.Status & (1 << i)) {
+            if (!result.empty()) {
+                result += ", "; // Add a separator if this isn't the first entry
+            }
+            result += tN2kEngineStatus2Strs[i];
+        }
+    }
+
+    return result;
+}
 
 bool NMEAsetup() {
     OutputStream = &Serial;
@@ -110,7 +178,7 @@ template<typename T> double ReturnWithConversionCheckUnDef(T val, double (*ConvF
         } else {
             if (ConvFunc) { return(ConvFunc(val),Desim); } else { return(val,Desim); }
         }
-    } else return(0);
+    } else return(-273);
 }
 
 //*****************************************************************************
@@ -121,7 +189,7 @@ void EngineRapid(const tN2kMsg &N2kMsg) {
     int8_t EngineTiltTrim;
     
     digitalWrite(LED_N2K, HIGH);
-    n2kKeepAlive = millis();
+    evcKeepAlive = millis();
     if (ParseN2kEngineParamRapid(N2kMsg,EngineInstance,EngineSpeed,EngineBoostPressure,EngineTiltTrim) ) {
         #ifdef DEBUG_EN
         PrintLabelValWithConversionCheckUnDef("Engine rapid params: ",EngineInstance,0,true);
@@ -152,7 +220,7 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
     tN2kEngineDiscreteStatus2 Status2;
     
     digitalWrite(LED_N2K, HIGH);
-    n2kKeepAlive = millis();
+    evcKeepAlive = millis();
     if (ParseN2kEngineDynamicParam(N2kMsg,EngineInstance,EngineOilPress,EngineOilTemp,EngineCoolantTemp,
                                     AltenatorVoltage,FuelRate,EngineHours,
                                     EngineCoolantPress,EngineFuelPress,
@@ -171,17 +239,17 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  engine torque (%): ",EngineTorque,0,true);
         #endif
         if (settings.isDegF == true) {
-            etemp = N2kIsNA(EngineCoolantTemp) ? -273 : ReturnWithConversionCheckUnDef(EngineCoolantTemp, &KelvinToF);
-            otemp = N2kIsNA(EngineOilTemp) ? -273 : ReturnWithConversionCheckUnDef(EngineOilTemp, &KelvinToF);
+            etemp = ReturnWithConversionCheckUnDef(EngineCoolantTemp, &KelvinToF);
+            otemp = ReturnWithConversionCheckUnDef(EngineOilTemp, &KelvinToF);
         }
         else {
-            etemp = N2kIsNA(EngineCoolantTemp) ? -273 : ReturnWithConversionCheckUnDef(EngineCoolantTemp, &KelvinToC);
-            otemp = N2kIsNA(EngineOilTemp) ? -273 : ReturnWithConversionCheckUnDef(EngineOilTemp, &KelvinToC);
+            etemp = ReturnWithConversionCheckUnDef(EngineCoolantTemp, &KelvinToC);
+            otemp = ReturnWithConversionCheckUnDef(EngineOilTemp, &KelvinToC);
         }
-        opres = N2kIsNA(EngineOilPress) ? -273 : ReturnWithConversionCheckUnDef(EngineOilPress, 0)/1000;
-        battV = N2kIsNA(AltenatorVoltage) ? -273 : ReturnWithConversionCheckUnDef(AltenatorVoltage, 0);
-        fuel_rate = N2kIsNA(FuelRate) ? -273 : ReturnWithConversionCheckUnDef(FuelRate, 0);
-        ehours = N2kIsNA(EngineHours) ? -273 : ReturnWithConversionCheckUnDef(EngineHours, &SecondsToh);
+        opres = ReturnWithConversionCheckUnDef(EngineOilPress, 0)/1000;
+        battV = ReturnWithConversionCheckUnDef(AltenatorVoltage, 0);
+        fuel_rate = ReturnWithConversionCheckUnDef(FuelRate, 0);
+        ehours = ReturnWithConversionCheckUnDef(EngineHours, &SecondsToh);
 
         if (speed > 0) {
             double _fuel_rate = 0;
@@ -191,6 +259,9 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
         } else {
             lpkm = -273;
         }
+
+        evcErrorMsg = getEngineStatus1(Status1).c_str();
+        evcErrorMsg += getEngineStatus2(Status2).c_str();
 
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -204,7 +275,7 @@ void TransmissionParameters(const tN2kMsg &N2kMsg) {
     unsigned char DiscreteStatus1;
     
     digitalWrite(LED_N2K, HIGH);
-    n2kKeepAlive = millis();
+    evcKeepAlive = millis();
     if (ParseN2kTransmissionParameters(N2kMsg,EngineInstance, TransmissionGear, OilPressure, OilTemperature, DiscreteStatus1) ) {
         #ifdef DEBUG_EN
         PrintLabelValWithConversionCheckUnDef("Transmission params: ",EngineInstance,0,true);
@@ -239,7 +310,7 @@ void COGSOG(const tN2kMsg &N2kMsg) {
     double SOG;
     
     digitalWrite(LED_N2K, HIGH);
-    n2kKeepAlive = millis();
+    gpsKeepAlive = millis();
     if (ParseN2kCOGSOGRapid(N2kMsg,SID,HeadingReference,COG,SOG) ) {
         #ifdef DEBUG_EN
                         OutputStream->println("COG/SOG:");
@@ -275,7 +346,7 @@ void GNSS(const tN2kMsg &N2kMsg) {
     double AgeOfCorrection;
 
     digitalWrite(LED_N2K, HIGH);
-    n2kKeepAlive = millis();
+    gpsKeepAlive = millis();
     if (ParseN2kGNSS(N2kMsg,SID,DaysSince1970,SecondsSinceMidnight,
                 Latitude,Longitude,Altitude,
                 GNSStype,GNSSmethod,
@@ -301,13 +372,10 @@ void GNSS(const tN2kMsg &N2kMsg) {
         lat = N2kIsNA(Latitude) ? -273 : Latitude;
         lon = N2kIsNA(Longitude) ? -273 : Longitude;
         unixTime = ((DaysSince1970*86400)+SecondsSinceMidnight);
-        // unixTime = unixTime+(settings.timeZone*3600);
         time_t n2kTime = unixTime+(settings.timeZone*3600);
         timeString = asctime(gmtime(&n2kTime));
         struct timeval tv;
         tv.tv_sec = unixTime;
-        // struct timezone tz;
-        // tz.tz_minuteswest = abs(settings.timeZone)*60;
         settimeofday(&tv, NULL);    // set ESP32 time to GPS time
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -321,7 +389,7 @@ void Temperature(const tN2kMsg &N2kMsg) {
     double SetTemperature;
     
     digitalWrite(LED_N2K, HIGH);
-    n2kKeepAlive = millis();
+    gpsKeepAlive = millis();
     if (ParseN2kTemperature(N2kMsg,SID,TempInstance,TempSource,ActualTemperature,SetTemperature) ) {
         #ifdef DEBUG_EN
                         OutputStream->print("Temperature source: "); PrintN2kEnumType(TempSource,OutputStream,false);
@@ -342,7 +410,7 @@ void WaterDepth(const tN2kMsg &N2kMsg) {
     double Offset;
 
     digitalWrite(LED_N2K, HIGH);
-    n2kKeepAlive = millis();
+    gpsKeepAlive = millis();
     if (ParseN2kWaterDepth(N2kMsg,SID,DepthBelowTransducer,Offset)) {
         if (N2kIsNA(Offset) || Offset == 0) {
             #ifdef DEBUG_EN
@@ -411,7 +479,7 @@ void FluidLevel(const tN2kMsg &N2kMsg) {
     double Capacity=0;
 
     digitalWrite(LED_N2K, HIGH);
-    n2kKeepAlive = millis();
+    evcKeepAlive = millis();
     if (ParseN2kFluidLevel(N2kMsg,Instance,FluidType,Level,Capacity) ) {
         #ifdef DEBUG_EN
         switch (FluidType) {
@@ -458,7 +526,7 @@ void MagneticVariation(const tN2kMsg &N2kMsg) {
     double Variation;
     
     digitalWrite(LED_N2K, HIGH);
-    n2kKeepAlive = millis();
+    gpsKeepAlive = millis();
     if (ParseN2kMagneticVariation(N2kMsg,SID, Source, AgeOfService, Variation) ) {
         #ifdef DEBUG_EN
                         OutputStream->println("Magnetic Variation:");
@@ -490,10 +558,9 @@ void HandleNMEA2000Msg(const tN2kMsg &N2kMsg) {
 void NMEAloop() 
 { 
     NMEA2000.ParseMessages();
-    if (n2kKeepAlive + 1000 < millis()) {
-        digitalWrite(LED_N2K, LOW);
-        if (n2kKeepAlive + 2000 > millis()) {
-            int nValid = -273;
+    int nValid = -273;
+    if (evcKeepAlive + 1000 < millis()) {
+        if (evcKeepAlive + 2000 > millis()) {
             rpm = nValid;
             etemp = nValid;
             otemp = nValid;
@@ -502,17 +569,25 @@ void NMEAloop()
             flevel = nValid;
             lpkm = nValid;
             leg_tilt = nValid;
+            battV = nValid;
+            ehours = nValid;
+            gear = "-";
+            evcErrorMsg = "-";
+        }  
+    }
+    if (gpsKeepAlive + 1000 < millis()) {
+        if (gpsKeepAlive + 2000 > millis()) {
             speed = nValid;
             heading = nValid;
             depth = nValid;
             wtemp = nValid;
-            battV = nValid;
-            ehours = nValid;
-            gear = "-";
             lat = nValid;
             lon = nValid;
             mag_var = nValid;
             timeString = "-";
-        }  
+        }
+    }
+    if (evcKeepAlive + 1000 < millis() && gpsKeepAlive + 1000 < millis()) {
+        digitalWrite(LED_N2K, LOW);
     }
 }

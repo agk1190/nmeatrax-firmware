@@ -56,17 +56,6 @@ struct settings {
 */
 typedef struct settings Settings;
 
-struct timings {
-    int nmeaTook;
-    int nmeaRest;
-    int webTook;
-    int webRest;
-    int bgTook;
-    int bgRest;
-};
-
-typedef struct timings Timings;
-
 /**
  * @brief Save current settings to the SPIFFS.
  * @return True if succeeded

@@ -18,7 +18,7 @@
 #include "SPIFFS.h"
 #include "webserv.h"
 #include <ESPmDNS.h>
-#include <AsyncElegantOTA.h>
+#include <ElegantOTA.h>
 #include "myemail.h"
 
 // WebSever object
@@ -251,7 +251,7 @@ bool webSetup() {
     server.addHandler(&NMEATrax);
 
     // Start ElegantOTA
-    AsyncElegantOTA.begin(&server);
+    ElegantOTA.begin(&server);
 
     // Start server
     server.begin();
@@ -298,10 +298,10 @@ void initWebSocket() {
 void webLoop() {
     ws.textAll(JSONValues());
     ws.cleanupClients();
+    ElegantOTA.loop();
 }
 
 void sendEmailData(String text) {
-    // NMEATrax.send(text.c_str(), "emailData", millis());
     emws.textAll(text);
     emws.cleanupClients();
 }

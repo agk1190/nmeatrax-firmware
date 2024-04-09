@@ -15,8 +15,6 @@ extern int otemp;
 extern double wtemp;
 extern double lat;
 extern double lon;
-// extern double rapidLat;
-// extern double rapidLon;
 extern double mag_var;
 extern int leg_tilt;
 extern int opres;
@@ -27,6 +25,11 @@ extern String gear;
 extern double flevel;
 extern double lpkm;
 extern String timeString;
+extern String evcErrorMsg;
+
+// ***** For testing *****
+// #include "NMEA2000StdTypes.h"
+// std::string getEngineStatus1(const tN2kDD206& status);
 
 /**
  * @brief Set up NMEA2000
