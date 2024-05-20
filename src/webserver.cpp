@@ -205,7 +205,6 @@ bool webSetup() {
         else if (request->hasParam("otaUpdate")) {
             request->send(200, "text/plain", "OK");
             digitalWrite(N2K_STBY, HIGH);
-            backupSettings = true;
         }
         else if (request->hasParam("recMode")) {
             int mode = atoi(request->getParam("recMode")->value().c_str());

@@ -17,7 +17,6 @@
 
 extern bool outOfIdle;
 extern String GPXFileName;
-extern bool backupSettings;
 
 // SD card recording state
 enum recMode {

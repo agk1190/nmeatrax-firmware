@@ -45,25 +45,6 @@ bool searchForFile(fs::FS &fs, const char* fileName) {
         file = root.openNextFile();
     }
     
-    // while (true) {
-    //     File file = root.openNextFile();
-    //     if (!file) {
-    //         // no more files
-    //         break;
-    //     }
-    //     if (file.isDirectory()) {
-    //         // skip directories
-    //         continue;
-    //     }
-    //     if (strcmp(file.name(), fileName) == 0) {
-    //         Serial.print("Found file: ");
-    //         Serial.println(file.name());
-    //         file.close();
-    //         return true;
-    //     }
-    //     file.close();
-    //     vTaskDelay(10 / portTICK_PERIOD_MS);
-    // }
     Serial.println("File not found");
     return false;
 }

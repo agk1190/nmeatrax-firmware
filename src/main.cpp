@@ -46,7 +46,6 @@ Settings settings;
 
 bool outOfIdle = true;
 String GPXFileName;
-bool backupSettings;
 
 bool testBG = false;
 

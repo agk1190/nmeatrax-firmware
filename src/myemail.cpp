@@ -93,8 +93,7 @@ void sendEmail(void *pvParameters) {
     while (!Ping.ping("smtp.gmail.com") && (t + 20000) > millis()) {
         vTaskDelay(500 / portTICK_PERIOD_MS);
     }
-    if ((t + 20000) < millis())
-    {
+    if ((t + 20000) < millis()) {
         sendEmailData("Not connected to internet");
         if (settings.isLocalAP) {WiFi.mode(WIFI_MODE_AP);}
         vTaskDelete(NULL);
@@ -196,6 +195,7 @@ void sendEmail(void *pvParameters) {
 
             message.addAttachment(att);
             message.resetAttachItem(att);
+            vTaskDelay(1 / portTICK_PERIOD_MS);
         }
         file = root.openNextFile();
     }
