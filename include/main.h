@@ -16,7 +16,7 @@
 #define N2K_STBY GPIO_NUM_4
 
 extern bool outOfIdle;
-extern String GPXFileName;
+extern bool NMEAsleep;
 
 // SD card recording state
 enum recMode {
@@ -85,4 +85,8 @@ void crash();
 */
 bool getSDcardStatus();
 
+void vWebTask(void * pvParameters);
+
 void vBackgroundTasks(void * pvParameters);
+
+void vNmeaTask(void * pvParameters);

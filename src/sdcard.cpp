@@ -157,36 +157,36 @@ bool deleteFile(fs::FS &fs, const char * path){
     }
 }
 
-bool writeGPXpoint(const char * fileName, int wptNum, double lat, double lon){
-    String waypoint;
+// bool writeGPXpoint(const char * fileName, int wptNum, double lat, double lon){
+//     String waypoint;
 
-    waypoint = "<trkpt lat=\"";
-    waypoint += String(lat,6);
-    waypoint += "\" lon=\"";
-    waypoint += String(lon,6);
-    waypoint += "\">\n  <name>";
-    waypoint += wptNum;
-    waypoint += "</name>\n</trkpt>\n";
+//     waypoint = "<trkpt lat=\"";
+//     waypoint += String(lat,6);
+//     waypoint += "\" lon=\"";
+//     waypoint += String(lon,6);
+//     waypoint += "\">\n  <name>";
+//     waypoint += wptNum;
+//     waypoint += "</name>\n</trkpt>\n";
 
-    return (appendFile(SD, fileName, waypoint.c_str(), false));
-}
+//     return (appendFile(SD, fileName, waypoint.c_str(), false));
+// }
 
-bool createGPXfile(const char * fileName){
-    String header;
+// bool createGPXfile(const char * fileName){
+//     String header;
 
-    header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gpx version=\"1.1\" creator=\"NMEATrax\">\n";
-    header += "<trk>\n<name>";
-    header += fileName;
-    header += "</name>\n<trkseg>\n";
+//     header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gpx version=\"1.1\" creator=\"NMEATrax\">\n";
+//     header += "<trk>\n<name>";
+//     header += fileName;
+//     header += "</name>\n<trkseg>\n";
 
-    return (appendFile(SD, fileName, header.c_str(), false));
-}
+//     return (appendFile(SD, fileName, header.c_str(), false));
+// }
 
-bool endGPXfile(const char * fileName){
-    String footer;
-    footer = "</trkseg>\n</trk>\n</gpx>\n";
-    return (appendFile(SD, fileName, footer.c_str(), false));
-}
+// bool endGPXfile(const char * fileName){
+//     String footer;
+//     footer = "</trkseg>\n</trk>\n</gpx>\n";
+//     return (appendFile(SD, fileName, footer.c_str(), false));
+// }
 
 bool sdSetup(){
     const uint8_t SCK = 18;

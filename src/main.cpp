@@ -45,9 +45,14 @@ enum recMode recMode;
 Settings settings;
 
 bool outOfIdle = true;
-String GPXFileName;
+String CSVFileName;
 
-bool testBG = false;
+bool NMEAsleep = false;
+
+TaskHandle_t webTaskHandle = NULL;
+TaskHandle_t loggingTaskHandle = NULL;
+TaskHandle_t bgTaskHandle = NULL;
+TaskHandle_t nmeaTaskHandle = NULL;
 
 /**
  * @brief Complie data in CSV format to send to the user.
@@ -95,8 +100,13 @@ String getCSV()
 
 String JSONValues()
 {
-    if (timeString.endsWith("\n") || timeString.endsWith("\r")) {
-        timeString.remove(timeString.length() - 1, 1);
+    // if (timeString.endsWith("\n") || timeString.endsWith("\r")) {
+    //     timeString.remove(timeString.length() - 1, 1);
+    // }
+    for (byte i = 0; i < timeString.length(); i++) {
+        if (timeString.charAt(i) == '\r' || timeString.charAt(i) == '\n') {
+            timeString.remove(i);
+        }
     }
     readings["rpm"] = String(rpm);
     readings["etemp"] = String(etemp);
@@ -205,17 +215,18 @@ void crash() {
 }
 
 // Timer callback function
-void webTimerCallback(TimerHandle_t xTimer) {
-    webLoop();
-}
+// void webTimerCallback(TimerHandle_t xTimer) {
+//     // webLoop();
+//     xTaskCreate(vWebTask, "webTask", 4096, (void *) 1, 2, &webTaskHandle);
+// }
 
-void bgTimerCallback(TimerHandle_t xTimer) {
-    TaskHandle_t xHandle = NULL;
-    if (!testBG) {
-        testBG = true;
-        xTaskCreate(vBackgroundTasks, "bgTasks", 4096, (void *) 1, 3, &xHandle);
-    }
-}
+// void bgTimerCallback(TimerHandle_t xTimer) {
+//     TaskHandle_t xHandle = NULL;
+//     if (!backgroundTaskLock) {
+//         backgroundTaskLock = true;
+//         xTaskCreate(vBackgroundTasks, "bgTasks", 4096, (void *) 1, 3, &xHandle);
+//     }
+// }
 
 // ***************************************************
 /**
@@ -275,7 +286,7 @@ void setup()
 
     // https://forum.arduino.cc/t/esp32-settimeofday-functionality-giving-odd-results/676136
     struct timeval tv;
-    tv.tv_sec = 1672560000;     // Jan 1 2023 00:00
+    tv.tv_sec = 1704096000;     // Jan 1 2024 00:00
     settimeofday(&tv, NULL);    // set default time
     setenv("TZ", getTZdefinition(settings.timeZone), 1);     // set time zone
     tzset();
@@ -284,139 +295,193 @@ void setup()
     if (!NMEAsetup()) {crash();}
     createWifiText();
 
+    xTaskCreate(vWebTask, "webTask", 4096, (void *) 1, 2, &webTaskHandle);
+    delay(100);
+    xTaskCreate(vBackgroundTasks, "bgTasks", 4096, (void *) 1, 3, &bgTaskHandle);
+    delay(100);
+    xTaskCreate(vNmeaTask, "nmeaTask", 8192, (void *) 1, 1, &nmeaTaskHandle);
+
     // Create timers
-    TimerHandle_t webTimer = xTimerCreate("webTimer", 1000 / portTICK_PERIOD_MS, pdTRUE, NULL, webTimerCallback);
-    TimerHandle_t bgTimer = xTimerCreate("bgTimer", 1000 / portTICK_PERIOD_MS, pdTRUE, NULL, bgTimerCallback);
+    // TimerHandle_t webTimer = xTimerCreate("webTimer", 1000 / portTICK_PERIOD_MS, pdTRUE, NULL, webTimerCallback);
+    // TimerHandle_t bgTimer = xTimerCreate("bgTimer", 1000 / portTICK_PERIOD_MS, pdTRUE, NULL, bgTimerCallback);
 
     // Start the timer
-    xTimerStart(webTimer, 0);
-    xTimerStart(bgTimer, 0);
+    // xTimerStart(webTimer, 0);
+    // xTimerStart(bgTimer, 0);
 }
 
 // ***************************************************
 /**
  * @brief Main program loop function
 */
-void loop()
-{
-    NMEAloop();
+void loop() {
+    // NMEAloop();
+    // Serial.printf("web:%i\tbg:%i\tnmea:%i\n", uxTaskGetStackHighWaterMark(webTaskHandle), uxTaskGetStackHighWaterMark(bgTaskHandle), uxTaskGetStackHighWaterMark(nmeaTaskHandle));
+    // vTaskDelay(1000 / portTICK_PERIOD_MS);
 }
 
-void vBackgroundTasks(void * pvParameters)
-{
-    static int count = 0;
-    static int localRecInt;
-
-    // time keeping
-    // time_t now;
-    // struct tm timeDetails;
-    // time(&now);
-    // localtime_r(&now, &timeDetails);
-    // Serial.println(&timeDetails, "%A, %B %d %Y %H:%M:%S");
-
-    // rpm = random(650, 700);
-    // heading = random(15, 30);
-    // wtemp = random(8, 12);
-    // otemp = random(104, 108);
-    // etemp = random(73, 76);
-    // mag_var = random(14, 16);
-    // leg_tilt = random(0, 25);
-    // opres = random(483, 626);
-    // battV = random(12.0, 15.0);
-    // fuel_rate = random(40, 44);
-    // speed = random(22, 24);
-    // ehours = 122;
-    // flevel = random(40.2, 60.9);
-    // gear = "N";
-    // lat = random(40.0, 60.0);
-    // lon = random(120.0, 140.0);
-    // timeString = asctime(&timeDetails);
-    // evcErrorMsg = getEngineStatus1(random(0, 65535)).c_str();
-
-    getSDcardStatus();
-    count++;
-
-    switch (recMode) {
-        case AUTO_RPM:
-            if (rpm <= 0) {
-                recMode=AUTO_RPM_IDLE;
-                endGPXfile(GPXFileName.c_str());
-            }
-            break;
-
-        case AUTO_RPM_IDLE:
-            if (rpm>0) {
-                outOfIdle=true;
-                recMode=AUTO_RPM;
-            }
-            break;
-
-        case AUTO_SPD:
-            if (speed <= 0) {
-                recMode=AUTO_SPD_IDLE;
-                endGPXfile(GPXFileName.c_str());
-            }
-            break;
-
-        case AUTO_SPD_IDLE:
-            if (speed>0) {
-                outOfIdle=true;
-                recMode=AUTO_SPD;
-            }
-            break;
-        
-        default:
-            break;
+void vNmeaTask(void * pvParameters) {
+    TickType_t delay = 1 / portTICK_PERIOD_MS;
+    // delay = delay * 0.1;
+    for (;;) {
+        // Serial.println(uxTaskGetStackHighWaterMark(NULL));
+        NMEAloop();
+        vTaskDelay(delay);
     }
+}
 
-    if (recMode == AUTO_RPM) {
-        if (rpm > 3900) {
-            localRecInt = 1;
+void vWebTask(void * pvParameters) {
+    for (;;) {
+        webLoop();
+        // Serial.println(uxTaskGetStackHighWaterMark(NULL));
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
+void vWriteRecording(void * pvParameters) {
+    for (;;) {
+        appendFile(SD, CSVFileName.c_str(), getCSV().c_str(), true);
+        vTaskSuspend(loggingTaskHandle);
+    } 
+}
+
+void vBackgroundTasks(void * pvParameters) {
+    for (;;) {
+        static int count = 0;
+        static int localRecInt;
+        static int nmeaSleepCount = 0;
+
+        // time keeping
+        // time_t now;
+        // struct tm timeDetails;
+        // time(&now);
+        // localtime_r(&now, &timeDetails);
+        // Serial.println(&timeDetails, "%A, %B %d %Y %H:%M:%S");
+
+        // rpm = random(650, 700);
+        // heading = random(15, 30);
+        // wtemp = random(8, 12);
+        // otemp = random(104, 108);
+        // etemp = random(73, 76);
+        // mag_var = random(14, 16);
+        // leg_tilt = random(0, 25);
+        // opres = random(483, 626);
+        // battV = random(12.0, 15.0);
+        // fuel_rate = random(40, 44);
+        // speed = random(22, 24);
+        // ehours = 122;
+        // flevel = random(40.2, 60.9);
+        // gear = "N";
+        // lat = random(40.0, 60.0);
+        // lon = random(120.0, 140.0);
+        // timeString = asctime(&timeDetails);
+        // evcErrorMsg = getEngineStatus1(random(0, 65535)).c_str();
+
+        getSDcardStatus();
+        count++;
+
+        switch (recMode) {
+            case AUTO_RPM:
+                if (rpm <= 0) {
+                    recMode=AUTO_RPM_IDLE;
+                    // endGPXfile(GPXFileName.c_str());
+                    if (loggingTaskHandle != NULL) {vTaskDelete(loggingTaskHandle);}
+                }
+                break;
+
+            case AUTO_RPM_IDLE:
+                if (rpm>0) {
+                    outOfIdle=true;
+                    recMode=AUTO_RPM;
+                }
+                break;
+
+            case AUTO_SPD:
+                if (speed <= 0) {
+                    recMode=AUTO_SPD_IDLE;
+                    // endGPXfile(GPXFileName.c_str());
+                    if (loggingTaskHandle != NULL) {vTaskDelete(loggingTaskHandle);}
+                }
+                break;
+
+            case AUTO_SPD_IDLE:
+                if (speed>0) {
+                    outOfIdle=true;
+                    recMode=AUTO_SPD;
+                }
+                break;
+            
+            default:
+                break;
+        }
+
+        if (recMode == AUTO_RPM) {
+            if (rpm > 3900) {
+                localRecInt = 1;
+            } else {
+                localRecInt = settings.recInt;
+            }
+        } else if (recMode == AUTO_SPD) {
+            if (speed > 20) {
+                localRecInt = 15;
+            } else {
+                localRecInt = settings.recInt;
+            }
         } else {
             localRecInt = settings.recInt;
         }
-    } else if (recMode == AUTO_SPD) {
-        if (speed > 20) {
-            localRecInt = 15;
-        } else {
-            localRecInt = settings.recInt;
-        }
-    } else {
-        localRecInt = settings.recInt;
-    }
-    
-    if ((recMode == AUTO_RPM || recMode == AUTO_SPD || recMode == ON) && count >= localRecInt && getSDcardStatus()) {
-        static String CSVFileName;
-        static int gpxWPTcount = 1;
-
-        if (outOfIdle) {
-            int voyageNum = 0;
-            gpxWPTcount = 1;
-            String lastCSVfileName;
-            const char* csvHeaders = "RPM,Engine Temp (C),Oil Temp (C),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Fuel Efficiency (L/km),Leg Tilt (%),Speed (kn),Heading (*),Depth (ft),Water Temp (C),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp";
-            do {
-                voyageNum++;
-                lastCSVfileName = "Voyage";
-                lastCSVfileName += voyageNum;
-                lastCSVfileName += ".csv";
-            } while (searchForFile(SD, lastCSVfileName.c_str()));
-            CSVFileName = "/";
-            CSVFileName += lastCSVfileName;       // current = last because search function failed on search for current file name
-            GPXFileName = "/Voyage";
-            GPXFileName += voyageNum;
-            GPXFileName += ".gpx";
-            createGPXfile(GPXFileName.c_str());
-            writeFile(SD, CSVFileName.c_str(), csvHeaders, true);
-            outOfIdle = false;
-        }
         
-        if (!appendFile(SD, CSVFileName.c_str(), getCSV().c_str(), true)) {crash();}
-        if (lat != -273) {
-            if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
+        if ((recMode == AUTO_RPM || recMode == AUTO_SPD || recMode == ON) && count >= localRecInt && getSDcardStatus()) {
+            // static int gpxWPTcount = 1;
+
+            if (outOfIdle) {
+                int voyageNum = 0;
+                // gpxWPTcount = 1;
+                String lastCSVfileName;
+                const char* csvHeaders = "RPM,Engine Temp (C),Oil Temp (C),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Fuel Efficiency (L/km),Leg Tilt (%),Speed (kn),Heading (*),Depth (ft),Water Temp (C),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp";
+                do {
+                    voyageNum++;
+                    lastCSVfileName = "Voyage";
+                    lastCSVfileName += voyageNum;
+                    lastCSVfileName += ".csv";
+                } while (searchForFile(SD, lastCSVfileName.c_str()));
+                CSVFileName = "/";
+                CSVFileName += lastCSVfileName;       // current = last because search function failed on search for current file name
+                // GPXFileName = "/Voyage";
+                // GPXFileName += voyageNum;
+                // GPXFileName += ".gpx";
+                // createGPXfile(GPXFileName.c_str());
+                writeFile(SD, CSVFileName.c_str(), csvHeaders, true);
+                xTaskCreate(vWriteRecording, "recordingTask", 4096, (void *) 1, 5, &loggingTaskHandle);
+                outOfIdle = false;
+            }
+            
+            vTaskResume(loggingTaskHandle);     // trigger log to be written
+
+            // if (!appendFile(SD, CSVFileName.c_str(), getCSV().c_str(), true)) {crash();}
+            // if (lat != -273) {
+            //     if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
+            // }
+            // gpxWPTcount++;
+            count = 0;
         }
-        gpxWPTcount++;
-        count = 0;
+        // backgroundTaskLock = false;
+        // Serial.println(uxTaskGetStackHighWaterMark(NULL));
+
+        // Serial.println(NMEAsleep);
+        if (NMEAsleep) {
+            // Serial.println(nmeaSleepCount);
+            if (nmeaSleepCount >= 4) {  // 5 seconds
+                nmeaSleepCount = 0;
+                NMEAsleep = false;
+                vTaskResume(nmeaTaskHandle);
+            } else {
+                nmeaSleepCount++;
+            }
+        } else {
+            nmeaSleepCount = 0;
+        }
+
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-    testBG = false;
-    vTaskDelete(NULL);
 }

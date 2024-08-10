@@ -182,8 +182,8 @@ void sendEmail(void *pvParameters) {
             String filename = file.name();
             if (filename.substring(filename.length() - 3) == "csv") {
                 att.descr.mime = "text/csv";
-            } else if (filename.substring(filename.length() - 3) == "gpx") {
-                att.descr.mime = "text/xml";
+            // } else if (filename.substring(filename.length() - 3) == "gpx") {
+            //     att.descr.mime = "text/xml";
             } else {
                 att.descr.mime = "text/plain";
             }
@@ -191,7 +191,7 @@ void sendEmail(void *pvParameters) {
             att.descr.filename = filename;
             att.file.path = file.path();
             att.file.storage_type = esp_mail_file_storage_type_sd;
-            att.descr.transfer_encoding = Content_Transfer_Encoding::enc_base64;
+            att.descr.transfer_encoding = Content_Transfer_Encoding::enc_7bit;
 
             message.addAttachment(att);
             message.resetAttachItem(att);
@@ -228,9 +228,7 @@ void sendEmail(void *pvParameters) {
         sendEmailData("Failed to send email.");
         vTaskDelete(NULL);
     }
-    if (settings.isLocalAP) {
-        WiFi.mode(WIFI_MODE_AP);
-    }
+    if (settings.isLocalAP) {WiFi.mode(WIFI_MODE_AP);}
     // Serial.println("Sent Email");
     sendEmailData("Email sent successfully!");
     vTaskDelete(NULL);

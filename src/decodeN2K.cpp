@@ -69,6 +69,7 @@ String evcErrorMsg = "-";
 
 double evcKeepAlive;
 double gpsKeepAlive;
+double depthKeepAlive;
 
 extern Settings settings;
 
@@ -437,8 +438,7 @@ void WaterDepth(const tN2kMsg &N2kMsg) {
                 double tDepth = DepthBelowTransducer+Offset;
                 if (settings.isMeters == true) {depth = tDepth;}
                 else {depth = tDepth*3.28084;}
-                // Serial.print("Depth: ");
-                // Serial.println(depth);
+                depthKeepAlive = millis();
             } else {
                 #ifdef DEBUG_EN
                 OutputStream->println(" not available");
@@ -558,6 +558,7 @@ void HandleNMEA2000Msg(const tN2kMsg &N2kMsg) {
 void NMEAloop() 
 { 
     NMEA2000.ParseMessages();
+    // Serial.println("NMEAloop");
     int nValid = -273;
     if (evcKeepAlive + 1000 < millis()) {
         if (evcKeepAlive + 2000 > millis()) {
@@ -587,7 +588,15 @@ void NMEAloop()
             timeString = "-";
         }
     }
-    if (evcKeepAlive + 1000 < millis() && gpsKeepAlive + 1000 < millis()) {
+    if (depthKeepAlive + 5000 < millis()) {
+        if (depthKeepAlive + 6000 > millis()) {
+            depth = nValid;
+        }
+    }
+    
+    if (evcKeepAlive + 1000 < millis() && gpsKeepAlive + 1000 < millis() && depthKeepAlive + 1000 < millis()) {
         digitalWrite(LED_N2K, LOW);
+        NMEAsleep = true;
+        vTaskSuspend(NULL);
     }
 }

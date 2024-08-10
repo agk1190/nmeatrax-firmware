@@ -9,8 +9,27 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
  
 ### Coming Soon
 - Fix WiFi settings not saving correctly
+- Add GPS nav msgs
+- TimeString to epoch
 
 ### In Progress
+
+
+## [8.0.0] - 2024-07-25
+
+### Added
+- depthKeepAlive to blank depth when depth not available.
+- Remote reboot ability.
+
+### Changed
+- Moved N2K to own task. N2k task can now sleep when N2K bus is idle.
+- Moved logging function to own task.
+- Restored WebView functionality by redirecting to /web.
+- Email encoding from base64 to 7-bit.
+
+### Removed
+- GPX files. Redundant data. NMEATrax Replay app will create GPX files from CSV.
+- Timers. Tasks now sleep.
 
 
 ## [7.0.0] - 2024-04-07

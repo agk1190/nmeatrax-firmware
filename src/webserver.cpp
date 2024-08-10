@@ -126,7 +126,7 @@ const char* getTZdefinition(double tz) {
 
 bool webSetup() {
     // serve content of root of web server directory
-    server.serveStatic("/", SPIFFS, "/");
+    server.serveStatic("/web", SPIFFS, "/");
 
     // serve content of sd card
     if (getSDcardStatus()) {server.serveStatic("/sdCard", SD, "/");}
@@ -135,7 +135,7 @@ bool webSetup() {
 
     // redirect request to 192.168.1.1 to 192.168.1.1/index.html
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) { 
-        request->redirect("/index.html"); 
+        request->redirect("/web/index.html"); 
     });
 
     // Get all files on the SD card
@@ -154,15 +154,14 @@ bool webSetup() {
         if (request->hasParam("AP_SSID")) {
             settings.wifiSSID = request->getParam("AP_SSID")->value().c_str();
             if (!saveSettings()) {crash();}
-            // request->send(200, "text/plain", "OK");
-            request->send(200, "text/html", _response);
-            ESP.restart();
+            request->send(200, "text/plain", "OK");
+            // ESP.restart();
         }
         else if (request->hasParam("AP_PASS")) {
             settings.wifiPass = request->getParam("AP_PASS")->value().c_str();
             if (!saveSettings()) {crash();}
-            request->send(200, "text/html", _response);
-            ESP.restart();
+            request->send(200, "text/plain", "OK");
+            // ESP.restart();
         }
         else if (request->hasParam("recInt")) {
             settings.recInt = atoi(request->getParam("recInt")->value().c_str());
@@ -198,6 +197,10 @@ bool webSetup() {
             if (!deleteFile(SD, "/")) {crash();}
             request->send(200, "text/plain", "OK");
         }
+        else if (request->hasParam("reboot")) {
+            request->send(200, "text/plain", "OK");
+            ESP.restart();
+        }
         else if (request->hasParam("email")) {
             request->send(200, "text/plain", "OK");
             xTaskCreate(sendEmail, "Send Email", 8192, NULL, 1, NULL);
@@ -211,7 +214,7 @@ bool webSetup() {
             switch (mode) {
             case 0:
                 recMode = OFF;
-                if (getSDcardStatus()) endGPXfile(GPXFileName.c_str());
+                // if (getSDcardStatus()) endGPXfile(GPXFileName.c_str());
                 break;
             case 1:
                 recMode = ON;
@@ -225,7 +228,7 @@ bool webSetup() {
                 break;
             default:
                 recMode = OFF;
-                if (getSDcardStatus()) endGPXfile(GPXFileName.c_str());
+                // if (getSDcardStatus()) endGPXfile(GPXFileName.c_str());
                 break;
             }
             if (!saveSettings()) {crash();}
@@ -249,11 +252,11 @@ bool webSetup() {
 
     server.addHandler(&NMEATrax);
 
-    // Start ElegantOTA
-    ElegantOTA.begin(&server);
-
     // Start server
     server.begin();
+
+    // Start ElegantOTA
+    ElegantOTA.begin(&server);
 
     Serial.println("HTTP server started");
 

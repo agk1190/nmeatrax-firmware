@@ -52,6 +52,7 @@
         </form><br>
         <p class="options">This will reset the WiFi settings and reboot the device</p>
         <button type="button" onclick="set(3, 0, 0);">Reset WiFi & Reboot</button>
+        <button type="button" onclick="set(6, 0, 0);">Reboot</button>
     </div><br>
     <!-- --OTA Update----------------------------- -->
     <div>
@@ -105,7 +106,7 @@
             </tr>
         </table>
     </div>
-    <p style="font-size: small;">Firmware: v7.0.0 | Ui: v3.0.0</p>
+    <p style="font-size: small;">Firmware: v8.0.0 | Ui: v3.1.0</p>
     <footer class="botnav">
         <h1 class="botnavtext">NMEATrax</h1>
     </footer>
@@ -191,6 +192,10 @@
                     break;
                 case 5:
                     xhr.open("POST", "/set?otaUpdate=true", true);
+                    xhr.send();
+                    break;
+                case 6:
+                    xhr.open("POST", "/set?reboot=true", true);
                     xhr.send();
                     break;
                 default:
