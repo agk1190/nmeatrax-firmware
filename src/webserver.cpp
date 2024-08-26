@@ -169,23 +169,6 @@ bool webSetup() {
             if (!saveSettings()) {crash();}
             request->send(200, "text/html", _response);
         }
-        else if (request->hasParam("timeZone")) {
-            settings.timeZone = atol(request->getParam("timeZone")->value().c_str());
-            if (!saveSettings()) {crash();}
-            setenv("TZ", getTZdefinition(settings.timeZone), 1);     // set time zone
-            tzset();
-            request->send(200, "text/html", _response);
-        }
-        else if (request->hasParam("isMeters")) {
-            settings.isMeters = !settings.isMeters;
-            if (!saveSettings()) {crash();}
-            request->send(200, "text/plain", "OK");
-        }
-        else if (request->hasParam("isDegF")) {
-            settings.isDegF = !settings.isDegF;
-            if (!saveSettings()) {crash();}
-            request->send(200, "text/plain", "OK");
-        }
         else if (request->hasParam("eraseWiFi")) {
             wifiManager.resetSettings();
             settings.isLocalAP = false;
@@ -242,10 +225,7 @@ bool webSetup() {
     // send current settings to client
     server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request) {
         JSONVar values;
-        values["isMeters"] = settings.isMeters;
-        values["isDegF"] = settings.isDegF;
         values["recInt"] = settings.recInt;
-        values["timeZone"] = settings.timeZone;
         values["recMode"] = recMode;
         request->send(200, "application/json", JSON.stringify(values));
     });

@@ -45,9 +45,9 @@ struct settings {
     const char *wifiPass;
     int recMode;
     int recInt;
-    bool isMeters;
-    bool isDegF;
-    double timeZone;
+    // bool isMeters;
+    // bool isDegF;
+    // double timeZone;
 };
 
 /**

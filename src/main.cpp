@@ -67,7 +67,7 @@ String getCSV()
         String(otemp),          // 2
         String(opres),          // 3
         String(fuel_rate, 1),   // 4
-        String(flevel),         // 5
+        String(flevel, 1),      // 5
         String(lpkm, 3),        // 6
         String(leg_tilt),       // 7
         String(speed),          // 8
@@ -80,7 +80,7 @@ String getCSV()
         String(lat, 6),         // 15
         String(lon, 6),         // 16
         String(mag_var, 2),     // 17
-        String(timeString)      // 18
+        String(unixTime)        // 18
     };
     String rdata;
 
@@ -100,14 +100,6 @@ String getCSV()
 
 String JSONValues()
 {
-    // if (timeString.endsWith("\n") || timeString.endsWith("\r")) {
-    //     timeString.remove(timeString.length() - 1, 1);
-    // }
-    for (byte i = 0; i < timeString.length(); i++) {
-        if (timeString.charAt(i) == '\r' || timeString.charAt(i) == '\n') {
-            timeString.remove(i);
-        }
-    }
     readings["rpm"] = String(rpm);
     readings["etemp"] = String(etemp);
     readings["otemp"] = String(otemp);
@@ -126,8 +118,9 @@ String JSONValues()
     readings["lat"] = String(lat, 6);
     readings["lon"] = String(lon, 6);
     readings["mag_var"] = String(mag_var, 2);
-    readings["time"] = timeString;
+    readings["time"] = String(unixTime);
     readings["evcErrorMsg"] = evcErrorMsg;
+    readings["nmeaTraxGenericMsg"] = nmeaTraxGenericMsg;
 
     String jsonString = JSON.stringify(readings);
     return jsonString;
@@ -142,9 +135,9 @@ bool saveSettings()
     preferences.putString("wifiPass", settings.wifiPass);
     preferences.putInt("recMode", settings.recMode);
     preferences.putInt("recInt", settings.recInt);
-    preferences.putBool("isMeters", settings.isMeters);
-    preferences.putBool("isDegF", settings.isDegF);
-    preferences.putInt("timeZone", settings.timeZone);
+    // preferences.putBool("isMeters", settings.isMeters);
+    // preferences.putBool("isDegF", settings.isDegF);
+    // preferences.putInt("timeZone", settings.timeZone);
     preferences.end();
     return success;
 }
@@ -158,9 +151,9 @@ bool readSettings()
     settings.wifiPass = preferences.getString("wifiPass", "nmeatrax").c_str();
     settings.recMode = preferences.getInt("recMode", 5);
     settings.recInt = preferences.getInt("recInt", 5);
-    settings.isMeters = preferences.getBool("isMeters", false);
-    settings.isDegF = preferences.getBool("isDegF", false);
-    settings.timeZone = preferences.getInt("timeZone", 0);
+    // settings.isMeters = preferences.getBool("isMeters", false);
+    // settings.isDegF = preferences.getBool("isDegF", false);
+    // settings.timeZone = preferences.getInt("timeZone", 0)
     preferences.end();
 
     settings.wifiSSID = "NMEATrax";
@@ -213,20 +206,6 @@ void crash() {
     Serial.println("Device Crashed!");
     ESP.restart();
 }
-
-// Timer callback function
-// void webTimerCallback(TimerHandle_t xTimer) {
-//     // webLoop();
-//     xTaskCreate(vWebTask, "webTask", 4096, (void *) 1, 2, &webTaskHandle);
-// }
-
-// void bgTimerCallback(TimerHandle_t xTimer) {
-//     TaskHandle_t xHandle = NULL;
-//     if (!backgroundTaskLock) {
-//         backgroundTaskLock = true;
-//         xTaskCreate(vBackgroundTasks, "bgTasks", 4096, (void *) 1, 3, &xHandle);
-//     }
-// }
 
 // ***************************************************
 /**
@@ -285,11 +264,11 @@ void setup()
     }
 
     // https://forum.arduino.cc/t/esp32-settimeofday-functionality-giving-odd-results/676136
-    struct timeval tv;
-    tv.tv_sec = 1704096000;     // Jan 1 2024 00:00
-    settimeofday(&tv, NULL);    // set default time
-    setenv("TZ", getTZdefinition(settings.timeZone), 1);     // set time zone
-    tzset();
+    // struct timeval tv;
+    // tv.tv_sec = 1704096000;     // Jan 1 2024 00:00
+    // settimeofday(&tv, NULL);    // set default time
+    // setenv("TZ", getTZdefinition(settings.timeZone), 1);     // set time zone
+    // tzset();
 
     if (!webSetup()) {crash();}
     if (!NMEAsetup()) {crash();}
@@ -300,25 +279,13 @@ void setup()
     xTaskCreate(vBackgroundTasks, "bgTasks", 4096, (void *) 1, 3, &bgTaskHandle);
     delay(100);
     xTaskCreate(vNmeaTask, "nmeaTask", 8192, (void *) 1, 1, &nmeaTaskHandle);
-
-    // Create timers
-    // TimerHandle_t webTimer = xTimerCreate("webTimer", 1000 / portTICK_PERIOD_MS, pdTRUE, NULL, webTimerCallback);
-    // TimerHandle_t bgTimer = xTimerCreate("bgTimer", 1000 / portTICK_PERIOD_MS, pdTRUE, NULL, bgTimerCallback);
-
-    // Start the timer
-    // xTimerStart(webTimer, 0);
-    // xTimerStart(bgTimer, 0);
 }
 
 // ***************************************************
 /**
  * @brief Main program loop function
 */
-void loop() {
-    // NMEAloop();
-    // Serial.printf("web:%i\tbg:%i\tnmea:%i\n", uxTaskGetStackHighWaterMark(webTaskHandle), uxTaskGetStackHighWaterMark(bgTaskHandle), uxTaskGetStackHighWaterMark(nmeaTaskHandle));
-    // vTaskDelay(1000 / portTICK_PERIOD_MS);
-}
+void loop() {}
 
 void vNmeaTask(void * pvParameters) {
     TickType_t delay = 1 / portTICK_PERIOD_MS;
@@ -360,22 +327,23 @@ void vBackgroundTasks(void * pvParameters) {
 
         // rpm = random(650, 700);
         // heading = random(15, 30);
-        // wtemp = random(8, 12);
-        // otemp = random(104, 108);
-        // etemp = random(73, 76);
+        // wtemp = random(276, 286);
+        // otemp = random(376, 388);
+        // etemp = random(343, 347);
         // mag_var = random(14, 16);
-        // leg_tilt = random(0, 25);
+        // leg_tilt = random(0, 15);
         // opres = random(483, 626);
         // battV = random(12.0, 15.0);
         // fuel_rate = random(40, 44);
-        // speed = random(22, 24);
-        // ehours = 122;
+        // speed = random(11, 13);
+        // ehours = 720000;
         // flevel = random(40.2, 60.9);
         // gear = "N";
         // lat = random(40.0, 60.0);
         // lon = random(120.0, 140.0);
-        // timeString = asctime(&timeDetails);
+        // unixTime = now;
         // evcErrorMsg = getEngineStatus1(random(0, 65535)).c_str();
+        // nmeaTraxGenericMsg = "A very long string designed to test if the top row will overflow. I hope this is long enough.";
 
         getSDcardStatus();
         count++;
@@ -432,13 +400,11 @@ void vBackgroundTasks(void * pvParameters) {
         }
         
         if ((recMode == AUTO_RPM || recMode == AUTO_SPD || recMode == ON) && count >= localRecInt && getSDcardStatus()) {
-            // static int gpxWPTcount = 1;
 
             if (outOfIdle) {
                 int voyageNum = 0;
-                // gpxWPTcount = 1;
                 String lastCSVfileName;
-                const char* csvHeaders = "RPM,Engine Temp (C),Oil Temp (C),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Fuel Efficiency (L/km),Leg Tilt (%),Speed (kn),Heading (*),Depth (ft),Water Temp (C),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp";
+                const char* csvHeaders = "RPM,Engine Temp (K),Oil Temp (K),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Fuel Efficiency (L/km),Leg Tilt (%),Speed (m/s),Heading (*),Depth (m),Water Temp (K),Battery Voltage (V),Engine Hours (s),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp";
                 do {
                     voyageNum++;
                     lastCSVfileName = "Voyage";
@@ -447,30 +413,15 @@ void vBackgroundTasks(void * pvParameters) {
                 } while (searchForFile(SD, lastCSVfileName.c_str()));
                 CSVFileName = "/";
                 CSVFileName += lastCSVfileName;       // current = last because search function failed on search for current file name
-                // GPXFileName = "/Voyage";
-                // GPXFileName += voyageNum;
-                // GPXFileName += ".gpx";
-                // createGPXfile(GPXFileName.c_str());
                 writeFile(SD, CSVFileName.c_str(), csvHeaders, true);
                 xTaskCreate(vWriteRecording, "recordingTask", 4096, (void *) 1, 5, &loggingTaskHandle);
                 outOfIdle = false;
             }
-            
             vTaskResume(loggingTaskHandle);     // trigger log to be written
-
-            // if (!appendFile(SD, CSVFileName.c_str(), getCSV().c_str(), true)) {crash();}
-            // if (lat != -273) {
-            //     if (!writeGPXpoint(GPXFileName.c_str(), gpxWPTcount, lat, lon)) {crash();}
-            // }
-            // gpxWPTcount++;
             count = 0;
         }
-        // backgroundTaskLock = false;
-        // Serial.println(uxTaskGetStackHighWaterMark(NULL));
-
-        // Serial.println(NMEAsleep);
         if (NMEAsleep) {
-            // Serial.println(nmeaSleepCount);
+            // nmeaTraxGenericMsg = "N2K Bus Standby";
             if (nmeaSleepCount >= 4) {  // 5 seconds
                 nmeaSleepCount = 0;
                 NMEAsleep = false;
@@ -479,6 +430,7 @@ void vBackgroundTasks(void * pvParameters) {
                 nmeaSleepCount++;
             }
         } else {
+            // nmeaTraxGenericMsg = "";
             nmeaSleepCount = 0;
         }
 

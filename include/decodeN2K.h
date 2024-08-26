@@ -20,12 +20,13 @@ extern int leg_tilt;
 extern int opres;
 extern double battV;
 extern double fuel_rate;
-extern int ehours;
+extern uint32_t ehours;
 extern String gear;
 extern double flevel;
 extern double lpkm;
-extern String timeString;
+extern uint64_t unixTime;
 extern String evcErrorMsg;
+extern String nmeaTraxGenericMsg;
 
 // ***** For testing *****
 // #include "NMEA2000StdTypes.h"
