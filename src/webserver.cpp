@@ -37,6 +37,8 @@ extern Settings settings;
 // Create an Event Source on /NMEATrax
 AsyncEventSource NMEATrax("/NMEATrax");
 
+void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
+
 const char* getTZdefinition(double tz) {
     if (tz == 0)
     {
@@ -133,7 +135,7 @@ bool webSetup() {
 
     initWebSocket();
 
-    // redirect request to 192.168.1.1 to 192.168.1.1/index.html
+    // redirect request to 192.168.1.1 to 192.168.1.1/web/index.html
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) { 
         request->redirect("/web/index.html"); 
     });
@@ -186,10 +188,13 @@ bool webSetup() {
         }
         else if (request->hasParam("email")) {
             request->send(200, "text/plain", "OK");
+            emws.onEvent(onEvent);
+            server.addHandler(&emws);
             xTaskCreate(sendEmail, "Send Email", 8192, NULL, 1, NULL);
         } 
         else if (request->hasParam("otaUpdate")) {
             request->send(200, "text/plain", "OK");
+            ElegantOTA.begin(&server);  // Start ElegantOTA
             digitalWrite(N2K_STBY, HIGH);
         }
         else if (request->hasParam("recMode")) {
@@ -235,9 +240,6 @@ bool webSetup() {
     // Start server
     server.begin();
 
-    // Start ElegantOTA
-    ElegantOTA.begin(&server);
-
     Serial.println("HTTP server started");
 
     // this advertises the device locally at "nmeatrax.local"
@@ -256,13 +258,13 @@ bool webSetup() {
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   switch (type) {
     case WS_EVT_CONNECT:
-      Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+        Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
       break;
     case WS_EVT_DISCONNECT:
-      Serial.printf("WebSocket client #%u disconnected\n", client->id());
+        Serial.printf("WebSocket client #%u disconnected\n", client->id());
       break;
     case WS_EVT_DATA:
-    //   handleWebSocketMessage(arg, data, len);
+        // handleWebSocketMessage(arg, data, len);
       break;
     case WS_EVT_PONG:
     case WS_EVT_ERROR:
@@ -271,10 +273,8 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
 }
 
 void initWebSocket() {
-  ws.onEvent(onEvent);
-  server.addHandler(&ws);
-  emws.onEvent(onEvent);
-  server.addHandler(&emws);
+    ws.onEvent(onEvent);
+    server.addHandler(&ws);
 }
 
 void webLoop() {

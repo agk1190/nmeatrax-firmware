@@ -59,12 +59,11 @@ TaskHandle_t nmeaTaskHandle = NULL;
  * @param none
  * @return A string of comma separated values containing the NMEA data.
 */
-String getCSV()
-{
+String getCSV() {
     String data[] = {
         String(rpm),            // 0
-        String(etemp),          // 1
-        String(otemp),          // 2
+        String(etemp, 2),          // 1
+        String(otemp, 2),          // 2
         String(opres),          // 3
         String(fuel_rate, 1),   // 4
         String(flevel, 1),      // 5
@@ -72,8 +71,8 @@ String getCSV()
         String(leg_tilt),       // 7
         String(speed),          // 8
         String(heading),        // 9
-        String(depth),          // 10
-        String(wtemp),          // 11
+        String(depth, 2),          // 10
+        String(wtemp, 2),          // 11
         String(battV),          // 12
         String(ehours),         // 13
         String(gear),           // 14
@@ -98,14 +97,13 @@ String getCSV()
     return(rdata);
 }
 
-String JSONValues()
-{
+String JSONValues() {
     readings["rpm"] = String(rpm);
     readings["etemp"] = String(etemp);
     readings["otemp"] = String(otemp);
     readings["opres"] = String(opres);
     readings["fuel_rate"] = String(fuel_rate, 1);
-    readings["flevel"] = String(flevel);
+    readings["flevel"] = String(flevel, 1);
     readings["efficiency"] = String(lpkm, 3);
     readings["leg_tilt"] = String(leg_tilt);
     readings["speed"] = String(speed);
@@ -120,14 +118,13 @@ String JSONValues()
     readings["mag_var"] = String(mag_var, 2);
     readings["time"] = String(unixTime);
     readings["evcErrorMsg"] = evcErrorMsg;
-    readings["nmeaTraxGenericMsg"] = nmeaTraxGenericMsg;
+    // readings["nmeaTraxGenericMsg"] = nmeaTraxGenericMsg;
 
     String jsonString = JSON.stringify(readings);
     return jsonString;
 }
 
-bool saveSettings()
-{
+bool saveSettings() {
     bool success = false;
     success = preferences.begin("settings");
     preferences.putBool("isLocalAP", settings.isLocalAP);
@@ -135,15 +132,11 @@ bool saveSettings()
     preferences.putString("wifiPass", settings.wifiPass);
     preferences.putInt("recMode", settings.recMode);
     preferences.putInt("recInt", settings.recInt);
-    // preferences.putBool("isMeters", settings.isMeters);
-    // preferences.putBool("isDegF", settings.isDegF);
-    // preferences.putInt("timeZone", settings.timeZone);
     preferences.end();
     return success;
 }
 
-bool readSettings()
-{
+bool readSettings() {
     bool success = false;
     success = preferences.begin("settings");
     settings.isLocalAP = preferences.getBool("isLocalAP", false);
@@ -151,9 +144,6 @@ bool readSettings()
     settings.wifiPass = preferences.getString("wifiPass", "nmeatrax").c_str();
     settings.recMode = preferences.getInt("recMode", 5);
     settings.recInt = preferences.getInt("recInt", 5);
-    // settings.isMeters = preferences.getBool("isMeters", false);
-    // settings.isDegF = preferences.getBool("isDegF", false);
-    // settings.timeZone = preferences.getInt("timeZone", 0)
     preferences.end();
 
     settings.wifiSSID = "NMEATrax";
@@ -179,6 +169,7 @@ bool readSettings()
             break;
         
         default:
+            recMode = AUTO_RPM_IDLE;
             break;
     }
     return success;
@@ -211,9 +202,8 @@ void crash() {
 /**
  * @brief Main program setup function
 */
-void setup()
-{
-    Serial.begin(460800);
+void setup() {
+    Serial.begin(115200);
     delay(500);
     Serial.println();
 
@@ -262,6 +252,7 @@ void setup()
             ESP.restart();
         }
     }
+    createWifiText();
 
     // https://forum.arduino.cc/t/esp32-settimeofday-functionality-giving-odd-results/676136
     // struct timeval tv;
@@ -272,7 +263,6 @@ void setup()
 
     if (!webSetup()) {crash();}
     if (!NMEAsetup()) {crash();}
-    createWifiText();
 
     xTaskCreate(vWebTask, "webTask", 4096, (void *) 1, 2, &webTaskHandle);
     delay(100);
@@ -318,32 +308,40 @@ void vBackgroundTasks(void * pvParameters) {
         static int localRecInt;
         static int nmeaSleepCount = 0;
 
+        #ifdef TESTMODE
         // time keeping
-        // time_t now;
+        time_t now;
         // struct tm timeDetails;
-        // time(&now);
+        time(&now);
         // localtime_r(&now, &timeDetails);
         // Serial.println(&timeDetails, "%A, %B %d %Y %H:%M:%S");
 
-        // rpm = random(650, 700);
-        // heading = random(15, 30);
-        // wtemp = random(276, 286);
-        // otemp = random(376, 388);
-        // etemp = random(343, 347);
-        // mag_var = random(14, 16);
-        // leg_tilt = random(0, 15);
-        // opres = random(483, 626);
-        // battV = random(12.0, 15.0);
-        // fuel_rate = random(40, 44);
-        // speed = random(11, 13);
-        // ehours = 720000;
-        // flevel = random(40.2, 60.9);
-        // gear = "N";
-        // lat = random(40.0, 60.0);
-        // lon = random(120.0, 140.0);
-        // unixTime = now;
+        rpm = random(650, 700);
+        heading = random(15, 30);
+        // wtemp = random(276, 286) + (random(1, 99)/100);
+        wtemp = 280.48;
+        otemp = random(376, 388);
+        otemp += (random(1, 99)/100);
+        etemp = random(343, 347);
+        etemp += (random(1, 99)/100);
+        depth = 5.26;
+        mag_var = random(14, 16);
+        leg_tilt = random(0, 15);
+        opres = random(483, 626);
+        battV = random(12, 15);
+        battV += (random(1, 99)/100);
+        fuel_rate = random(40, 44);
+        speed = random(11, 13);
+        speed += (random(1, 99)/100);
+        ehours = 720000;
+        flevel = random(40.2, 60.9);
+        gear = "N";
+        lat = random(40.0, 60.0);
+        lon = random(120.0, 140.0);
+        unixTime = now;
         // evcErrorMsg = getEngineStatus1(random(0, 65535)).c_str();
         // nmeaTraxGenericMsg = "A very long string designed to test if the top row will overflow. I hope this is long enough.";
+        #endif
 
         getSDcardStatus();
         count++;
@@ -355,10 +353,11 @@ void vBackgroundTasks(void * pvParameters) {
                     // endGPXfile(GPXFileName.c_str());
                     if (loggingTaskHandle != NULL) {vTaskDelete(loggingTaskHandle);}
                 }
+                localRecInt = rpm > 3900 ? 1 : settings.recInt;
                 break;
 
             case AUTO_RPM_IDLE:
-                if (rpm>0) {
+                if (rpm > 0) {
                     outOfIdle=true;
                     recMode=AUTO_RPM;
                 }
@@ -370,10 +369,11 @@ void vBackgroundTasks(void * pvParameters) {
                     // endGPXfile(GPXFileName.c_str());
                     if (loggingTaskHandle != NULL) {vTaskDelete(loggingTaskHandle);}
                 }
+                localRecInt = speed > 15 ? 1 : settings.recInt;
                 break;
 
             case AUTO_SPD_IDLE:
-                if (speed>0) {
+                if (speed > 0) {
                     outOfIdle=true;
                     recMode=AUTO_SPD;
                 }
@@ -381,22 +381,6 @@ void vBackgroundTasks(void * pvParameters) {
             
             default:
                 break;
-        }
-
-        if (recMode == AUTO_RPM) {
-            if (rpm > 3900) {
-                localRecInt = 1;
-            } else {
-                localRecInt = settings.recInt;
-            }
-        } else if (recMode == AUTO_SPD) {
-            if (speed > 20) {
-                localRecInt = 15;
-            } else {
-                localRecInt = settings.recInt;
-            }
-        } else {
-            localRecInt = settings.recInt;
         }
         
         if ((recMode == AUTO_RPM || recMode == AUTO_SPD || recMode == ON) && count >= localRecInt && getSDcardStatus()) {

@@ -51,14 +51,14 @@ int rpm = -273;
 double depth = -273;
 double speed = -273;
 int heading = -273;
-int etemp = -273;
-int otemp = -273;
+double etemp = -273;
+double otemp = -273;
 double wtemp = -273;
 double lat = -273;
 double lon = -273;
 double mag_var = -273;
 int leg_tilt = -273;
-int opres = -273;
+double opres = -273;
 double battV = -273;
 double fuel_rate = -273;
 uint32_t ehours = 0;
@@ -69,9 +69,9 @@ uint64_t unixTime = 0;
 String evcErrorMsg = "-";
 String nmeaTraxGenericMsg = "-";
 
-double evcKeepAlive;
-double gpsKeepAlive;
-double depthKeepAlive;
+uint32_t evcKeepAlive;
+uint32_t gpsKeepAlive;
+uint32_t depthKeepAlive;
 
 extern Settings settings;
 
@@ -252,7 +252,7 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
             double _fuel_rate = 0;
             if (fuel_rate == -273) {_fuel_rate = 0;}
             else {_fuel_rate = fuel_rate;}
-            lpkm = _fuel_rate / (speed*1.852);
+            lpkm = _fuel_rate / (speed*3.6);
         } else {
             lpkm = -273;
         }
@@ -554,8 +554,8 @@ void NavigationInfo(const tN2kMsg &N2kMsg) {
     double WaypointClosingVelocity;
     String info;
 
-    digitalWrite(LED_N2K, HIGH);
-    gpsKeepAlive = millis();
+    // digitalWrite(LED_N2K, HIGH);
+    // gpsKeepAlive = millis();
 
     if (ParseN2kNavigationInfo(N2kMsg, SID, 
             DistanceToWaypoint, 
@@ -566,34 +566,34 @@ void NavigationInfo(const tN2kMsg &N2kMsg) {
             DestinationWaypointNumber, DestinationLatitude, 
             DestinationLongitude, WaypointClosingVelocity)) {
         
-        if (!N2kIsNA(DistanceToWaypoint)) {
-            info.concat(DistanceToWaypoint);
-            info.concat("m to dest,");
-        }
-        // info.concat(BearingReference ? "Magnetic" : "True");
-        // info.concat(PerpendicularCrossed);
-        // info.concat(ArrivalCircleEntered);
-        // info.concat(CalculationType ? "Rhumb Line" : "Great Circle");
-        if (!N2kIsNA(ETATime)) {
-            info.concat("Arr Time:");
-            info.concat(ETATime);
-        }
-        if (!N2kIsNA(ETADate)) {
-            info.concat("Arr Date:");
-            info.concat(ETADate);
-        }
-        // info.concat(BearingOriginToDestinationWaypoint);
-        // info.concat(BearingPositionToDestinationWaypoint);
-        // info.concat(OriginWaypointNumber);
-        // info.concat(DestinationWaypointNumber);
-        // info.concat(DestinationLatitude);
-        // info.concat(DestinationLongitude);
-        if (!N2kIsNA(WaypointClosingVelocity)) {
-            info.concat("Closing Velocity:");
-            info.concat(WaypointClosingVelocity);
-        }
-        // info.concat(WaypointClosingVelocity);
-        nmeaTraxGenericMsg = info;
+        // if (!N2kIsNA(DistanceToWaypoint)) {
+        //     info.concat(DistanceToWaypoint);
+        //     info.concat("m to dest,");
+        // }
+        // // info.concat(BearingReference ? "Magnetic" : "True");
+        // // info.concat(PerpendicularCrossed);
+        // // info.concat(ArrivalCircleEntered);
+        // // info.concat(CalculationType ? "Rhumb Line" : "Great Circle");
+        // if (!N2kIsNA(ETATime)) {
+        //     info.concat("Arr Time:");
+        //     info.concat(ETATime);
+        // }
+        // if (!N2kIsNA(ETADate)) {
+        //     info.concat("Arr Date:");
+        //     info.concat(ETADate);
+        // }
+        // // info.concat(BearingOriginToDestinationWaypoint);
+        // // info.concat(BearingPositionToDestinationWaypoint);
+        // // info.concat(OriginWaypointNumber);
+        // // info.concat(DestinationWaypointNumber);
+        // // info.concat(DestinationLatitude);
+        // // info.concat(DestinationLongitude);
+        // if (!N2kIsNA(WaypointClosingVelocity)) {
+        //     info.concat("Closing Velocity:");
+        //     info.concat(WaypointClosingVelocity);
+        // }
+        // // info.concat(WaypointClosingVelocity);
+        // nmeaTraxGenericMsg = info;
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
@@ -614,8 +614,7 @@ void HandleNMEA2000Msg(const tN2kMsg &N2kMsg) {
 }
 
 //*****************************************************************************
-void NMEAloop() 
-{ 
+void NMEAloop() { 
     NMEA2000.ParseMessages();
     // Serial.println("NMEAloop");
     int nValid = -273;
@@ -630,7 +629,7 @@ void NMEAloop()
             lpkm = nValid;
             leg_tilt = nValid;
             battV = nValid;
-            ehours = nValid;
+            ehours = 0;
             gear = "-";
             evcErrorMsg = "-";
         }  
@@ -644,7 +643,7 @@ void NMEAloop()
             lat = nValid;
             lon = nValid;
             mag_var = nValid;
-            unixTime = nValid;
+            unixTime = 0;
         }
     }
     if (depthKeepAlive + 5000 < millis()) {

@@ -150,7 +150,10 @@ void sendEmail(void *pvParameters) {
     mysubject.concat(" Recordings");
     message.subject = mysubject;
     message.addRecipient(RECIPIENT_NAME, RECIPIENT_EMAIL);
+    
+    #ifndef TESTMODE
     message.addRecipient(RECIPIENT_NAME2, RECIPIENT_EMAIL2);
+    #endif
 
     /** Two alternative content versions are sending in this example e.g. plain text and html */
     String htmlMsg = "New voyage recordings!";
