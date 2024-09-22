@@ -67,7 +67,6 @@ double flevel = -273;
 double lpkm = -273;
 uint64_t unixTime = 0;
 String evcErrorMsg = "-";
-String nmeaTraxGenericMsg = "-";
 
 uint32_t evcKeepAlive;
 uint32_t gpsKeepAlive;

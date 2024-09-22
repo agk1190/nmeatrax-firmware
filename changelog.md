@@ -9,6 +9,7 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
  
 ### Coming Soon
 - Fix WiFi settings not saving correctly
+- Stream NMEA to websocket?
 
 
 ## [9.0.0] - 2024-08-10

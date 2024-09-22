@@ -26,7 +26,6 @@ extern double flevel;
 extern double lpkm;
 extern uint64_t unixTime;
 extern String evcErrorMsg;
-extern String nmeaTraxGenericMsg;
 
 // ***** For testing *****
 // #include "NMEA2000StdTypes.h"

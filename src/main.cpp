@@ -99,9 +99,9 @@ String getCSV() {
 
 String JSONValues() {
     readings["rpm"] = String(rpm);
-    readings["etemp"] = String(etemp);
-    readings["otemp"] = String(otemp);
-    readings["opres"] = String(opres);
+    readings["etemp"] = String(etemp, 0);
+    readings["otemp"] = String(otemp, 0);
+    readings["opres"] = String(opres, 0);
     readings["fuel_rate"] = String(fuel_rate, 1);
     readings["flevel"] = String(flevel, 1);
     readings["efficiency"] = String(lpkm, 3);
@@ -118,7 +118,6 @@ String JSONValues() {
     readings["mag_var"] = String(mag_var, 2);
     readings["time"] = String(unixTime);
     readings["evcErrorMsg"] = evcErrorMsg;
-    // readings["nmeaTraxGenericMsg"] = nmeaTraxGenericMsg;
 
     String jsonString = JSON.stringify(readings);
     return jsonString;
@@ -321,9 +320,8 @@ void vBackgroundTasks(void * pvParameters) {
         // wtemp = random(276, 286) + (random(1, 99)/100);
         wtemp = 280.48;
         otemp = random(376, 388);
-        otemp += (random(1, 99)/100);
-        etemp = random(343, 347);
-        etemp += (random(1, 99)/100);
+        // etemp = random(343, 347);
+        etemp = 348.65;
         depth = 5.26;
         mag_var = random(14, 16);
         leg_tilt = random(0, 15);
@@ -340,7 +338,6 @@ void vBackgroundTasks(void * pvParameters) {
         lon = random(120.0, 140.0);
         unixTime = now;
         // evcErrorMsg = getEngineStatus1(random(0, 65535)).c_str();
-        // nmeaTraxGenericMsg = "A very long string designed to test if the top row will overflow. I hope this is long enough.";
         #endif
 
         getSDcardStatus();
