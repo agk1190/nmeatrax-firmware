@@ -215,6 +215,7 @@ bool webSetup() {
                 // if (getSDcardStatus()) endGPXfile(GPXFileName.c_str());
                 break;
             }
+            settings.recMode = recMode;
             if (!saveSettings()) {crash();}
             request->send(200, "text/plain", "OK");
         }

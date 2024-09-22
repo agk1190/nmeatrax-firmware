@@ -12,7 +12,7 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 - Stream NMEA to websocket?
 
 
-## [9.0.0] - 2024-08-10
+## [9.0.0] - 2024-09-22
 
 ### Added
 - GPS Navigation messages
