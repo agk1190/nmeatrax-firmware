@@ -307,7 +307,7 @@ void vBackgroundTasks(void * pvParameters) {
         static int localRecInt;
         static int nmeaSleepCount = 0;
 
-        #ifdef TESTMODE
+        #ifdef TESTMODE1
         // time keeping
         time_t now;
         // struct tm timeDetails;

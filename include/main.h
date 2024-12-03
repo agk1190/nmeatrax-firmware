@@ -15,6 +15,9 @@
 #define SD_Detect GPIO_NUM_34
 #define N2K_STBY GPIO_NUM_4
 
+#define FW_VERSION "9.0.0"
+#define UI_VERSION1 "3.1.0"
+
 extern bool outOfIdle;
 extern bool NMEAsleep;
 

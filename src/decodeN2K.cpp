@@ -47,6 +47,33 @@ tNMEA2000Handler NMEA2000Handlers[]={
     {0,0}
 };
 
+// using tN2kSendFunction=void (*)();
+
+// // Structure for holding message sending information
+// struct tN2kSendMessage {
+//   tN2kSendFunction SendFunction;
+//   const char *const Description;
+//   tN2kSyncScheduler Scheduler;
+
+//   tN2kSendMessage(tN2kSendFunction _SendFunction, const char *const _Description, uint32_t /* _NextTime */ 
+//                   ,uint32_t _Period, uint32_t _Offset, bool _Enabled) : 
+//                     SendFunction(_SendFunction), 
+//                     Description(_Description), 
+//                     Scheduler(_Enabled,_Period,_Offset) {}
+//   void Enable(bool state);
+// };
+
+// extern tN2kSendMessage N2kSendMessages[];
+// extern size_t nN2kSendMessages;
+
+// static unsigned long N2kMsgSentCount=0;
+// static unsigned long N2kMsgFailCount=0;
+// static bool ShowSentMessages=false;
+// static bool Sending=false;
+
+// // Forward declarations for functions
+// void OnN2kOpen();
+
 int rpm = -273;
 double depth = -273;
 double speed = -273;
@@ -147,14 +174,31 @@ std::string getEngineStatus2(const tN2kDD223& status) {
 bool NMEAsetup() {
     OutputStream = &Serial;
 
-    //  NMEA2000.SetN2kCANReceiveFrameBufSize(50);
+    // Set Product information
+    NMEA2000.SetProductInformation("00707887", // Manufacturer's Model serial code
+                                    101, // Manufacturer's product code
+                                    "NMEATrax",  // Manufacturer's Model ID
+                                    FW_VERSION,  // Manufacturer's Software version code
+                                    "2.0" // Manufacturer's Model version
+                                    );
+    // Set device information
+    NMEA2000.SetDeviceInformation(7, // Unique number. Use e.g. Serial number.
+                                    140, // Device function=Analog to NMEA 2000 Gateway. See codes on https://web.archive.org/web/20190531120557/https://www.nmea.org/Assets/20120726%20nmea%202000%20class%20&%20function%20codes%20v%202.00.pdf
+                                    20, // Device class=Inter/Intranetwork Device. See codes on  https://web.archive.org/web/20190531120557/https://www.nmea.org/Assets/20120726%20nmea%202000%20class%20&%20function%20codes%20v%202.00.pdf
+                                    2048 // Just choosen free from code list on https://web.archive.org/web/20190529161431/http://www.nmea.org/Assets/20121020%20nmea%202000%20registration%20list.pdf
+                                    );
+
+    NMEA2000.SetMode(tNMEA2000::N2km_ListenAndNode,7);
+
+    NMEA2000.SetN2kCANReceiveFrameBufSize(150);
     // Do not forward bus messages at all
     NMEA2000.SetForwardType(tNMEA2000::fwdt_Text);
     NMEA2000.SetForwardStream(OutputStream);
     // Set false below, if you do not want to see messages parsed to HEX withing library
     NMEA2000.EnableForward(false);
     NMEA2000.SetMsgHandler(HandleNMEA2000Msg);
-    //  NMEA2000.SetN2kCANMsgBufSize(2);
+    NMEA2000.SetN2kCANMsgBufSize(8);
+    // NMEA2000.SetOnOpen(OnN2kOpen);
     NMEA2000.Open();
     OutputStream->println("Running...");
     return(true);
@@ -612,8 +656,100 @@ void HandleNMEA2000Msg(const tN2kMsg &N2kMsg) {
     }
 }
 
+// // *****************************************************************************
+// void SendN2kProductInformation() {
+//   NMEA2000.SendProductInformation();
+//   N2kMsgSentCount++;
+// }
+
+// // *****************************************************************************
+// void SendN2kIsoAddressClaim() {
+//   // Note that sometime NMEA Reader gets grazy, when ISO Address claim will be sent periodically.
+//   // If that happens, reopen NMEA Reader.
+//   NMEA2000.SendIsoAddressClaim(255,1);
+//   N2kMsgSentCount++;
+// }
+
+// // *****************************************************************************
+// void SendN2kMsg(const tN2kMsg &N2kMsg) {
+//   if ( NMEA2000.SendMsg(N2kMsg) ) {
+//     N2kMsgSentCount++;
+//   } else {
+//     N2kMsgFailCount++;
+//   }
+//   if ( ShowSentMessages ) N2kMsg.Print(&Serial);
+// }
+
+// // *****************************************************************************
+// // Function check is it time to send message. If it is, message will be sent and
+// // next send time will be updated.
+// // Function always returns next time it should be handled.
+// int64_t CheckSendMessage(tN2kSendMessage &N2kSendMessage) {
+//   if ( N2kSendMessage.Scheduler.IsDisabled() ) return N2kSendMessage.Scheduler.GetNextTime();
+
+//   if ( N2kSendMessage.Scheduler.IsTime() ) {
+//     N2kSendMessage.Scheduler.UpdateNextTime();
+//     N2kSendMessage.SendFunction();
+//   }
+
+//   return N2kSendMessage.Scheduler.GetNextTime();
+// }
+
+// // *****************************************************************************
+// // Function send enabled messages from tN2kSendMessage structure according to their
+// // period+offset.
+// void SendN2kMessages() {
+//   static uint64_t NextSend=0;
+//   uint64_t Now=N2kMillis64();
+
+//   if ( NextSend<Now ) {
+//     uint64_t NextMsgSend;
+//     NextSend=Now+2000;
+//     for ( size_t i=0; i<nN2kSendMessages; i++ ) {
+//       NextMsgSend=CheckSendMessage(N2kSendMessages[i]);
+//       if ( NextMsgSend<NextSend ) NextSend=NextMsgSend;
+//     }
+//   }
+// }
+
+// // We add 300 ms as default for each offset to avoid failed sending at start. 
+// // Message sending is synchronized to open. After open there is 250 ms address claiming time when
+// // message sending fails.
+// #define AddSendPGN(fn,NextSend,Period,Offset,Enabled) {fn,#fn,NextSend,Period,Offset+300,Enabled}
+
+// tN2kSendMessage N2kSendMessages[]={
+//    AddSendPGN(SendN2kIsoAddressClaim,0,5000,0,true) // 60928 Not periodic
+//   ,AddSendPGN(SendN2kProductInformation,0,5000,60,true) // 126996 (20) Not periodic
+// };
+
+// size_t nN2kSendMessages=sizeof(N2kSendMessages)/sizeof(tN2kSendMessage);
+
+// *****************************************************************************
+// Call back for NMEA2000 open. This will be called, when library starts bus communication.
+// See NMEA2000.SetOnOpen(OnN2kOpen); on setup()
+// We initialize here all messages next sending time. Since we use tN2kSyncScheduler all messages
+// send offset will be synchronized to libary.
+// void OnN2kOpen() {
+//   for ( size_t i=0; i<nN2kSendMessages; i++ ) {
+//     if ( N2kSendMessages[i].Scheduler.IsEnabled() ) N2kSendMessages[i].Scheduler.UpdateNextTime();
+//   }
+//   Sending=true;
+// }
+
+// // *****************************************************************************
+// void tN2kSendMessage::Enable(bool state)  {
+//   if ( Scheduler.IsEnabled()!=state ) {
+//     if ( state ) {
+//       Scheduler.UpdateNextTime();
+//     } else {
+//       Scheduler.Disable();
+//     }
+//   }
+// }
+
 //*****************************************************************************
-void NMEAloop() { 
+void NMEAloop() {
+    // if ( Sending ) SendN2kMessages();
     NMEA2000.ParseMessages();
     // Serial.println("NMEAloop");
     int nValid = -273;
