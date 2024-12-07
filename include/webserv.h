@@ -38,3 +38,13 @@ void sendEmailData(String text);
  * @brief Init websocket
 */
 void initWebSocket();
+
+/**
+ * @brief Send data to websocket
+ */
+void sendDataTask(void *parameter);
+
+/**
+ * @brief Pass data to be send via websocket
+ */
+void sendToWebSocket(String data);

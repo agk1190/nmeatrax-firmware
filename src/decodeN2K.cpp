@@ -16,6 +16,11 @@
 
 #include "decodeN2K.h"
 #include "main.h"
+#include "webserv.h"
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <iomanip> // For std::setprecision
 
 typedef struct {
     unsigned long PGN;
@@ -46,33 +51,6 @@ tNMEA2000Handler NMEA2000Handlers[]={
     {129284L,&NavigationInfo},
     {0,0}
 };
-
-// using tN2kSendFunction=void (*)();
-
-// // Structure for holding message sending information
-// struct tN2kSendMessage {
-//   tN2kSendFunction SendFunction;
-//   const char *const Description;
-//   tN2kSyncScheduler Scheduler;
-
-//   tN2kSendMessage(tN2kSendFunction _SendFunction, const char *const _Description, uint32_t /* _NextTime */ 
-//                   ,uint32_t _Period, uint32_t _Offset, bool _Enabled) : 
-//                     SendFunction(_SendFunction), 
-//                     Description(_Description), 
-//                     Scheduler(_Enabled,_Period,_Offset) {}
-//   void Enable(bool state);
-// };
-
-// extern tN2kSendMessage N2kSendMessages[];
-// extern size_t nN2kSendMessages;
-
-// static unsigned long N2kMsgSentCount=0;
-// static unsigned long N2kMsgFailCount=0;
-// static bool ShowSentMessages=false;
-// static bool Sending=false;
-
-// // Forward declarations for functions
-// void OnN2kOpen();
 
 int rpm = -273;
 double depth = -273;
@@ -227,6 +205,13 @@ template<typename T> double ReturnWithConversionCheckUnDef(T val, double (*ConvF
     } else return(-273);
 }
 
+std::string to_string_with_precision(double value, int precision = 2) {     // ChatGPT
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(precision);
+    oss << value;
+    return oss.str();
+}
+
 //*****************************************************************************
 void EngineRapid(const tN2kMsg &N2kMsg) {
     unsigned char EngineInstance;
@@ -246,6 +231,16 @@ void EngineRapid(const tN2kMsg &N2kMsg) {
         rpm = (!N2kIsNA(EngineSpeed) && EngineSpeed < 10000) ? EngineSpeed : -273;
         leg_tilt = N2kIsNA(EngineTiltTrim) ? -273 : EngineTiltTrim;
         
+        // std::string sRPM = String(rpm, 0).c_str();
+        // std::string text = "{\"127488\":{\"" + std::to_string(EngineInstance) + "\":{\"gear\":" + std::to_string(rpm) + "}}}";
+        std::string text = "{\"messageType\":\"127488\",\"instanceID\":" + std::to_string(EngineInstance) + 
+                            ",\"data\":{\"rpm\":" + to_string_with_precision((!N2kIsNA(EngineSpeed) && EngineSpeed < 10000) ? EngineSpeed : -273, 0) + 
+                            ",\"legTilt\":" + to_string_with_precision(N2kIsNA(EngineTiltTrim) ? -273 : EngineTiltTrim, 0) + 
+                            "}}";
+        // Serial.println("Got rpm");
+        // Serial.println(text.c_str());
+        sendToWebSocket(text.c_str());
+
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
@@ -300,6 +295,17 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
             lpkm = -273;
         }
 
+        std::string text = "{\"messageType\":\"127489\",\"instanceID\":" + std::to_string(EngineInstance) + 
+                            ",\"data\":{\"eTemp\":" + to_string_with_precision(N2kIsNA(EngineCoolantTemp) ? -273 : EngineCoolantTemp) + 
+                            ",\"oTemp\":" + to_string_with_precision(N2kIsNA(EngineOilTemp) ? -273 : EngineOilTemp) + 
+                            ",\"oPres\":" + to_string_with_precision(N2kIsNA(EngineOilPress) ? -273 : EngineOilPress / 1000) + 
+                            ",\"battV\":" + to_string_with_precision(N2kIsNA(AltenatorVoltage) ? -273 : AltenatorVoltage) + 
+                            ",\"fuelRate\":" + to_string_with_precision(N2kIsNA(FuelRate) ? -273 : FuelRate) + 
+                            ",\"eHours\":" + to_string_with_precision(N2kIsNA(EngineHours) ? -273 : EngineHours, 0) + 
+                            ",\"efficiency\":" + to_string_with_precision(lpkm, 3) + 
+                            "}}";
+        sendToWebSocket(text.c_str());
+
         evcErrorMsg = getEngineStatus1(Status1).c_str();
         evcErrorMsg += getEngineStatus2(Status2).c_str();
 
@@ -324,8 +330,7 @@ void TransmissionParameters(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  oil temperature (C): ",OilTemperature,&KelvinToC,true);
         PrintLabelValWithConversionCheckUnDef("  discrete status: ",DiscreteStatus1,0,true);
         #endif
-        switch(TransmissionGear)
-        {
+        switch(TransmissionGear) {
             case N2kTG_Forward:
                 gear = "F";
                 break;
@@ -338,8 +343,15 @@ void TransmissionParameters(const tN2kMsg &N2kMsg) {
             default:
                 gear = "-";
                 break;
+
+            std::string text = "{\"messageType\":\"127493\",\"instanceID\":" + std::to_string(EngineInstance) + 
+                            ",\"data\":{\"gear\":" + std::to_string(TransmissionGear) + 
+                            ",\"oTemp\":" + to_string_with_precision(N2kIsNA(OilTemperature) ? -273 : OilTemperature) + 
+                            ",\"oPres\":" + to_string_with_precision(N2kIsNA(OilPressure) ? -273 : OilPressure / 1000) + 
+                            "}}";
+            sendToWebSocket(text.c_str());
         }
-        } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
+    } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
 //*****************************************************************************
@@ -362,6 +374,12 @@ void COGSOG(const tN2kMsg &N2kMsg) {
         if (HeadingReference == 0 || HeadingReference == 1) {
             speed = ReturnWithConversionCheckUnDef(SOG);
             heading = ReturnWithConversionCheckUnDef(COG,&RadToDeg);
+
+            std::string text = "{\"messageType\":\"129026\",\"instanceID\":" + std::to_string(SID) + 
+                            ",\"data\":{\"sog\":" + to_string_with_precision(N2kIsNA(SOG) ? -273 : ReturnWithConversionCheckUnDef(SOG)) + 
+                            ",\"cog\":" + to_string_with_precision(N2kIsNA(COG) ? -273 : ReturnWithConversionCheckUnDef(COG,&RadToDeg), 0) + 
+                            "}}";
+            sendToWebSocket(text.c_str());
         }
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -412,11 +430,17 @@ void GNSS(const tN2kMsg &N2kMsg) {
         lat = N2kIsNA(Latitude) ? -273 : Latitude;
         lon = N2kIsNA(Longitude) ? -273 : Longitude;
         unixTime = ((DaysSince1970*86400)+SecondsSinceMidnight);
-        // time_t n2kTime = unixTime+(settings.timeZone*3600);
-        // timeString = asctime(gmtime(&n2kTime));
         struct timeval tv;
         tv.tv_sec = unixTime;
         settimeofday(&tv, NULL);    // set ESP32 time to GPS time
+
+        std::string text = "{\"messageType\":\"129029\",\"instanceID\":" + std::to_string(SID) + 
+                            ",\"data\":{\"unixTime\":" + std::to_string(unixTime) + 
+                            ",\"lat\":" + to_string_with_precision(N2kIsNA(Latitude) ? -273 : Latitude) + 
+                            ",\"lon\":" + to_string_with_precision(N2kIsNA(Longitude) ? -273 : Longitude) + 
+                            "}}";
+        sendToWebSocket(text.c_str());
+
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
@@ -439,6 +463,15 @@ void Temperature(const tN2kMsg &N2kMsg) {
         if (TempSource == N2kts_SeaTemperature) {
             wtemp = N2kIsNA(ActualTemperature) ? -273 : ActualTemperature;
         }
+
+        std::string text = "{\"messageType\":\"130312\",\"instanceID\":" + std::to_string(SID) + 
+                            ",\"data\":{\"tempInstance\":" + std::to_string(TempInstance) + 
+                            ",\"tempSource\":" + std::to_string(TempSource) + 
+                            ",\"actualTemp\":" + to_string_with_precision(N2kIsNA(ActualTemperature) ? -273 : ActualTemperature) + 
+                            ",\"setTemp\":" + to_string_with_precision(N2kIsNA(SetTemperature) ? -273 : SetTemperature) + 
+                            "}}";
+        sendToWebSocket(text.c_str());
+
     } else {OutputStream->print("Failed to parse PGN: ");  OutputStream->println(N2kMsg.PGN);}
 }
 
@@ -451,6 +484,13 @@ void WaterDepth(const tN2kMsg &N2kMsg) {
     digitalWrite(LED_N2K, HIGH);
     gpsKeepAlive = millis();
     if (ParseN2kWaterDepth(N2kMsg,SID,DepthBelowTransducer,Offset)) {
+        
+        std::string text = "{\"messageType\":\"128267\",\"instanceID\":" + std::to_string(SID) + 
+                            ",\"data\":{\"depth\":" + to_string_with_precision(N2kIsNA(DepthBelowTransducer) ? -273 : DepthBelowTransducer) + 
+                            ",\"offset\":" + to_string_with_precision(N2kIsNA(Offset) ? -273 : Offset) + 
+                            "}}";
+        sendToWebSocket(text.c_str());
+
         if (N2kIsNA(Offset) || Offset == 0) {
             #ifdef DEBUG_EN
             PrintLabelValWithConversionCheckUnDef("Depth below transducer ",DepthBelowTransducer);
@@ -555,6 +595,12 @@ void FluidLevel(const tN2kMsg &N2kMsg) {
         OutputStream->print(" capacity :"); OutputStream->println(Capacity);
         #endif
         flevel = (!N2kIsNA(Level) && FluidType == N2kft_Fuel) ? Level : -273;
+        std::string text = "{\"messageType\":\"127505\",\"instanceID\":" + std::to_string(Instance) + 
+                            ",\"data\":{\"fluidType\":" + to_string_with_precision(FluidType) + 
+                            ",\"level\":" + to_string_with_precision((!N2kIsNA(Level) && FluidType == N2kft_Fuel) ? Level : -273) + 
+                            ",\"capacity\":" + to_string_with_precision(N2kIsNA(Capacity) ? -273 : Capacity) + 
+                            "}}";
+        sendToWebSocket(text.c_str());
     }
 }
 
@@ -575,6 +621,11 @@ void MagneticVariation(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  Variation ",Variation,&RadToDeg,true);
         #endif
         mag_var = ReturnWithConversionCheckUnDef(Variation, &RadToDeg);
+
+        std::string text = "{\"messageType\":\"127258\",\"instanceID\":" + std::to_string(SID) + 
+                            ",\"data\":{\"magVar\":" + to_string_with_precision(ReturnWithConversionCheckUnDef(Variation, &RadToDeg)) + 
+                            "}}";
+        sendToWebSocket(text.c_str());
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
@@ -655,97 +706,6 @@ void HandleNMEA2000Msg(const tN2kMsg &N2kMsg) {
         NMEA2000Handlers[iHandler].Handler(N2kMsg); 
     }
 }
-
-// // *****************************************************************************
-// void SendN2kProductInformation() {
-//   NMEA2000.SendProductInformation();
-//   N2kMsgSentCount++;
-// }
-
-// // *****************************************************************************
-// void SendN2kIsoAddressClaim() {
-//   // Note that sometime NMEA Reader gets grazy, when ISO Address claim will be sent periodically.
-//   // If that happens, reopen NMEA Reader.
-//   NMEA2000.SendIsoAddressClaim(255,1);
-//   N2kMsgSentCount++;
-// }
-
-// // *****************************************************************************
-// void SendN2kMsg(const tN2kMsg &N2kMsg) {
-//   if ( NMEA2000.SendMsg(N2kMsg) ) {
-//     N2kMsgSentCount++;
-//   } else {
-//     N2kMsgFailCount++;
-//   }
-//   if ( ShowSentMessages ) N2kMsg.Print(&Serial);
-// }
-
-// // *****************************************************************************
-// // Function check is it time to send message. If it is, message will be sent and
-// // next send time will be updated.
-// // Function always returns next time it should be handled.
-// int64_t CheckSendMessage(tN2kSendMessage &N2kSendMessage) {
-//   if ( N2kSendMessage.Scheduler.IsDisabled() ) return N2kSendMessage.Scheduler.GetNextTime();
-
-//   if ( N2kSendMessage.Scheduler.IsTime() ) {
-//     N2kSendMessage.Scheduler.UpdateNextTime();
-//     N2kSendMessage.SendFunction();
-//   }
-
-//   return N2kSendMessage.Scheduler.GetNextTime();
-// }
-
-// // *****************************************************************************
-// // Function send enabled messages from tN2kSendMessage structure according to their
-// // period+offset.
-// void SendN2kMessages() {
-//   static uint64_t NextSend=0;
-//   uint64_t Now=N2kMillis64();
-
-//   if ( NextSend<Now ) {
-//     uint64_t NextMsgSend;
-//     NextSend=Now+2000;
-//     for ( size_t i=0; i<nN2kSendMessages; i++ ) {
-//       NextMsgSend=CheckSendMessage(N2kSendMessages[i]);
-//       if ( NextMsgSend<NextSend ) NextSend=NextMsgSend;
-//     }
-//   }
-// }
-
-// // We add 300 ms as default for each offset to avoid failed sending at start. 
-// // Message sending is synchronized to open. After open there is 250 ms address claiming time when
-// // message sending fails.
-// #define AddSendPGN(fn,NextSend,Period,Offset,Enabled) {fn,#fn,NextSend,Period,Offset+300,Enabled}
-
-// tN2kSendMessage N2kSendMessages[]={
-//    AddSendPGN(SendN2kIsoAddressClaim,0,5000,0,true) // 60928 Not periodic
-//   ,AddSendPGN(SendN2kProductInformation,0,5000,60,true) // 126996 (20) Not periodic
-// };
-
-// size_t nN2kSendMessages=sizeof(N2kSendMessages)/sizeof(tN2kSendMessage);
-
-// *****************************************************************************
-// Call back for NMEA2000 open. This will be called, when library starts bus communication.
-// See NMEA2000.SetOnOpen(OnN2kOpen); on setup()
-// We initialize here all messages next sending time. Since we use tN2kSyncScheduler all messages
-// send offset will be synchronized to libary.
-// void OnN2kOpen() {
-//   for ( size_t i=0; i<nN2kSendMessages; i++ ) {
-//     if ( N2kSendMessages[i].Scheduler.IsEnabled() ) N2kSendMessages[i].Scheduler.UpdateNextTime();
-//   }
-//   Sending=true;
-// }
-
-// // *****************************************************************************
-// void tN2kSendMessage::Enable(bool state)  {
-//   if ( Scheduler.IsEnabled()!=state ) {
-//     if ( state ) {
-//       Scheduler.UpdateNextTime();
-//     } else {
-//       Scheduler.Disable();
-//     }
-//   }
-// }
 
 //*****************************************************************************
 void NMEAloop() {

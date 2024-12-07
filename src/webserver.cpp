@@ -34,6 +34,9 @@ WiFiManager wifiManager;
 // Structure to store device settings
 extern Settings settings;
 
+QueueHandle_t wsQueue;
+TaskHandle_t wsSendTaskHandle = NULL;
+
 // Create an Event Source on /NMEATrax
 // AsyncEventSource NMEATrax("/NMEATrax");
 
@@ -233,6 +236,8 @@ bool webSetup() {
         request->send(200, "application/json", JSON.stringify(values));
     });
 
+    wsQueue = xQueueCreate(20, sizeof(String *)); // Queue for 20 messages
+    xTaskCreatePinnedToCore(sendDataTask, "WebSocketSendTask", 4096, NULL, 1, &wsSendTaskHandle, 1);
     // server.addHandler(&NMEATrax);
     initWebSocket();
 
@@ -279,7 +284,7 @@ void initWebSocket() {
 }
 
 void webLoop() {
-    ws.textAll(JSONValues());
+    // ws.textAll(JSONValues());
     ws.cleanupClients();
     ElegantOTA.loop();
 }
@@ -287,4 +292,26 @@ void webLoop() {
 void sendEmailData(String text) {
     emws.textAll(text);
     emws.cleanupClients();
+}
+
+void sendDataTask(void *parameter) {
+    String *dataToSend = nullptr;
+    while (true) {
+        if (xQueueReceive(wsQueue, &dataToSend, portMAX_DELAY)) {
+            // Serial.println("Receiving queue");
+            if (dataToSend != nullptr) {
+                ws.textAll(*dataToSend);
+                delete dataToSend; // Free allocated memory
+            }
+        }
+    }
+}
+
+void sendToWebSocket(String data) {
+    // Serial.println("Sending to queue");
+    String *dataToSend = new String(data);
+    if (!xQueueSend(wsQueue, &dataToSend, 0)) {
+        delete dataToSend; // Free memory if queue is full
+    }
+    // Serial.println("Sent to queue");
 }
