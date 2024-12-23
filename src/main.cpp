@@ -49,6 +49,8 @@ String CSVFileName;
 
 bool NMEAsleep = false;
 
+String nmeaData[19];
+
 TaskHandle_t webTaskHandle = NULL;
 TaskHandle_t loggingTaskHandle = NULL;
 TaskHandle_t bgTaskHandle = NULL;
@@ -60,68 +62,67 @@ TaskHandle_t nmeaTaskHandle = NULL;
  * @return A string of comma separated values containing the NMEA data.
 */
 String getCSV() {
-    String data[] = {
-        String(rpm),            // 0
-        String(etemp, 2),          // 1
-        String(otemp, 2),          // 2
-        String(opres),          // 3
-        String(fuel_rate, 1),   // 4
-        String(flevel, 1),      // 5
-        String(lpkm, 3),        // 6
-        String(leg_tilt),       // 7
-        String(speed),          // 8
-        String(heading),        // 9
-        String(depth, 2),          // 10
-        String(wtemp, 2),          // 11
-        String(battV),          // 12
-        String(ehours),         // 13
-        String(gear),           // 14
-        String(lat, 6),         // 15
-        String(lon, 6),         // 16
-        String(mag_var, 2),     // 17
-        String(unixTime)        // 18
-    };
+    // String data[] = {
+    //     String(rpm),            // 0
+    //     String(etemp, 2),          // 1
+    //     String(otemp, 2),          // 2
+    //     String(opres),          // 3
+    //     String(fuel_rate, 1),   // 4
+    //     String(flevel, 1),      // 5
+    //     String(lpkm, 3),        // 6
+    //     String(leg_tilt),       // 7
+    //     String(speed),          // 8
+    //     String(heading),        // 9
+    //     String(depth, 2),          // 10
+    //     String(wtemp, 2),          // 11
+    //     String(battV),          // 12
+    //     String(ehours),         // 13
+    //     String(gear),           // 14
+    //     String(lat, 6),         // 15
+    //     String(lon, 6),         // 16
+    //     String(mag_var, 2),     // 17
+    //     String(unixTime)        // 18
+    // };
+    
     String rdata;
 
     //https://www.geeksforgeeks.org/how-to-find-size-of-array-in-cc-without-using-sizeof-operator/
-    int dataSize = sizeof(data)/sizeof(data[0]);
+    int dataSize = sizeof(nmeaData)/sizeof(nmeaData[0]);
 
-    for (size_t i = 0; i < dataSize; i++)
-    {
-        rdata += data[i];
-        if (i < dataSize-1)
-        {
+    for (size_t i = 0; i < dataSize; i++) {
+        rdata += nmeaData[i];
+        if (i < dataSize - 1) {
             rdata += ",";
         }   
     }
     return(rdata);
 }
 
-String JSONValues() {
-    readings["rpm"] = String(rpm);
-    readings["etemp"] = String(etemp, 0);
-    readings["otemp"] = String(otemp, 0);
-    readings["opres"] = String(opres, 0);
-    readings["fuel_rate"] = String(fuel_rate, 1);
-    readings["flevel"] = String(flevel, 1);
-    readings["efficiency"] = String(lpkm, 3);
-    readings["leg_tilt"] = String(leg_tilt);
-    readings["speed"] = String(speed);
-    readings["heading"] = String(heading);
-    readings["depth"] = String(depth);
-    readings["wtemp"] = String(wtemp);
-    readings["battV"] = String(battV);
-    readings["ehours"] = String(ehours);
-    readings["gear"] = String(gear);
-    readings["lat"] = String(lat, 6);
-    readings["lon"] = String(lon, 6);
-    readings["mag_var"] = String(mag_var, 2);
-    readings["time"] = String(unixTime);
-    readings["evcErrorMsg"] = evcErrorMsg;
-
-    String jsonString = JSON.stringify(readings);
-    return jsonString;
-}
+// String JSONValues() {
+//     readings["rpm"] = String(rpm);
+//     readings["etemp"] = String(etemp, 0);
+//     readings["otemp"] = String(otemp, 0);
+//     readings["opres"] = String(opres, 0);
+//     readings["fuel_rate"] = String(fuel_rate, 1);
+//     readings["flevel"] = String(flevel, 1);
+//     readings["efficiency"] = String(lpkm, 3);
+//     readings["leg_tilt"] = String(leg_tilt);
+//     readings["speed"] = String(speed);
+//     readings["heading"] = String(heading);
+//     readings["depth"] = String(depth);
+//     readings["wtemp"] = String(wtemp);
+//     readings["battV"] = String(battV);
+//     readings["ehours"] = String(ehours);
+//     readings["gear"] = String(gear);
+//     readings["lat"] = String(lat, 6);
+//     readings["lon"] = String(lon, 6);
+//     readings["mag_var"] = String(mag_var, 2);
+//     readings["time"] = String(unixTime);
+//     readings["evcErrorMsg"] = evcErrorMsg;
+//
+//     String jsonString = JSON.stringify(readings);
+//     return jsonString;
+// }
 
 bool saveSettings() {
     bool success = false;
@@ -260,6 +261,10 @@ void setup() {
     // setenv("TZ", getTZdefinition(settings.timeZone), 1);     // set time zone
     // tzset();
 
+    for (int i = 0; i < sizeof(nmeaData) / sizeof(nmeaData[0]); i++) {
+        nmeaData[i] = "-";
+    }
+
     if (!webSetup()) {crash();}
     if (!NMEAsetup()) {crash();}
 
@@ -345,32 +350,32 @@ void vBackgroundTasks(void * pvParameters) {
 
         switch (recMode) {
             case AUTO_RPM:
-                if (rpm <= 0) {
+                if (nmeaData[0].toInt() <= 0) {
                     recMode=AUTO_RPM_IDLE;
                     // endGPXfile(GPXFileName.c_str());
                     if (loggingTaskHandle != NULL) {vTaskDelete(loggingTaskHandle);}
                 }
-                localRecInt = rpm > 3900 ? 1 : settings.recInt;
+                localRecInt = nmeaData[0].toInt() > 3900 ? 1 : settings.recInt;
                 break;
 
             case AUTO_RPM_IDLE:
-                if (rpm > 0) {
+                if (nmeaData[0].toInt() > 0) {
                     outOfIdle=true;
                     recMode=AUTO_RPM;
                 }
                 break;
 
             case AUTO_SPD:
-                if (speed <= 0) {
+                if (nmeaData[8].toDouble() <= 0) {
                     recMode=AUTO_SPD_IDLE;
                     // endGPXfile(GPXFileName.c_str());
                     if (loggingTaskHandle != NULL) {vTaskDelete(loggingTaskHandle);}
                 }
-                localRecInt = speed > 15 ? 1 : settings.recInt;
+                localRecInt = nmeaData[8].toDouble() > 15 ? 1 : settings.recInt;
                 break;
 
             case AUTO_SPD_IDLE:
-                if (speed > 0) {
+                if (nmeaData[8].toDouble() > 0) {
                     outOfIdle=true;
                     recMode=AUTO_SPD;
                 }
