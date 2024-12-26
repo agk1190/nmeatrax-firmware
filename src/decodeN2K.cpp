@@ -52,27 +52,6 @@ tNMEA2000Handler NMEA2000Handlers[]={
     {0,0}
 };
 
-// int rpm = -273;
-// double depth = -273;
-// double speed = -273;
-// int heading = -273;
-// double etemp = -273;
-// double otemp = -273;
-// double wtemp = -273;
-// double lat = -273;
-// double lon = -273;
-// double mag_var = -273;
-// int leg_tilt = -273;
-// double opres = -273;
-// double battV = -273;
-// double fuel_rate = -273;
-// uint32_t ehours = 0;
-// String gear = "-";
-// double flevel = -273;
-// double lpkm = -273;
-// uint64_t unixTime = 0;
-// String evcErrorMsg = "-";
-
 uint32_t evcKeepAlive;
 uint32_t gpsKeepAlive;
 uint32_t depthKeepAlive;
@@ -242,8 +221,6 @@ void EngineRapid(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  boost pressure (Pa): ",EngineBoostPressure,0,true);
         PrintLabelValWithConversionCheckUnDef("  tilt trim: ",EngineTiltTrim,0,true);
         #endif
-        // rpm = (!N2kIsNA(EngineSpeed) && EngineSpeed < 10000) ? EngineSpeed : -273;
-        // leg_tilt = N2kIsNA(EngineTiltTrim) ? -273 : EngineTiltTrim;
         
         std::string text = "{\"messageType\":\"127488\",\"instanceID\":" + std::to_string(EngineInstance) + 
                             ",\"data\":{\"rpm\":" + to_string_with_precision((!N2kIsNA(EngineSpeed) && EngineSpeed < 10000) ? EngineSpeed : -273, 0) + 
@@ -296,7 +273,7 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
         nmeaData[3] = String(N2kIsNA(EngineOilPress) ? -273 : EngineOilPress / 1000, 0);
         nmeaData[12] = String(N2kIsNA(AltenatorVoltage) ? -273 : AltenatorVoltage, 2);
         nmeaData[4] = String(N2kIsNA(FuelRate) ? -273 : FuelRate, 1);
-        nmeaData[13] = String(N2kIsNA(EngineHours) ? -273 : EngineHours, 0);
+        nmeaData[13] = String(N2kIsNA(EngineHours) ? -273 : EngineHours/3600, 0);
 
         double lpkm;
         if (nmeaData[8].toDouble() > 0) {
@@ -312,30 +289,17 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
                             ",\"oPres\":" + to_string_with_precision(N2kIsNA(EngineOilPress) ? -273 : EngineOilPress / 1000) + 
                             ",\"battV\":" + to_string_with_precision(N2kIsNA(AltenatorVoltage) ? -273 : AltenatorVoltage) + 
                             ",\"fuelRate\":" + to_string_with_precision(N2kIsNA(FuelRate) ? -273 : FuelRate) + 
-                            ",\"eHours\":" + to_string_with_precision(N2kIsNA(EngineHours) ? -273 : EngineHours, 0) + 
+                            ",\"eHours\":" + to_string_with_precision(N2kIsNA(EngineHours) ? -273 : EngineHours/3600, 0) + 
                             ",\"efficiency\":" + to_string_with_precision(lpkm, 3) + 
                             "}}";
         sendToWebSocket(text.c_str());
         nmeaData[6] = String(lpkm, 3);
 
-        // evcErrorMsg = getEngineStatus1(Status1).c_str();
-        // evcErrorMsg += getEngineStatus2(Status2).c_str();
-        static uint16_t lastStatus1 = 0;
-        static uint16_t lastStatus2 = 0;
-        uint16_t currentStatus1 = Status1.Status;
-        uint16_t currentStatus2 = Status2.Status;
-        if ((currentStatus1 != lastStatus1 || currentStatus2 != lastStatus2)) {
-            lastStatus1 = currentStatus1;
-            lastStatus2 = currentStatus2;
-            std::string errors = "{\"messageType\":\"127489\",\"instanceID\":" + std::to_string(EngineInstance) + 
-                                ",\"data\":{\"status1\":" + std::to_string(Status1.Status) + 
-                                ",\"status2\":" + std::to_string(Status2.Status) + "}}";
-            sendToWebSocket(errors.c_str());
-        }
-        // std::string errors = "{\"messageType\":\"161616\",\"instanceID\":" + std::to_string(EngineInstance) + 
-        //                     ",\"data\":{\"status1\":" + std::to_string(Status1.Status) + 
-        //                     ",\"status2\":" + std::to_string(Status2.Status) + "}}";
-        // nmeaData[19] = errors.c_str();
+        std::string errors = "{\"messageType\":\"161616\",\"instanceID\":" + std::to_string(EngineInstance) + 
+                            ",\"data\":{\"status1\":" + std::to_string(Status1.Status) + 
+                            ",\"status2\":" + std::to_string(Status2.Status) + "}}";
+        sendToWebSocket(errors.c_str());
+        nmeaData[19] = String(Status1.Status) + ";" + String(Status2.Status);
 
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }

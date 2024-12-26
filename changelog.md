@@ -16,6 +16,10 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 ### Added
 - Event based decoding
 
+### Changed
+- NMEA data now stored in array instead of individual variables.
+- Engine hours now sent as hours.
+
 
 ## [9.0.0] - 2024-09-22
 

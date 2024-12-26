@@ -69,13 +69,6 @@ bool saveSettings();
 bool readSettings();
 
 /**
- * @brief Compile NMEA data into a JSON string to send to the web server.
- * @param none
- * @return A string comtaining the NMEA data in a JSON format.
-*/
-String JSONValues();
-
-/**
  * @brief Called when something fails
 */
 void crash();

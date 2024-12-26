@@ -284,7 +284,6 @@ void initWebSocket() {
 }
 
 void webLoop() {
-    // ws.textAll(JSONValues());
     ws.cleanupClients();
     ElegantOTA.loop();
 }
@@ -298,7 +297,6 @@ void sendDataTask(void *parameter) {
     String *dataToSend = nullptr;
     while (true) {
         if (xQueueReceive(wsQueue, &dataToSend, portMAX_DELAY)) {
-            // Serial.println("Receiving queue");
             if (dataToSend != nullptr) {
                 ws.textAll(*dataToSend);
                 delete dataToSend; // Free allocated memory
@@ -308,10 +306,8 @@ void sendDataTask(void *parameter) {
 }
 
 void sendToWebSocket(String data) {
-    // Serial.println("Sending to queue");
     String *dataToSend = new String(data);
     if (!xQueueSend(wsQueue, &dataToSend, 0)) {
         delete dataToSend; // Free memory if queue is full
     }
-    // Serial.println("Sent to queue");
 }
