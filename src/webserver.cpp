@@ -153,30 +153,37 @@ bool webSetup() {
 
     // all functions related to doing or setting something
     server.on("/set", HTTP_POST, [](AsyncWebServerRequest *request) {
-        String _response = "<h1>OK</h1><script>setTimeout(function(){window.location.href = \"/options.html\"}, 2000);</script>";
-        if (request->hasParam("AP_SSID")) {
-            settings.wifiSSID = request->getParam("AP_SSID")->value().c_str();
+        if (request->hasParam("wifiSSID")) {
+            settings.wifiSSID = request->getParam("wifiSSID")->value().c_str();
             if (!saveSettings()) {crash();}
             request->send(200, "text/plain", "OK");
-            // ESP.restart();
         }
-        else if (request->hasParam("AP_PASS")) {
-            settings.wifiPass = request->getParam("AP_PASS")->value().c_str();
+        else if (request->hasParam("wifiPass")) {
+            settings.wifiPass = request->getParam("wifiPass")->value().c_str();
             if (!saveSettings()) {crash();}
             request->send(200, "text/plain", "OK");
-            // ESP.restart();
+        }
+        else if (request->hasParam("wifiMode")) {
+            settings.isLocalAP = request->getParam("wifiMode")->value() == "true" ? true : false;
+            if (!saveSettings()) {crash();}
+            request->send(200, "text/plain", "OK");
         }
         else if (request->hasParam("recInt")) {
             settings.recInt = atoi(request->getParam("recInt")->value().c_str());
             if (settings.recInt < 1){settings.recInt = 1;}                
             if (!saveSettings()) {crash();}
-            request->send(200, "text/html", _response);
+            request->send(200, "text/plain", "OK");
+        }
+        else if (request->hasParam("newAP")) {
+            wifiManager.setHttpPort(81);
+            wifiManager.startWebPortal();
+            request->send(200, "text/plain", "OK");
         }
         else if (request->hasParam("eraseWiFi")) {
             wifiManager.resetSettings();
             settings.isLocalAP = false;
             if (!saveSettings()) {crash();}
-            request->send(200, "text/html", _response);
+            request->send(200, "text/plain", "OK");
             ESP.restart();
         }
         else if (request->hasParam("eraseData")) {
@@ -201,7 +208,6 @@ bool webSetup() {
             switch (mode) {
             case 0:
                 recMode = OFF;
-                // if (getSDcardStatus()) endGPXfile(GPXFileName.c_str());
                 break;
             case 1:
                 recMode = ON;
@@ -215,7 +221,6 @@ bool webSetup() {
                 break;
             default:
                 recMode = OFF;
-                // if (getSDcardStatus()) endGPXfile(GPXFileName.c_str());
                 break;
             }
             settings.recMode = recMode;
@@ -230,8 +235,13 @@ bool webSetup() {
     // send current settings to client
     server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request) {
         JSONVar values;
-        values["recInt"] = settings.recInt;
+        values["firmware"] = FW_VERSION;
+        values["harware"] = "2.0";
         values["recMode"] = recMode;
+        values["recInt"] = settings.recInt;
+        values["wifiMode"] = settings.isLocalAP;
+        values["wifiSSID"] = settings.wifiSSID;
+        values["wifiPass"] = settings.wifiPass;
         values["buildDate"] = BUILD_DATE;
         request->send(200, "application/json", JSON.stringify(values));
     });

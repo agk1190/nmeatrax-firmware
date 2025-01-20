@@ -15,10 +15,14 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 
 ### Added
 - Event based decoding
+- Added protection of bad EVC data
+- Added more details to /get
 
 ### Changed
 - NMEA data now stored in array instead of individual variables.
 - Engine hours now sent as hours.
+- Made localRecInt = settings.recInt by default (bug)
+- Changed WiFi updating (WIP)
 
 
 ## [9.0.0] - 2024-09-22

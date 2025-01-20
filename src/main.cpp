@@ -280,7 +280,7 @@ void vWriteRecording(void * pvParameters) {
 void vBackgroundTasks(void * pvParameters) {
     for (;;) {
         static int count = 0;
-        static int localRecInt;
+        static int localRecInt = settings.recInt;
         static int nmeaSleepCount = 0;
 
         #ifdef TESTMODE1

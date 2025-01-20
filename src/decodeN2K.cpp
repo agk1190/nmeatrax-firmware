@@ -150,13 +150,14 @@ bool NMEAsetup() {
                                     101,                // Manufacturer's product code
                                     "NMEATrax",         // Manufacturer's Model ID
                                     FW_VERSION,         // Manufacturer's Software version code
-                                    "2.0"               // Manufacturer's Model version
+                                    "2.0",              // Manufacturer's Model version
+                                    2                   // Load Equivalency
                                     );
     // Set device information
-    NMEA2000.SetDeviceInformation(7,        // Unique number. Use e.g. Serial number.
+    NMEA2000.SetDeviceInformation(5,        // Unique number. Use e.g. Serial number.
                                     140,    // Device function=Analog to NMEA 2000 Gateway. See codes on https://web.archive.org/web/20190531120557/https://www.nmea.org/Assets/20120726%20nmea%202000%20class%20&%20function%20codes%20v%202.00.pdf
                                     20,     // Device class=Inter/Intranetwork Device. See codes on  https://web.archive.org/web/20190531120557/https://www.nmea.org/Assets/20120726%20nmea%202000%20class%20&%20function%20codes%20v%202.00.pdf
-                                    2046    // Just choosen free from code list on https://web.archive.org/web/20190529161431/http://www.nmea.org/Assets/20121020%20nmea%202000%20registration%20list.pdf
+                                    2040    // Just choosen free from code list on https://web.archive.org/web/20190529161431/http://www.nmea.org/Assets/20121020%20nmea%202000%20registration%20list.pdf
                                     );
 
     NMEA2000.SetMode(tNMEA2000::N2km_ListenAndNode,7);
@@ -222,13 +223,15 @@ void EngineRapid(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  tilt trim: ",EngineTiltTrim,0,true);
         #endif
         
+        if (EngineSpeed >= 16383.50) {return;}
+        if (EngineTiltTrim == N2kInt8NA - 1) return;
         std::string text = "{\"messageType\":\"127488\",\"instanceID\":" + std::to_string(EngineInstance) + 
-                            ",\"data\":{\"rpm\":" + to_string_with_precision((!N2kIsNA(EngineSpeed) && EngineSpeed < 10000) ? EngineSpeed : -273, 0) + 
-                            ",\"legTilt\":" + to_string_with_precision(N2kIsNA(EngineTiltTrim) ? -273 : EngineTiltTrim, 0) + 
+                            ",\"data\":{\"rpm\":" + to_string_with_precision(!N2kIsNA(EngineSpeed) ? EngineSpeed : -273, 0) + 
+                            ",\"legTilt\":" + to_string_with_precision(!N2kIsNA(EngineTiltTrim) ? EngineTiltTrim : -273, 0) + 
                             "}}";
         sendToWebSocket(text.c_str());
-        nmeaData[0] = String((!N2kIsNA(EngineSpeed) && EngineSpeed < 10000) ? EngineSpeed : -273, 0);
-        nmeaData[7] = String(N2kIsNA(EngineTiltTrim) ? -273 : EngineTiltTrim, 0);
+        nmeaData[0] = String(!N2kIsNA(EngineSpeed) ? EngineSpeed : -273, 0);        // removed > 10000 check for testing
+        nmeaData[7] = String(!N2kIsNA(EngineTiltTrim) ? EngineTiltTrim : -273);
 
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -268,6 +271,10 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
         PrintLabelValWithConversionCheckUnDef("  engine load (%): ",EngineLoad,0,true);
         PrintLabelValWithConversionCheckUnDef("  engine torque (%): ",EngineTorque,0,true);
         #endif
+
+        if (EngineCoolantTemp == (N2kUInt16NA - 1) * 0.01) return;
+        if (FuelRate >= 3275.0) return;
+
         nmeaData[1] = String(N2kIsNA(EngineCoolantTemp) ? -273 : EngineCoolantTemp, 2);
         nmeaData[2] = String(N2kIsNA(EngineOilTemp) ? -273 : EngineOilTemp, 2);
         nmeaData[3] = String(N2kIsNA(EngineOilPress) ? -273 : EngineOilPress / 1000, 0);
@@ -311,10 +318,10 @@ void TransmissionParameters(const tN2kMsg &N2kMsg) {
     double OilPressure;
     double OilTemperature;
     unsigned char DiscreteStatus1;
-    
+
     digitalWrite(LED_N2K, HIGH);
     evcKeepAlive = millis();
-    if (ParseN2kTransmissionParameters(N2kMsg,EngineInstance, TransmissionGear, OilPressure, OilTemperature, DiscreteStatus1) ) {
+    if (ParseN2kTransmissionParameters(N2kMsg,EngineInstance, TransmissionGear, OilPressure, OilTemperature, DiscreteStatus1)) {
         #ifdef DEBUG_EN
         PrintLabelValWithConversionCheckUnDef("Transmission params: ",EngineInstance,0,true);
                             OutputStream->print("  gear: "); PrintN2kEnumType(TransmissionGear,OutputStream);
@@ -335,14 +342,15 @@ void TransmissionParameters(const tN2kMsg &N2kMsg) {
             default:
                 nmeaData[14] = "-";
                 break;
-
-            std::string text = "{\"messageType\":\"127493\",\"instanceID\":" + std::to_string(EngineInstance) + 
-                            ",\"data\":{\"gear\":" + std::to_string(TransmissionGear) + 
-                            ",\"oTemp\":" + to_string_with_precision(N2kIsNA(OilTemperature) ? -273 : OilTemperature) + 
-                            ",\"oPres\":" + to_string_with_precision(N2kIsNA(OilPressure) ? -273 : OilPressure / 1000) + 
-                            "}}";
-            sendToWebSocket(text.c_str());
         }
+
+        std::string text = "{\"messageType\":\"127493\",\"instanceID\":" + std::to_string(EngineInstance) + 
+                        ",\"data\":{\"gear\":\"" + nmeaData[14].c_str() + 
+                        "\",\"oTemp\":" + to_string_with_precision(N2kIsNA(OilTemperature) ? -273 : OilTemperature) + 
+                        ",\"oPres\":" + to_string_with_precision(N2kIsNA(OilPressure) ? -273 : OilPressure / 1000) + 
+                        "}}";
+        sendToWebSocket(text.c_str());
+        
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
@@ -431,8 +439,8 @@ void GNSS(const tN2kMsg &N2kMsg) {
 
         std::string text = "{\"messageType\":\"129029\",\"instanceID\":" + std::to_string(SID) + 
                             ",\"data\":{\"unixTime\":" + std::to_string(unixTime) + 
-                            ",\"lat\":" + to_string_with_precision(N2kIsNA(Latitude) ? -273 : Latitude) + 
-                            ",\"lon\":" + to_string_with_precision(N2kIsNA(Longitude) ? -273 : Longitude) + 
+                            ",\"lat\":" + to_string_with_precision(N2kIsNA(Latitude) ? -273 : Latitude, 6) + 
+                            ",\"lon\":" + to_string_with_precision(N2kIsNA(Longitude) ? -273 : Longitude, 6) + 
                             "}}";
         sendToWebSocket(text.c_str());
 
@@ -615,9 +623,10 @@ void MagneticVariation(const tN2kMsg &N2kMsg) {
         nmeaData[17] = String(ReturnWithConversionCheckUnDef(Variation, &RadToDeg), 2);
 
         std::string text = "{\"messageType\":\"127258\",\"instanceID\":" + std::to_string(SID) + 
-                            ",\"data\":{\"magVar\":" + to_string_with_precision(ReturnWithConversionCheckUnDef(Variation, &RadToDeg)) + 
+                            ",\"data\":{\"magVar\":" + to_string_with_precision(ReturnWithConversionCheckUnDef(Variation, &RadToDeg), 2) + 
                             "}}";
         sendToWebSocket(text.c_str());
+
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
 
