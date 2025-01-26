@@ -20,6 +20,7 @@
 #include <ESPmDNS.h>
 #include <ElegantOTA.h>
 #include "myemail.h"
+#include <ArduinoJson.h>
 
 // WebSever object
 AsyncWebServer server(80);
@@ -29,7 +30,7 @@ AsyncWebSocket ws("/ws");
 AsyncWebSocket emws("/emws");
 
 // WiFi manager object
-WiFiManager wifiManager;
+// WiFiManager wifiManager;
 
 // Structure to store device settings
 extern Settings settings;
@@ -155,39 +156,44 @@ bool webSetup() {
     server.on("/set", HTTP_POST, [](AsyncWebServerRequest *request) {
         if (request->hasParam("wifiSSID")) {
             settings.wifiSSID = request->getParam("wifiSSID")->value().c_str();
-            if (!saveSettings()) {crash();}
+            saveSettings();
             request->send(200, "text/plain", "OK");
         }
         else if (request->hasParam("wifiPass")) {
             settings.wifiPass = request->getParam("wifiPass")->value().c_str();
-            if (!saveSettings()) {crash();}
+            saveSettings();
             request->send(200, "text/plain", "OK");
         }
         else if (request->hasParam("wifiMode")) {
             settings.isLocalAP = request->getParam("wifiMode")->value() == "true" ? true : false;
-            if (!saveSettings()) {crash();}
+            saveSettings();
             request->send(200, "text/plain", "OK");
         }
         else if (request->hasParam("recInt")) {
             settings.recInt = atoi(request->getParam("recInt")->value().c_str());
             if (settings.recInt < 1){settings.recInt = 1;}                
-            if (!saveSettings()) {crash();}
+            saveSettings();
             request->send(200, "text/plain", "OK");
         }
-        else if (request->hasParam("newAP")) {
-            wifiManager.setHttpPort(81);
-            wifiManager.startWebPortal();
+        // else if (request->hasParam("newAP")) {
+        //     wifiManager.setHttpPort(81);
+        //     wifiManager.startWebPortal();
+        //     request->send(200, "text/plain", "OK");
+        // }
+        // else if (request->hasParam("eraseWiFi")) {
+        //     wifiManager.resetSettings();
+        //     settings.isLocalAP = false;
+        //     if (!saveSettings()) {crash();}
+        //     request->send(200, "text/plain", "OK");
+        //     ESP.restart();
+        // }
+        else if (request->hasParam("wifiCred")) {
+            settings.wifiCredentials = request->getParam("wifiCred")->value().c_str();
+            saveSettings();
             request->send(200, "text/plain", "OK");
-        }
-        else if (request->hasParam("eraseWiFi")) {
-            wifiManager.resetSettings();
-            settings.isLocalAP = false;
-            if (!saveSettings()) {crash();}
-            request->send(200, "text/plain", "OK");
-            ESP.restart();
         }
         else if (request->hasParam("eraseData")) {
-            if (!deleteFile(SD, "/")) {crash();}
+            deleteFile(SD, "/");
             request->send(200, "text/plain", "OK");
         }
         else if (request->hasParam("reboot")) {
@@ -224,7 +230,7 @@ bool webSetup() {
                 break;
             }
             settings.recMode = recMode;
-            if (!saveSettings()) {crash();}
+            saveSettings();
             request->send(200, "text/plain", "OK");
         }
         else {
@@ -234,7 +240,8 @@ bool webSetup() {
 
     // send current settings to client
     server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request) {
-        JSONVar values;
+        JsonDocument values;
+        char buffer[1024];
         values["firmware"] = FW_VERSION;
         values["harware"] = "2.0";
         values["recMode"] = recMode;
@@ -242,8 +249,10 @@ bool webSetup() {
         values["wifiMode"] = settings.isLocalAP;
         values["wifiSSID"] = settings.wifiSSID;
         values["wifiPass"] = settings.wifiPass;
+        values["wifiCredentials"] = settings.wifiCredentials;
         values["buildDate"] = BUILD_DATE;
-        request->send(200, "application/json", JSON.stringify(values));
+        serializeJson(values, buffer);
+        request->send(200, "application/json", buffer);
     });
 
     wsQueue = xQueueCreate(20, sizeof(String *)); // Queue for 20 messages

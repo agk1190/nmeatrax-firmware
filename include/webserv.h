@@ -6,10 +6,11 @@
  * NMEATrax webserver header file.
  */
 
-#include <WiFiManager.h>
+// #include <WiFiManager.h>
+#include <esp_wifi.h>
 
 // Wifi Manager class
-extern WiFiManager wifiManager;
+// extern WiFiManager wifiManager;
 
 /**
  * @brief Look up the timezone definition based on the offset number provided

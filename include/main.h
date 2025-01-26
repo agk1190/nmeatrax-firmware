@@ -7,7 +7,7 @@
  */
 
 #include <Arduino.h>
-#include <Arduino_JSON.h>
+// #include <Arduino_JSON.h>
 
 #define LED_PWR GPIO_NUM_32
 #define LED_N2K GPIO_NUM_25
@@ -49,6 +49,7 @@ struct settings {
     const char *wifiPass;
     int recMode;
     int recInt;
+    const char *wifiCredentials;
 };
 
 /**
@@ -68,10 +69,10 @@ bool saveSettings();
 */
 bool readSettings();
 
-/**
- * @brief Called when something fails
-*/
-void crash();
+// /**
+//  * @brief Called when something fails
+// */
+// void crash();
 
 /**
  * @brief Check if SD card is present.
