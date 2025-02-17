@@ -20,6 +20,7 @@
 #include "decodeN2K.h"
 #include "main.h"
 #include "webserv.h"
+#include "preferences.h"
 
 /* The SMTP Session object used for Email sending */
 SMTPSession smtp;

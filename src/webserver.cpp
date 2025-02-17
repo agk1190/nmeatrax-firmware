@@ -21,6 +21,7 @@
 #include <ElegantOTA.h>
 #include "myemail.h"
 #include <ArduinoJson.h>
+#include "preferences.h"
 
 // WebSever object
 AsyncWebServer server(80);
@@ -29,17 +30,11 @@ AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 AsyncWebSocket emws("/emws");
 
-// WiFi manager object
-// WiFiManager wifiManager;
-
 // Structure to store device settings
 extern Settings settings;
 
 QueueHandle_t wsQueue;
 TaskHandle_t wsSendTaskHandle = NULL;
-
-// Create an Event Source on /NMEATrax
-// AsyncEventSource NMEATrax("/NMEATrax");
 
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
 
@@ -138,9 +133,9 @@ bool webSetup() {
     if (getSDcardStatus()) {server.serveStatic("/sdCard", SD, "/");}
 
     // redirect request to 192.168.1.1 to 192.168.1.1/web/index.html
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) { 
-        request->redirect("/web/index.html"); 
-    });
+    // server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) { 
+    //     request->redirect("/web/index.html"); 
+    // });
 
     // Get all files on the SD card
     server.on("/listDir", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -156,40 +151,40 @@ bool webSetup() {
     server.on("/set", HTTP_POST, [](AsyncWebServerRequest *request) {
         if (request->hasParam("wifiSSID")) {
             settings.wifiSSID = request->getParam("wifiSSID")->value().c_str();
-            saveSettings();
+            updatePreference("wifiSSID", settings.wifiSSID.c_str());
             request->send(200, "text/plain", "OK");
         }
         else if (request->hasParam("wifiPass")) {
             settings.wifiPass = request->getParam("wifiPass")->value().c_str();
-            saveSettings();
+            updatePreference("wifiPass", settings.wifiPass.c_str());
             request->send(200, "text/plain", "OK");
         }
         else if (request->hasParam("wifiMode")) {
             settings.isLocalAP = request->getParam("wifiMode")->value() == "true" ? true : false;
-            saveSettings();
+            updatePreference("isLocalAP", settings.isLocalAP);
             request->send(200, "text/plain", "OK");
         }
         else if (request->hasParam("recInt")) {
             settings.recInt = atoi(request->getParam("recInt")->value().c_str());
             if (settings.recInt < 1){settings.recInt = 1;}                
-            saveSettings();
+            updatePreference("recInt", settings.recInt);
             request->send(200, "text/plain", "OK");
         }
-        // else if (request->hasParam("newAP")) {
-        //     wifiManager.setHttpPort(81);
-        //     wifiManager.startWebPortal();
-        //     request->send(200, "text/plain", "OK");
-        // }
-        // else if (request->hasParam("eraseWiFi")) {
-        //     wifiManager.resetSettings();
-        //     settings.isLocalAP = false;
-        //     if (!saveSettings()) {crash();}
-        //     request->send(200, "text/plain", "OK");
-        //     ESP.restart();
-        // }
-        else if (request->hasParam("wifiCred")) {
-            settings.wifiCredentials = request->getParam("wifiCred")->value().c_str();
-            saveSettings();
+        else if (request->hasParam("setWifiCred")) {
+            JsonDocument doc;
+            DeserializationError error = deserializeJson(doc, request->getParam("setWifiCred")->value().c_str());
+            if (error) {
+                Serial.println("Failed to parse JSON (http receive):");
+                Serial.println(error.c_str());
+                request->send(200, "text/plain", "Failed to parse JSON");
+            }
+            else {
+                addWifiPair(doc["ssid"], doc["password"]);
+                request->send(200, "text/plain", "OK");
+            }
+        }
+        else if (request->hasParam("clrWifiCred")) {
+            clearWifiCredentials();
             request->send(200, "text/plain", "OK");
         }
         else if (request->hasParam("eraseData")) {
@@ -230,7 +225,7 @@ bool webSetup() {
                 break;
             }
             settings.recMode = recMode;
-            saveSettings();
+            updatePreference("recMode", settings.recMode);
             request->send(200, "text/plain", "OK");
         }
         else {
@@ -243,7 +238,7 @@ bool webSetup() {
         JsonDocument values;
         char buffer[1024];
         values["firmware"] = FW_VERSION;
-        values["harware"] = "2.0";
+        values["hardware"] = "2.0";
         values["recMode"] = recMode;
         values["recInt"] = settings.recInt;
         values["wifiMode"] = settings.isLocalAP;
@@ -257,7 +252,6 @@ bool webSetup() {
 
     wsQueue = xQueueCreate(20, sizeof(String *)); // Queue for 20 messages
     xTaskCreatePinnedToCore(sendDataTask, "WebSocketSendTask", 4096, NULL, 1, &wsSendTaskHandle, 1);
-    // server.addHandler(&NMEATrax);
     initWebSocket();
 
     // Start server

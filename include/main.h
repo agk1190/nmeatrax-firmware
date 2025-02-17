@@ -7,7 +7,6 @@
  */
 
 #include <Arduino.h>
-// #include <Arduino_JSON.h>
 
 #define LED_PWR GPIO_NUM_32
 #define LED_N2K GPIO_NUM_25
@@ -43,36 +42,17 @@ enum recMode {
 */
 extern enum recMode recMode;
 
-struct settings {
-    bool isLocalAP;
-    const char *wifiSSID;
-    const char *wifiPass;
-    int recMode;
-    int recInt;
-    const char *wifiCredentials;
-};
-
-/**
- * @brief Structure to store device settings
-*/
-typedef struct settings Settings;
-
-/**
- * @brief Save current settings to the SPIFFS.
- * @return True if succeeded
-*/
-bool saveSettings();
-
-/**
- * @brief Read current settings from the SPIFFS.
- * @return True if succeeded
-*/
-bool readSettings();
-
 // /**
-//  * @brief Called when something fails
+//  * @brief Save current settings to the SPIFFS.
+//  * @return True if succeeded
 // */
-// void crash();
+// bool saveSettings();
+//
+// /**
+//  * @brief Read current settings from the SPIFFS.
+//  * @return True if succeeded
+// */
+// bool readSettings();
 
 /**
  * @brief Check if SD card is present.

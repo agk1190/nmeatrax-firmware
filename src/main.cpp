@@ -24,26 +24,21 @@
 #include "sdkconfig.h"
 #include <FREERTOS/FreeRTOS.h>
 #include <FREERTOS/timers.h>
-#include <Preferences.h>
+// #include <Preferences.h>
 #include <ArduinoJSON.h>
+#include "preferences.h"
 
 // Local NMEATrax access point IP settings
 IPAddress local_ip(192, 168, 1, 1);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
-// Json variable to store data to send to the web server
-// JsonDocument readings;
-
-// Json variable to store data to save to SPIFFS
-// JsonDocument jsettings;
-
-Preferences preferences;
+// Preferences preferences;
 
 enum recMode recMode;
 
 // Structure to store device settings
-Settings settings;
+extern Settings settings;
 
 bool outOfIdle = true;
 String CSVFileName;
@@ -99,58 +94,58 @@ String getCSV() {
     return(rdata);
 }
 
-bool saveSettings() {
-    bool success = false;
-    success = preferences.begin("settings");
-    preferences.putBool("isLocalAP", settings.isLocalAP);
-    preferences.putString("wifiSSID", settings.wifiSSID);
-    preferences.putString("wifiPass", settings.wifiPass);
-    preferences.putInt("recMode", settings.recMode);
-    preferences.putInt("recInt", settings.recInt);
-    preferences.putString("wifiCred", settings.wifiCredentials);
-    preferences.end();
-    return success;
-}
-
-bool readSettings() {
-    bool success = false;
-    success = preferences.begin("settings");
-    settings.isLocalAP = preferences.getBool("isLocalAP", false);
-    settings.wifiSSID = preferences.getString("wifiSSID", "NMEATrax").c_str();
-    settings.wifiPass = preferences.getString("wifiPass", "nmeatrax").c_str();
-    settings.recMode = preferences.getInt("recMode", 5);
-    settings.recInt = preferences.getInt("recInt", 5);
-    settings.wifiCredentials = preferences.getString("wifiCred").c_str();
-    preferences.end();
-
-    settings.wifiSSID = "NMEATrax";
-    settings.wifiPass = "nmeatrax";
-
-    switch (settings.recMode) {
-        case 0:
-            recMode = OFF;
-            break;
-
-        case 1:
-            recMode = ON;
-            break;
-
-        case 2: 
-        case 4:
-            recMode = AUTO_SPD_IDLE;
-            break;
-
-        case 3: 
-        case 5:
-            recMode = AUTO_RPM_IDLE;
-            break;
-        
-        default:
-            recMode = AUTO_RPM_IDLE;
-            break;
-    }
-    return success;
-}
+// bool saveSettings() {
+//     bool success = false;
+//     success = preferences.begin("settings");
+//     preferences.putBool("isLocalAP", settings.isLocalAP);
+//     preferences.putString("wifiSSID", settings.wifiSSID);
+//     preferences.putString("wifiPass", settings.wifiPass);
+//     preferences.putInt("recMode", settings.recMode);
+//     preferences.putInt("recInt", settings.recInt);
+//     preferences.putString("wifiCred", settings.wifiCredentials);
+//     preferences.end();
+//     return success;
+// }
+//
+// bool readSettings() {
+//     bool success = false;
+//     success = preferences.begin("settings");
+//     settings.isLocalAP = preferences.getBool("isLocalAP", false);
+//     settings.wifiSSID = preferences.getString("wifiSSID", "NMEATrax").c_str();
+//     settings.wifiPass = preferences.getString("wifiPass", "nmeatrax").c_str();
+//     settings.recMode = preferences.getInt("recMode", 5);
+//     settings.recInt = preferences.getInt("recInt", 5);
+//     settings.wifiCredentials = preferences.getString("wifiCred").c_str();
+//     preferences.end();
+//
+//     settings.wifiSSID = "NMEATrax";
+//     settings.wifiPass = "nmeatrax";
+//
+//     switch (settings.recMode) {
+//         case 0:
+//             recMode = OFF;
+//             break;
+//
+//         case 1:
+//             recMode = ON;
+//             break;
+//
+//         case 2: 
+//         case 4:
+//             recMode = AUTO_SPD_IDLE;
+//             break;
+//
+//         case 3: 
+//         case 5:
+//             recMode = AUTO_RPM_IDLE;
+//             break;
+//    
+//         default:
+//             recMode = AUTO_RPM_IDLE;
+//             break;
+//     }
+//     return success;
+// }
 
 bool getSDcardStatus() {
     digitalWrite(LED_SD, digitalRead(SD_Detect));
@@ -170,11 +165,9 @@ void createWifiText() {
     }
 }
 
-bool connectToWiFi(const char* jsonString) {
+bool connectToWiFi(String jsonString) {
     const size_t maxRetries = 3; // Number of times to loop through the list
     JsonDocument doc;
-
-    Serial.println(jsonString);
 
     // Attempt to connect using last stored Wi-Fi credentials
     Serial.println("Attempting to connect to the last known Wi-Fi...");
@@ -247,12 +240,6 @@ bool connectToWiFi(const char* jsonString) {
     return false;
 }
 
-
-// void crash() {
-//     Serial.println("Device Crashed!");
-//     ESP.restart();
-// }
-
 // ***************************************************
 /**
  * @brief Main program setup function
@@ -282,7 +269,7 @@ void setup() {
     if (getSDcardStatus()) {sdSetup();}
 
     // load settings
-    readSettings();
+    readPreferences();
     delay(500);
 
     // esp_wifi_set_country_code("CA", true);
@@ -306,30 +293,17 @@ void setup() {
     }
     else {       // if the device should connect to an Access Point
         bool connected;
-        // wifiManager.setAPStaticIPConfig(local_ip, gateway, subnet);
-        // connected = wifiManager.autoConnect("NMEATrax");
-        // const char* _wifiCredentials = R"json([{"ssid": "Van Isle D203", "password": "Boating!"},{"ssid": "Van Isle D212", "password": "Boating!"},{"ssid": "Patrick", "password": "Klouda1190!"}])json";
         connected = connectToWiFi(settings.wifiCredentials);
         if (connected) {
             settings.isLocalAP = false;
-            saveSettings();
+            updatePreference("isLocalAP", false);
         } else {
             settings.isLocalAP = true;
-            saveSettings();
+            updatePreference("isLocalAP", true);
             ESP.restart();
         }
     }
     createWifiText();
-
-    // Serial.println("Access Point Info:");
-    // Serial.print("SSID: ");
-    // Serial.println(WiFi.softAPSSID());
-    // Serial.print("Channel: ");
-    // Serial.println(WiFi.channel());
-    // Serial.print("Bandwidth: ");
-    // wifi_bandwidth_t wifiBW;
-    // esp_wifi_get_bandwidth(WIFI_IF_AP, &wifiBW);
-    // Serial.println(wifiBW == WIFI_BW_HT20 ? "20 MHz" : "40 MHz");
 
     for (int i = 0; i < sizeof(nmeaData) / sizeof(nmeaData[0]); i++) {
         nmeaData[i] = "-";

@@ -56,8 +56,6 @@ uint32_t evcKeepAlive;
 uint32_t gpsKeepAlive;
 uint32_t depthKeepAlive;
 
-extern Settings settings;
-
 Stream *OutputStream;
 
 void HandleNMEA2000Msg(const tN2kMsg &N2kMsg);
