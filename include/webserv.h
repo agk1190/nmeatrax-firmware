@@ -35,17 +35,18 @@ void webLoop();
 */
 void sendEmailData(String text);
 
-/**
- * @brief Init websocket
-*/
-void initWebSocket();
+// /**
+//  * @brief Init websocket
+// */
+// void initWebSocket();
 
 /**
- * @brief Send data to websocket
+ * @brief Send data to client(s)
  */
 void sendDataTask(void *parameter);
 
 /**
- * @brief Pass data to be send via websocket
+ * @brief Pass data to the queue to be send to client(s)
+ * @param data The data to be sent
  */
-void sendToWebSocket(String data);
+void sendToWebQueue(String data);

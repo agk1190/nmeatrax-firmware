@@ -13,30 +13,34 @@
 
 #include <WebServer.h>
 #include "ESPAsyncWebServer.h"
-#include "sdcard.h"
-#include "main.h"
 #include "SPIFFS.h"
-#include "webserv.h"
+#include "sdcard.h"
 #include <ESPmDNS.h>
 #include <ElegantOTA.h>
-#include "myemail.h"
 #include <ArduinoJson.h>
+#include <AsyncTCP.h>
+
+#include "main.h"
+#include "webserv.h"
+#include "myemail.h"
 #include "preferences.h"
 
 // WebSever object
 AsyncWebServer server(80);
 
+AsyncEventSource events("/nmeadata");
+
 // Create a WebSocket object
-AsyncWebSocket ws("/ws");
-AsyncWebSocket emws("/emws");
+// AsyncWebSocket ws("/ws");
+// AsyncWebSocket emws("/emws");
 
 // Structure to store device settings
 extern Settings settings;
 
-QueueHandle_t wsQueue;
-TaskHandle_t wsSendTaskHandle = NULL;
+QueueHandle_t webQueue;
+TaskHandle_t webSendTaskHandle = NULL;
 
-void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
+// void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
 
 const char* getTZdefinition(double tz) {
     if (tz == 0)
@@ -250,11 +254,20 @@ bool webSetup() {
         request->send(200, "application/json", buffer);
     });
 
-    wsQueue = xQueueCreate(20, sizeof(String *)); // Queue for 20 messages
-    xTaskCreatePinnedToCore(sendDataTask, "WebSocketSendTask", 4096, NULL, 1, &wsSendTaskHandle, 1);
-    initWebSocket();
+    webQueue = xQueueCreate(20, sizeof(String *)); // Queue for 20 messages
+    xTaskCreatePinnedToCore(sendDataTask, "WebSocketSendTask", 4096, NULL, 1, &webSendTaskHandle, 1);
+    // initWebSocket();
 
-    // Start server
+    // Handle Web Server Events
+    events.onConnect([](AsyncEventSourceClient *client){
+        if(client->lastId()){
+            Serial.printf("Client reconnected! Last message ID that it got is: %u\n", client->lastId());
+        }
+        client->send("hello!", NULL, millis(), 10000);
+    });
+    server.addHandler(&events);
+
+    // Start webserver
     server.begin();
 
     Serial.println("HTTP server started");
@@ -272,55 +285,58 @@ bool webSetup() {
     return(true);
 }
 
-void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
-  switch (type) {
-    case WS_EVT_CONNECT:
-        Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
-      break;
-    case WS_EVT_DISCONNECT:
-        Serial.printf("WebSocket client #%u disconnected\n", client->id());
-      break;
-    case WS_EVT_DATA:
-        // handleWebSocketMessage(arg, data, len);
-      break;
-    case WS_EVT_PONG:
-    case WS_EVT_ERROR:
-      break;
-  }
-}
+// void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+//   switch (type) {
+//     case WS_EVT_CONNECT:
+//         Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+//       break;
+//     case WS_EVT_DISCONNECT:
+//         Serial.printf("WebSocket client #%u disconnected\n", client->id());
+//       break;
+//     case WS_EVT_DATA:
+//         // handleWebSocketMessage(arg, data, len);
+//       break;
+//     case WS_EVT_PONG:
+//     case WS_EVT_ERROR:
+//       break;
+//   }
+// }
 
-void initWebSocket() {
-    ws.onEvent(onEvent);
-    server.addHandler(&ws);
-    emws.onEvent(onEvent);
-    server.addHandler(&emws);
-}
+// void initWebSocket() {
+//     ws.onEvent(onEvent);
+//     server.addHandler(&ws);
+//     emws.onEvent(onEvent);
+//     server.addHandler(&emws);
+// }
 
 void webLoop() {
-    ws.cleanupClients();
+    // ws.cleanupClients();
+    std::string heartbeat = "{\"messageType\":\"000000\",\"instanceID\":0,\"data\":{\"millis\":" + std::to_string(millis()) + "}}";
+    sendToWebQueue(heartbeat.c_str());
     ElegantOTA.loop();
 }
 
 void sendEmailData(String text) {
-    emws.textAll(text);
-    emws.cleanupClients();
+    // emws.textAll(text);
+    // emws.cleanupClients();
 }
 
 void sendDataTask(void *parameter) {
     String *dataToSend = nullptr;
     while (true) {
-        if (xQueueReceive(wsQueue, &dataToSend, portMAX_DELAY)) {
+        if (xQueueReceive(webQueue, &dataToSend, portMAX_DELAY)) {
             if (dataToSend != nullptr) {
-                ws.textAll(*dataToSend);
+                // ws.textAll(*dataToSend);
+                events.send(*dataToSend, "nmeadata", millis());
                 delete dataToSend; // Free allocated memory
             }
         }
     }
 }
 
-void sendToWebSocket(String data) {
+void sendToWebQueue(String data) {
     String *dataToSend = new String(data);
-    if (!xQueueSend(wsQueue, &dataToSend, 0)) {
+    if (!xQueueSend(webQueue, &dataToSend, 0)) {
         delete dataToSend; // Free memory if queue is full
     }
 }

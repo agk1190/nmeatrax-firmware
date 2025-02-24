@@ -227,7 +227,7 @@ void EngineRapid(const tN2kMsg &N2kMsg) {
                             ",\"data\":{\"rpm\":" + to_string_with_precision(!N2kIsNA(EngineSpeed) ? EngineSpeed : -273, 0) + 
                             ",\"legTilt\":" + to_string_with_precision(!N2kIsNA(EngineTiltTrim) ? EngineTiltTrim : -273, 0) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
         nmeaData[0] = String(!N2kIsNA(EngineSpeed) ? EngineSpeed : -273, 0);        // removed > 10000 check for testing
         nmeaData[7] = String(!N2kIsNA(EngineTiltTrim) ? EngineTiltTrim : -273);
 
@@ -297,13 +297,13 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
                             ",\"eHours\":" + to_string_with_precision(N2kIsNA(EngineHours) ? -273 : EngineHours/3600, 0) + 
                             ",\"efficiency\":" + to_string_with_precision(lpkm, 3) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
         nmeaData[6] = String(lpkm, 3);
 
         std::string errors = "{\"messageType\":\"161616\",\"instanceID\":" + std::to_string(EngineInstance) + 
                             ",\"data\":{\"status1\":" + std::to_string(Status1.Status) + 
                             ",\"status2\":" + std::to_string(Status2.Status) + "}}";
-        sendToWebSocket(errors.c_str());
+        sendToWebQueue(errors.c_str());
         nmeaData[19] = String(Status1.Status) + ";" + String(Status2.Status);
 
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
@@ -347,7 +347,7 @@ void TransmissionParameters(const tN2kMsg &N2kMsg) {
                         "\",\"oTemp\":" + to_string_with_precision(N2kIsNA(OilTemperature) ? -273 : OilTemperature) + 
                         ",\"oPres\":" + to_string_with_precision(N2kIsNA(OilPressure) ? -273 : OilPressure / 1000) + 
                         "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
         
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -377,7 +377,7 @@ void COGSOG(const tN2kMsg &N2kMsg) {
                             ",\"data\":{\"sog\":" + to_string_with_precision(N2kIsNA(SOG) ? -273 : ReturnWithConversionCheckUnDef(SOG)) + 
                             ",\"cog\":" + to_string_with_precision(N2kIsNA(COG) ? -273 : ReturnWithConversionCheckUnDef(COG,&RadToDeg), 0) + 
                             "}}";
-            sendToWebSocket(text.c_str());
+            sendToWebQueue(text.c_str());
         }
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -440,7 +440,7 @@ void GNSS(const tN2kMsg &N2kMsg) {
                             ",\"lat\":" + to_string_with_precision(N2kIsNA(Latitude) ? -273 : Latitude, 6) + 
                             ",\"lon\":" + to_string_with_precision(N2kIsNA(Longitude) ? -273 : Longitude, 6) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
 
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -471,7 +471,7 @@ void Temperature(const tN2kMsg &N2kMsg) {
                             ",\"actualTemp\":" + to_string_with_precision(N2kIsNA(ActualTemperature) ? -273 : ActualTemperature) + 
                             ",\"setTemp\":" + to_string_with_precision(N2kIsNA(SetTemperature) ? -273 : SetTemperature) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
 
     } else {OutputStream->print("Failed to parse PGN: ");  OutputStream->println(N2kMsg.PGN);}
 }
@@ -490,7 +490,7 @@ void WaterDepth(const tN2kMsg &N2kMsg) {
                             ",\"data\":{\"depth\":" + to_string_with_precision(N2kIsNA(DepthBelowTransducer) ? -273 : DepthBelowTransducer) + 
                             ",\"offset\":" + to_string_with_precision(N2kIsNA(Offset) ? -273 : Offset) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
 
         if (N2kIsNA(Offset) || Offset == 0) {
             #ifdef DEBUG_EN
@@ -598,7 +598,7 @@ void FluidLevel(const tN2kMsg &N2kMsg) {
                             ",\"level\":" + to_string_with_precision((!N2kIsNA(Level) && FluidType == N2kft_Fuel) ? Level : -273) + 
                             ",\"capacity\":" + to_string_with_precision(N2kIsNA(Capacity) ? -273 : Capacity) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
     }
 }
 
@@ -623,7 +623,7 @@ void MagneticVariation(const tN2kMsg &N2kMsg) {
         std::string text = "{\"messageType\":\"127258\",\"instanceID\":" + std::to_string(SID) + 
                             ",\"data\":{\"magVar\":" + to_string_with_precision(ReturnWithConversionCheckUnDef(Variation, &RadToDeg), 2) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
 
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }

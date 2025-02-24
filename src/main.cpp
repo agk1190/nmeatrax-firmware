@@ -11,21 +11,20 @@
  *
  */
 
-// #include <tinyGpsPlus.h>
 #include <Arduino.h>
 #include <WiFi.h>
-#include <WebServer.h>
+// #include <WebServer.h>
 #include "SPIFFS.h"
-#include "decodeN2K.h"
-#include "sdcard.h"
-#include "webserv.h"
-#include "main.h"
 #include <time.h>
 #include "sdkconfig.h"
 #include <FREERTOS/FreeRTOS.h>
 #include <FREERTOS/timers.h>
-// #include <Preferences.h>
 #include <ArduinoJSON.h>
+
+#include "decodeN2K.h"
+#include "sdcard.h"
+#include "webserv.h"
+#include "main.h"
 #include "preferences.h"
 
 // Local NMEATrax access point IP settings
