@@ -28,19 +28,13 @@
 // WebSever object
 AsyncWebServer server(80);
 
-AsyncEventSource events("/nmeadata");
-
-// Create a WebSocket object
-// AsyncWebSocket ws("/ws");
-// AsyncWebSocket emws("/emws");
+AsyncEventSource events("/NMEATrax");
 
 // Structure to store device settings
 extern Settings settings;
 
 QueueHandle_t webQueue;
 TaskHandle_t webSendTaskHandle = NULL;
-
-// void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
 
 const char* getTZdefinition(double tz) {
     if (tz == 0)
@@ -212,23 +206,23 @@ bool webSetup() {
             int mode = atoi(request->getParam("recMode")->value().c_str());
             switch (mode) {
             case 0:
-                recMode = OFF;
+                settings.recMode = OFF;
                 break;
             case 1:
-                recMode = ON;
+                settings.recMode = ON;
                 outOfIdle = true;
                 break;
             case 2:
-                recMode = AUTO_SPD_IDLE;
+                settings.recMode = AUTO_SPD_IDLE;
                 break;
             case 3:
-                recMode = AUTO_RPM_IDLE;
+                settings.recMode = AUTO_RPM_IDLE;
                 break;
             default:
-                recMode = OFF;
+                settings.recMode = OFF;
                 break;
             }
-            settings.recMode = recMode;
+
             updatePreference("recMode", settings.recMode);
             request->send(200, "text/plain", "OK");
         }
@@ -243,7 +237,7 @@ bool webSetup() {
         char buffer[1024];
         values["firmware"] = FW_VERSION;
         values["hardware"] = "2.0";
-        values["recMode"] = recMode;
+        values["recMode"] = settings.recMode;
         values["recInt"] = settings.recInt;
         values["wifiMode"] = settings.isLocalAP;
         values["wifiSSID"] = settings.wifiSSID;
@@ -255,8 +249,7 @@ bool webSetup() {
     });
 
     webQueue = xQueueCreate(20, sizeof(String *)); // Queue for 20 messages
-    xTaskCreatePinnedToCore(sendDataTask, "WebSocketSendTask", 4096, NULL, 1, &webSendTaskHandle, 1);
-    // initWebSocket();
+    xTaskCreatePinnedToCore(sendDataTask, "sendDataTask", 4096, NULL, 1, &webSendTaskHandle, 1);
 
     // Handle Web Server Events
     events.onConnect([](AsyncEventSourceClient *client){
@@ -285,40 +278,15 @@ bool webSetup() {
     return(true);
 }
 
-// void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
-//   switch (type) {
-//     case WS_EVT_CONNECT:
-//         Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
-//       break;
-//     case WS_EVT_DISCONNECT:
-//         Serial.printf("WebSocket client #%u disconnected\n", client->id());
-//       break;
-//     case WS_EVT_DATA:
-//         // handleWebSocketMessage(arg, data, len);
-//       break;
-//     case WS_EVT_PONG:
-//     case WS_EVT_ERROR:
-//       break;
-//   }
-// }
-
-// void initWebSocket() {
-//     ws.onEvent(onEvent);
-//     server.addHandler(&ws);
-//     emws.onEvent(onEvent);
-//     server.addHandler(&emws);
-// }
-
 void webLoop() {
-    // ws.cleanupClients();
     std::string heartbeat = "{\"messageType\":\"000000\",\"instanceID\":0,\"data\":{\"millis\":" + std::to_string(millis()) + "}}";
     sendToWebQueue(heartbeat.c_str());
     ElegantOTA.loop();
 }
 
 void sendEmailData(String text) {
-    // emws.textAll(text);
-    // emws.cleanupClients();
+    std::string msg = "{\"messageType\":\"email\",\"instanceID\":0,\"data\":{\"msg\":\"" + std::string(text.c_str()) + "\"}}";
+    sendToWebQueue(msg.c_str());
 }
 
 void sendDataTask(void *parameter) {
@@ -326,7 +294,6 @@ void sendDataTask(void *parameter) {
     while (true) {
         if (xQueueReceive(webQueue, &dataToSend, portMAX_DELAY)) {
             if (dataToSend != nullptr) {
-                // ws.textAll(*dataToSend);
                 events.send(*dataToSend, "nmeadata", millis());
                 delete dataToSend; // Free allocated memory
             }

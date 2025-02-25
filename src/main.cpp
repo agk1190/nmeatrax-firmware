@@ -13,7 +13,6 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-// #include <WebServer.h>
 #include "SPIFFS.h"
 #include <time.h>
 #include "sdkconfig.h"
@@ -34,7 +33,7 @@ IPAddress subnet(255, 255, 255, 0);
 
 // Preferences preferences;
 
-enum recMode recMode;
+// enum recMode recMode;
 
 // Structure to store device settings
 extern Settings settings;
@@ -92,59 +91,6 @@ String getCSV() {
     }
     return(rdata);
 }
-
-// bool saveSettings() {
-//     bool success = false;
-//     success = preferences.begin("settings");
-//     preferences.putBool("isLocalAP", settings.isLocalAP);
-//     preferences.putString("wifiSSID", settings.wifiSSID);
-//     preferences.putString("wifiPass", settings.wifiPass);
-//     preferences.putInt("recMode", settings.recMode);
-//     preferences.putInt("recInt", settings.recInt);
-//     preferences.putString("wifiCred", settings.wifiCredentials);
-//     preferences.end();
-//     return success;
-// }
-//
-// bool readSettings() {
-//     bool success = false;
-//     success = preferences.begin("settings");
-//     settings.isLocalAP = preferences.getBool("isLocalAP", false);
-//     settings.wifiSSID = preferences.getString("wifiSSID", "NMEATrax").c_str();
-//     settings.wifiPass = preferences.getString("wifiPass", "nmeatrax").c_str();
-//     settings.recMode = preferences.getInt("recMode", 5);
-//     settings.recInt = preferences.getInt("recInt", 5);
-//     settings.wifiCredentials = preferences.getString("wifiCred").c_str();
-//     preferences.end();
-//
-//     settings.wifiSSID = "NMEATrax";
-//     settings.wifiPass = "nmeatrax";
-//
-//     switch (settings.recMode) {
-//         case 0:
-//             recMode = OFF;
-//             break;
-//
-//         case 1:
-//             recMode = ON;
-//             break;
-//
-//         case 2: 
-//         case 4:
-//             recMode = AUTO_SPD_IDLE;
-//             break;
-//
-//         case 3: 
-//         case 5:
-//             recMode = AUTO_RPM_IDLE;
-//             break;
-//    
-//         default:
-//             recMode = AUTO_RPM_IDLE;
-//             break;
-//     }
-//     return success;
-// }
 
 bool getSDcardStatus() {
     digitalWrite(LED_SD, digitalRead(SD_Detect));
@@ -388,10 +334,10 @@ void vBackgroundTasks(void * pvParameters) {
         getSDcardStatus();
         count++;
 
-        switch (recMode) {
+        switch (settings.recMode) {
             case AUTO_RPM:
                 if (nmeaData[0].toInt() <= 0) {
-                    recMode=AUTO_RPM_IDLE;
+                    settings.recMode=AUTO_RPM_IDLE;
                     if (loggingTaskHandle != NULL) {vTaskDelete(loggingTaskHandle);}
                 }
                 localRecInt = nmeaData[0].toInt() > 3900 ? 1 : settings.recInt;
@@ -400,13 +346,13 @@ void vBackgroundTasks(void * pvParameters) {
             case AUTO_RPM_IDLE:
                 if (nmeaData[0].toInt() > 0) {
                     outOfIdle=true;
-                    recMode=AUTO_RPM;
+                    settings.recMode=AUTO_RPM;
                 }
                 break;
 
             case AUTO_SPD:
                 if (nmeaData[8].toDouble() <= 0) {
-                    recMode=AUTO_SPD_IDLE;
+                    settings.recMode=AUTO_SPD_IDLE;
                     if (loggingTaskHandle != NULL) {vTaskDelete(loggingTaskHandle);}
                 }
                 localRecInt = nmeaData[8].toDouble() > 15 ? 1 : settings.recInt;
@@ -415,7 +361,7 @@ void vBackgroundTasks(void * pvParameters) {
             case AUTO_SPD_IDLE:
                 if (nmeaData[8].toDouble() > 0) {
                     outOfIdle=true;
-                    recMode=AUTO_SPD;
+                    settings.recMode=AUTO_SPD;
                 }
                 break;
             
@@ -423,7 +369,7 @@ void vBackgroundTasks(void * pvParameters) {
                 break;
         }
         
-        if ((recMode == AUTO_RPM || recMode == AUTO_SPD || recMode == ON) && count >= localRecInt && getSDcardStatus()) {
+        if ((settings.recMode == AUTO_RPM || settings.recMode == AUTO_SPD || settings.recMode == ON) && count >= localRecInt && getSDcardStatus()) {
 
             if (outOfIdle) {
                 int voyageNum = 0;

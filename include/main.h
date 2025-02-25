@@ -21,38 +21,26 @@ extern bool outOfIdle;
 extern bool NMEAsleep;
 extern String nmeaData[];
 
-// SD card recording state
-enum recMode {
-    OFF = 0,
-    ON = 1,
-    AUTO_SPD = 2,
-    AUTO_RPM = 3,
-    AUTO_SPD_IDLE = 4,
-    AUTO_RPM_IDLE = 5
-};
-
-/**
- * SD card logging mode
- * @param OFF
- * @param ON
- * @param AUTO_SPD
- * @param AUTO_RPM
- * @param AUTO_SPD_IDLE
- * @param AUTO_RPM_IDLE
-*/
-extern enum recMode recMode;
+// // SD card recording state
+// enum recMode {
+//     OFF = 0,
+//     ON = 1,
+//     AUTO_SPD = 2,
+//     AUTO_RPM = 3,
+//     AUTO_SPD_IDLE = 4,
+//     AUTO_RPM_IDLE = 5
+// };
 
 // /**
-//  * @brief Save current settings to the SPIFFS.
-//  * @return True if succeeded
+//  * SD card logging mode
+//  * @param OFF
+//  * @param ON
+//  * @param AUTO_SPD
+//  * @param AUTO_RPM
+//  * @param AUTO_SPD_IDLE
+//  * @param AUTO_RPM_IDLE
 // */
-// bool saveSettings();
-//
-// /**
-//  * @brief Read current settings from the SPIFFS.
-//  * @return True if succeeded
-// */
-// bool readSettings();
+// extern enum recMode recMode;
 
 /**
  * @brief Check if SD card is present.
