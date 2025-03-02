@@ -294,7 +294,7 @@ void sendDataTask(void *parameter) {
     while (true) {
         if (xQueueReceive(webQueue, &dataToSend, portMAX_DELAY)) {
             if (dataToSend != nullptr) {
-                events.send(*dataToSend, "nmeadata", millis());
+                events.send(dataToSend->c_str(), "nmeadata", millis());
                 delete dataToSend; // Free allocated memory
             }
         }

@@ -374,7 +374,7 @@ void vBackgroundTasks(void * pvParameters) {
             if (outOfIdle) {
                 int voyageNum = 0;
                 String lastCSVfileName;
-                const char* csvHeaders = "RPM,Engine Temp (K),Oil Temp (K),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Fuel Efficiency (L/km),Leg Tilt (%),Speed (m/s),Heading (*),Depth (m),Water Temp (K),Battery Voltage (V),Engine Hours (s),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp,Error Bits";
+                const char* csvHeaders = "RPM,Engine Temp (K),Oil Temp (K),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Fuel Efficiency (L/km),Leg Tilt (%),Speed (m/s),Heading (*),Depth (m),Water Temp (K),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp,Error Bits";
                 do {
                     voyageNum++;
                     lastCSVfileName = "Voyage";
