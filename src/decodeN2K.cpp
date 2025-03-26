@@ -60,72 +60,6 @@ Stream *OutputStream;
 
 void HandleNMEA2000Msg(const tN2kMsg &N2kMsg);
 
-// std::string getEngineStatus1(const tN2kDD206& status) {
-//     std::string result;
-//     const char* tN2kEngineStatus1Strs[] = { 
-//         "Check Engine", 
-//         "Over Temperature", 
-//         "Low Oil Pressure", 
-//         "Low Oil Level", 
-//         "Low Fuel Pressure", 
-//         "Low Voltage", 
-//         "Low Coolant Level", 
-//         "Water Flow", 
-//         "Water in Fuel", 
-//         "Charge Indicator", 
-//         "Preheat Indicator", 
-//         "High Boost Pressure", 
-//         "Rev Limit Exceeded", 
-//         "EGR System", 
-//         "Throttle Position Sensor", 
-//         "Engine Emergency Stop Mode", 
-//     };
-//
-//     for (int i = 0; i < 16; ++i) {
-//         if (status.Status & (1 << i)) {
-//             if (!result.empty()) {
-//                 result += ", "; // Add a separator if this isn't the first entry
-//             }
-//             result += tN2kEngineStatus1Strs[i];
-//         }
-//     }
-//
-//     return result;
-// }
-//
-// std::string getEngineStatus2(const tN2kDD223& status) {
-//     std::string result;
-//     const char* tN2kEngineStatus2Strs[] = { 
-//         "Warning Level 1", 
-//         "Warning Level 2", 
-//         "Power Reduction", 
-//         "Maintenance Needed", 
-//         "Engine Comm Error", 
-//         "Secondary Throttle", 
-//         "Neutral Start Protect", 
-//         "Engine Shutting Down", 
-//         "Reserved", 
-//         "Reserved", 
-//         "Reserved", 
-//         "Reserved", 
-//         "Reserved", 
-//         "Reserved", 
-//         "Reserved",  
-//         "Reserved", 
-//     };
-//
-//     for (int i = 0; i < 16; ++i) {
-//         if (status.Status & (1 << i)) {
-//             if (!result.empty()) {
-//                 result += ", "; // Add a separator if this isn't the first entry
-//             }
-//             result += tN2kEngineStatus2Strs[i];
-//         }
-//     }
-//
-//     return result;
-// }
-
 bool NMEAsetup() {
     OutputStream = &Serial;
 
@@ -136,9 +70,6 @@ bool NMEAsetup() {
     if (ret == ESP_OK) {
         macAddr = std::to_string(baseMac[3]) + std::to_string(baseMac[4]) + std::to_string(baseMac[5]);
         macAddrStr = macAddr.c_str();
-        // Serial.printf("%02x:%02x:%02x:%02x:%02x:%02x\n",
-        //             baseMac[0], baseMac[1], baseMac[2],
-        //             baseMac[3], baseMac[4], baseMac[5]);
     } else {
         macAddrStr = "707887";
     }
@@ -227,7 +158,7 @@ void EngineRapid(const tN2kMsg &N2kMsg) {
                             ",\"data\":{\"rpm\":" + to_string_with_precision(!N2kIsNA(EngineSpeed) ? EngineSpeed : -273, 0) + 
                             ",\"legTilt\":" + to_string_with_precision(!N2kIsNA(EngineTiltTrim) ? EngineTiltTrim : -273, 0) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
         nmeaData[0] = String(!N2kIsNA(EngineSpeed) ? EngineSpeed : -273, 0);        // removed > 10000 check for testing
         nmeaData[7] = String(!N2kIsNA(EngineTiltTrim) ? EngineTiltTrim : -273);
 
@@ -297,13 +228,13 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
                             ",\"eHours\":" + to_string_with_precision(N2kIsNA(EngineHours) ? -273 : EngineHours/3600, 0) + 
                             ",\"efficiency\":" + to_string_with_precision(lpkm, 3) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
         nmeaData[6] = String(lpkm, 3);
 
         std::string errors = "{\"messageType\":\"161616\",\"instanceID\":" + std::to_string(EngineInstance) + 
                             ",\"data\":{\"status1\":" + std::to_string(Status1.Status) + 
                             ",\"status2\":" + std::to_string(Status2.Status) + "}}";
-        sendToWebSocket(errors.c_str());
+        sendToWebQueue(errors.c_str());
         nmeaData[19] = String(Status1.Status) + ";" + String(Status2.Status);
 
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
@@ -347,7 +278,7 @@ void TransmissionParameters(const tN2kMsg &N2kMsg) {
                         "\",\"oTemp\":" + to_string_with_precision(N2kIsNA(OilTemperature) ? -273 : OilTemperature) + 
                         ",\"oPres\":" + to_string_with_precision(N2kIsNA(OilPressure) ? -273 : OilPressure / 1000) + 
                         "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
         
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -377,7 +308,7 @@ void COGSOG(const tN2kMsg &N2kMsg) {
                             ",\"data\":{\"sog\":" + to_string_with_precision(N2kIsNA(SOG) ? -273 : ReturnWithConversionCheckUnDef(SOG)) + 
                             ",\"cog\":" + to_string_with_precision(N2kIsNA(COG) ? -273 : ReturnWithConversionCheckUnDef(COG,&RadToDeg), 0) + 
                             "}}";
-            sendToWebSocket(text.c_str());
+            sendToWebQueue(text.c_str());
         }
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -440,7 +371,7 @@ void GNSS(const tN2kMsg &N2kMsg) {
                             ",\"lat\":" + to_string_with_precision(N2kIsNA(Latitude) ? -273 : Latitude, 6) + 
                             ",\"lon\":" + to_string_with_precision(N2kIsNA(Longitude) ? -273 : Longitude, 6) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
 
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -471,7 +402,7 @@ void Temperature(const tN2kMsg &N2kMsg) {
                             ",\"actualTemp\":" + to_string_with_precision(N2kIsNA(ActualTemperature) ? -273 : ActualTemperature) + 
                             ",\"setTemp\":" + to_string_with_precision(N2kIsNA(SetTemperature) ? -273 : SetTemperature) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
 
     } else {OutputStream->print("Failed to parse PGN: ");  OutputStream->println(N2kMsg.PGN);}
 }
@@ -490,7 +421,7 @@ void WaterDepth(const tN2kMsg &N2kMsg) {
                             ",\"data\":{\"depth\":" + to_string_with_precision(N2kIsNA(DepthBelowTransducer) ? -273 : DepthBelowTransducer) + 
                             ",\"offset\":" + to_string_with_precision(N2kIsNA(Offset) ? -273 : Offset) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
 
         if (N2kIsNA(Offset) || Offset == 0) {
             #ifdef DEBUG_EN
@@ -598,7 +529,7 @@ void FluidLevel(const tN2kMsg &N2kMsg) {
                             ",\"level\":" + to_string_with_precision((!N2kIsNA(Level) && FluidType == N2kft_Fuel) ? Level : -273) + 
                             ",\"capacity\":" + to_string_with_precision(N2kIsNA(Capacity) ? -273 : Capacity) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
     }
 }
 
@@ -623,7 +554,7 @@ void MagneticVariation(const tN2kMsg &N2kMsg) {
         std::string text = "{\"messageType\":\"127258\",\"instanceID\":" + std::to_string(SID) + 
                             ",\"data\":{\"magVar\":" + to_string_with_precision(ReturnWithConversionCheckUnDef(Variation, &RadToDeg), 2) + 
                             "}}";
-        sendToWebSocket(text.c_str());
+        sendToWebQueue(text.c_str());
 
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
