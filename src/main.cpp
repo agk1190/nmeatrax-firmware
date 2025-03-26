@@ -31,10 +31,6 @@ IPAddress local_ip(192, 168, 1, 1);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
-// Preferences preferences;
-
-// enum recMode recMode;
-
 // Structure to store device settings
 extern Settings settings;
 
@@ -58,8 +54,8 @@ TaskHandle_t nmeaTaskHandle = NULL;
 String getCSV() {
     // String data[] = {
     //     String(rpm),            // 0
-    //     String(etemp, 2),          // 1
-    //     String(otemp, 2),          // 2
+    //     String(etemp, 2),       // 1
+    //     String(otemp, 2),       // 2
     //     String(opres),          // 3
     //     String(fuel_rate, 1),   // 4
     //     String(flevel, 1),      // 5
@@ -67,8 +63,8 @@ String getCSV() {
     //     String(leg_tilt),       // 7
     //     String(speed),          // 8
     //     String(heading),        // 9
-    //     String(depth, 2),          // 10
-    //     String(wtemp, 2),          // 11
+    //     String(depth, 2),       // 10
+    //     String(wtemp, 2),       // 11
     //     String(battV),          // 12
     //     String(ehours),         // 13
     //     String(gear),           // 14

@@ -36,92 +36,66 @@ extern Settings settings;
 QueueHandle_t webQueue;
 TaskHandle_t webSendTaskHandle = NULL;
 
-const char* getTZdefinition(double tz) {
-    if (tz == 0)
-    {
-        return("GMT+0");
-    }
-    else if (tz == +1) {
-        return("CET-1");
-    }
-    else if (tz == +2) {
-        return("EET-2");
-    }
-    else if (tz == +3) {
-        return("MSK-3");
-    }
-    else if (tz == +4) {
-        return("SAMT-4");
-    }
-    else if (tz == +5) {
-        return("PKT-5");
-    }
-    else if (tz == +6) {
-        return("ALMT-6");
-    }
-    else if (tz == +7) {
-        return("KRAT-7");
-    }
-    else if (tz == +8) {
-        return("CST-8");
-    }
-    else if (tz == +9) {
-        return("JST-9");
-    }
-    else if (tz == +10) {
-        return("AEST-10");
-    }
-    else if (tz == +11) {
-        return("AEDT-11");
-    }
-    else if (tz == +12) {
-        return("FJT-12");
-    }
-    else if (tz == +13) {
-        return("NZDT-13");
-    }
-    else if (tz == +14) {
-        return("LINT-14");
-    }
-
-    else if (tz == -1) {
-        return("EGT+1");
-    }
-    else if (tz == -2) {
-        return("GST+2");
-    }
-    else if (tz == -3) {
-        return("WGT+3");
-    }
-    else if (tz == -4) {
-        return("AST+4");
-    }
-    else if (tz == -5) {
-        return("EST+5");
-    }
-    else if (tz == -6) {
-        return("CST+6");
-    }
-    else if (tz == -7) {
-        return("MST+7");
-    }
-    else if (tz == -8) {
-        // return("PST+8PDT,M3.2.0/2,M11.1.0/2");
-        return("PST+8");
-    }
-    else if (tz == -9) {
-        return("AKST+9");
-    }
-    else if (tz == -10) {
-        return("HST+10");
-    }
-    else if (tz == -11) {
-        return("NUT+11");
-    }
-    else {
-        return("GMT+0");
-    }
-}
+// const char* getTZdefinition(double tz) {
+//     if (tz == 0) {
+//         return("GMT+0");
+//     } else if (tz == +1) {
+//         return("CET-1");
+//     } else if (tz == +2) {
+//         return("EET-2");
+//     } else if (tz == +3) {
+//         return("MSK-3");
+//     } else if (tz == +4) {
+//         return("SAMT-4");
+//     } else if (tz == +5) {
+//         return("PKT-5");
+//     } else if (tz == +6) {
+//         return("ALMT-6");
+//     } else if (tz == +7) {
+//         return("KRAT-7");
+//     } else if (tz == +8) {
+//         return("CST-8");
+//     } else if (tz == +9) {
+//         return("JST-9");
+//     } else if (tz == +10) {
+//         return("AEST-10");
+//     } else if (tz == +11) {
+//         return("AEDT-11");
+//     } else if (tz == +12) {
+//         return("FJT-12");
+//     } else if (tz == +13) {
+//         return("NZDT-13");
+//     } else if (tz == +14) {
+//         return("LINT-14");
+//     }
+//
+//     else if (tz == -1) {
+//         return("EGT+1");
+//     } else if (tz == -2) {
+//         return("GST+2");
+//     } else if (tz == -3) {
+//         return("WGT+3");
+//     } else if (tz == -4) {
+//         return("AST+4");
+//     } else if (tz == -5) {
+//         return("EST+5");
+//     } else if (tz == -6) {
+//         return("CST+6");
+//     } else if (tz == -7) {
+//         return("MST+7");
+//     } else if (tz == -8) {
+//         // return("PST+8PDT,M3.2.0/2,M11.1.0/2");
+//         return("PST+8");
+//     } else if (tz == -9) {
+//         return("AKST+9");
+//     } else if (tz == -10) {
+//         return("HST+10");
+//     } else if (tz == -11) {
+//         return("NUT+11");
+//     }else {
+//         return("GMT+0");
+//     }
+// }
 
 bool webSetup() {
     // serve content of root of web server directory

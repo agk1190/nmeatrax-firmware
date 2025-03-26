@@ -8,10 +8,10 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 ## [Unreleased] - yyyy-mm-dd
  
 ### Coming Soon
-- Fix WiFi settings not saving correctly
+- NMEATrax App Lite builtin
 
 
-## [10.0.0] - 2024-12-06
+## [10.0.0] - 2025-03-25
 
 ### Added
 - Event based decoding
@@ -22,7 +22,7 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 - NMEA data now stored in array instead of individual variables.
 - Engine hours now sent as hours.
 - Made localRecInt = settings.recInt by default (bug)
-- Changed WiFi updating (WIP)
+- Changed WiFi updating
 
 
 ## [9.0.0] - 2024-09-22

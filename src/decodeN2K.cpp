@@ -60,72 +60,6 @@ Stream *OutputStream;
 
 void HandleNMEA2000Msg(const tN2kMsg &N2kMsg);
 
-// std::string getEngineStatus1(const tN2kDD206& status) {
-//     std::string result;
-//     const char* tN2kEngineStatus1Strs[] = { 
-//         "Check Engine", 
-//         "Over Temperature", 
-//         "Low Oil Pressure", 
-//         "Low Oil Level", 
-//         "Low Fuel Pressure", 
-//         "Low Voltage", 
-//         "Low Coolant Level", 
-//         "Water Flow", 
-//         "Water in Fuel", 
-//         "Charge Indicator", 
-//         "Preheat Indicator", 
-//         "High Boost Pressure", 
-//         "Rev Limit Exceeded", 
-//         "EGR System", 
-//         "Throttle Position Sensor", 
-//         "Engine Emergency Stop Mode", 
-//     };
-//
-//     for (int i = 0; i < 16; ++i) {
-//         if (status.Status & (1 << i)) {
-//             if (!result.empty()) {
-//                 result += ", "; // Add a separator if this isn't the first entry
-//             }
-//             result += tN2kEngineStatus1Strs[i];
-//         }
-//     }
-//
-//     return result;
-// }
-//
-// std::string getEngineStatus2(const tN2kDD223& status) {
-//     std::string result;
-//     const char* tN2kEngineStatus2Strs[] = { 
-//         "Warning Level 1", 
-//         "Warning Level 2", 
-//         "Power Reduction", 
-//         "Maintenance Needed", 
-//         "Engine Comm Error", 
-//         "Secondary Throttle", 
-//         "Neutral Start Protect", 
-//         "Engine Shutting Down", 
-//         "Reserved", 
-//         "Reserved", 
-//         "Reserved", 
-//         "Reserved", 
-//         "Reserved", 
-//         "Reserved", 
-//         "Reserved",  
-//         "Reserved", 
-//     };
-//
-//     for (int i = 0; i < 16; ++i) {
-//         if (status.Status & (1 << i)) {
-//             if (!result.empty()) {
-//                 result += ", "; // Add a separator if this isn't the first entry
-//             }
-//             result += tN2kEngineStatus2Strs[i];
-//         }
-//     }
-//
-//     return result;
-// }
-
 bool NMEAsetup() {
     OutputStream = &Serial;
 
@@ -136,9 +70,6 @@ bool NMEAsetup() {
     if (ret == ESP_OK) {
         macAddr = std::to_string(baseMac[3]) + std::to_string(baseMac[4]) + std::to_string(baseMac[5]);
         macAddrStr = macAddr.c_str();
-        // Serial.printf("%02x:%02x:%02x:%02x:%02x:%02x\n",
-        //             baseMac[0], baseMac[1], baseMac[2],
-        //             baseMac[3], baseMac[4], baseMac[5]);
     } else {
         macAddrStr = "707887";
     }
