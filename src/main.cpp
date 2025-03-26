@@ -11,43 +11,35 @@
  *
  */
 
-// #include <tinyGpsPlus.h>
 #include <Arduino.h>
 #include <WiFi.h>
-#include <WebServer.h>
 #include "SPIFFS.h"
-#include "decodeN2K.h"
-#include "sdcard.h"
-#include "webserv.h"
-#include "main.h"
 #include <time.h>
 #include "sdkconfig.h"
 #include <FREERTOS/FreeRTOS.h>
 #include <FREERTOS/timers.h>
-#include <Preferences.h>
+#include <ArduinoJSON.h>
+
+#include "decodeN2K.h"
+#include "sdcard.h"
+#include "webserv.h"
+#include "main.h"
+#include "preferences.h"
 
 // Local NMEATrax access point IP settings
 IPAddress local_ip(192, 168, 1, 1);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
-// Json variable to store data to send to the web server
-JSONVar readings;
-
-// Json variable to store data to save to SPIFFS
-JSONVar jsettings;
-
-Preferences preferences;
-
-enum recMode recMode;
-
 // Structure to store device settings
-Settings settings;
+extern Settings settings;
 
 bool outOfIdle = true;
 String CSVFileName;
 
 bool NMEAsleep = false;
+
+String nmeaData[20];
 
 TaskHandle_t webTaskHandle = NULL;
 TaskHandle_t loggingTaskHandle = NULL;
@@ -60,118 +52,40 @@ TaskHandle_t nmeaTaskHandle = NULL;
  * @return A string of comma separated values containing the NMEA data.
 */
 String getCSV() {
-    String data[] = {
-        String(rpm),            // 0
-        String(etemp, 2),          // 1
-        String(otemp, 2),          // 2
-        String(opres),          // 3
-        String(fuel_rate, 1),   // 4
-        String(flevel, 1),      // 5
-        String(lpkm, 3),        // 6
-        String(leg_tilt),       // 7
-        String(speed),          // 8
-        String(heading),        // 9
-        String(depth, 2),          // 10
-        String(wtemp, 2),          // 11
-        String(battV),          // 12
-        String(ehours),         // 13
-        String(gear),           // 14
-        String(lat, 6),         // 15
-        String(lon, 6),         // 16
-        String(mag_var, 2),     // 17
-        String(unixTime)        // 18
-    };
+    // String data[] = {
+    //     String(rpm),            // 0
+    //     String(etemp, 2),       // 1
+    //     String(otemp, 2),       // 2
+    //     String(opres),          // 3
+    //     String(fuel_rate, 1),   // 4
+    //     String(flevel, 1),      // 5
+    //     String(lpkm, 3),        // 6
+    //     String(leg_tilt),       // 7
+    //     String(speed),          // 8
+    //     String(heading),        // 9
+    //     String(depth, 2),       // 10
+    //     String(wtemp, 2),       // 11
+    //     String(battV),          // 12
+    //     String(ehours),         // 13
+    //     String(gear),           // 14
+    //     String(lat, 6),         // 15
+    //     String(lon, 6),         // 16
+    //     String(mag_var, 2),     // 17
+    //     String(unixTime)        // 18
+    // };
+    
     String rdata;
 
     //https://www.geeksforgeeks.org/how-to-find-size-of-array-in-cc-without-using-sizeof-operator/
-    int dataSize = sizeof(data)/sizeof(data[0]);
+    int dataSize = sizeof(nmeaData)/sizeof(nmeaData[0]);
 
-    for (size_t i = 0; i < dataSize; i++)
-    {
-        rdata += data[i];
-        if (i < dataSize-1)
-        {
+    for (size_t i = 0; i < dataSize; i++) {
+        rdata += nmeaData[i];
+        if (i < dataSize - 1) {
             rdata += ",";
         }   
     }
     return(rdata);
-}
-
-String JSONValues() {
-    readings["rpm"] = String(rpm);
-    readings["etemp"] = String(etemp, 0);
-    readings["otemp"] = String(otemp, 0);
-    readings["opres"] = String(opres, 0);
-    readings["fuel_rate"] = String(fuel_rate, 1);
-    readings["flevel"] = String(flevel, 1);
-    readings["efficiency"] = String(lpkm, 3);
-    readings["leg_tilt"] = String(leg_tilt);
-    readings["speed"] = String(speed);
-    readings["heading"] = String(heading);
-    readings["depth"] = String(depth);
-    readings["wtemp"] = String(wtemp);
-    readings["battV"] = String(battV);
-    readings["ehours"] = String(ehours);
-    readings["gear"] = String(gear);
-    readings["lat"] = String(lat, 6);
-    readings["lon"] = String(lon, 6);
-    readings["mag_var"] = String(mag_var, 2);
-    readings["time"] = String(unixTime);
-    readings["evcErrorMsg"] = evcErrorMsg;
-
-    String jsonString = JSON.stringify(readings);
-    return jsonString;
-}
-
-bool saveSettings() {
-    bool success = false;
-    success = preferences.begin("settings");
-    preferences.putBool("isLocalAP", settings.isLocalAP);
-    preferences.putString("wifiSSID", settings.wifiSSID);
-    preferences.putString("wifiPass", settings.wifiPass);
-    preferences.putInt("recMode", settings.recMode);
-    preferences.putInt("recInt", settings.recInt);
-    preferences.end();
-    return success;
-}
-
-bool readSettings() {
-    bool success = false;
-    success = preferences.begin("settings");
-    settings.isLocalAP = preferences.getBool("isLocalAP", false);
-    settings.wifiSSID = preferences.getString("wifiSSID", "NMEATrax").c_str();
-    settings.wifiPass = preferences.getString("wifiPass", "nmeatrax").c_str();
-    settings.recMode = preferences.getInt("recMode", 5);
-    settings.recInt = preferences.getInt("recInt", 5);
-    preferences.end();
-
-    settings.wifiSSID = "NMEATrax";
-    settings.wifiPass = "nmeatrax";
-
-    switch (settings.recMode) {
-        case 0:
-            recMode = OFF;
-            break;
-
-        case 1:
-            recMode = ON;
-            break;
-
-        case 2: 
-        case 4:
-            recMode = AUTO_SPD_IDLE;
-            break;
-
-        case 3: 
-        case 5:
-            recMode = AUTO_RPM_IDLE;
-            break;
-        
-        default:
-            recMode = AUTO_RPM_IDLE;
-            break;
-    }
-    return success;
 }
 
 bool getSDcardStatus() {
@@ -192,9 +106,79 @@ void createWifiText() {
     }
 }
 
-void crash() {
-    Serial.println("Device Crashed!");
-    ESP.restart();
+bool connectToWiFi(String jsonString) {
+    const size_t maxRetries = 3; // Number of times to loop through the list
+    JsonDocument doc;
+
+    // Attempt to connect using last stored Wi-Fi credentials
+    Serial.println("Attempting to connect to the last known Wi-Fi...");
+    WiFi.begin();
+
+    // Wait for connection (timeout after 10 seconds)
+    unsigned long startTime = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000) {
+        delay(500);
+        Serial.print(".");
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("\nConnected to the last known Wi-Fi!");
+        Serial.printf("IP Address: %s\n", WiFi.localIP().toString().c_str());
+        return true; // Exit the function if successfully connected
+    } else {
+        Serial.println("\nFailed to connect to the last known Wi-Fi. Trying the list...");
+    }
+
+    // Parse the JSON string
+    DeserializationError error = deserializeJson(doc, jsonString);
+    if (error) {
+        Serial.println("Failed to parse JSON:");
+        Serial.println(error.c_str());
+        return false;
+    }
+
+    // Ensure the JSON is an array
+    if (!doc.is<JsonArray>()) {
+        Serial.println("Invalid JSON format: Expected an array.");
+        return false;
+    }
+
+    JsonArray wifiList = doc.as<JsonArray>();
+
+    for (size_t attempt = 0; attempt < maxRetries; ++attempt) {
+        for (JsonObject wifi : wifiList) {
+            const char* ssid = wifi["ssid"];
+            const char* password = wifi["password"];
+
+            if (!ssid || !password) {
+                Serial.println("Invalid JSON entry: Missing ssid or password.");
+                continue;
+            }
+
+            Serial.printf("Attempting to connect to SSID: %s\n", ssid);
+            WiFi.begin(ssid, password);
+
+            // Wait for connection (timeout after 10 seconds)
+            unsigned long startTime = millis();
+            while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000) {
+                delay(500);
+                Serial.print(".");
+            }
+
+            if (WiFi.status() == WL_CONNECTED) {
+                Serial.printf("\nConnected to %s\n", ssid);
+                Serial.printf("IP Address: %s\n", WiFi.localIP().toString().c_str());
+                return true; // Exit the function upon successful connection
+            } else {
+                Serial.printf("\nFailed to connect to %s\n", ssid);
+            }
+        }
+
+        Serial.printf("\nRetrying... (%d/%d)\n", attempt + 1, maxRetries);
+    }
+
+    Serial.println("Failed to connect to any WiFi network after multiple attempts.");
+    return false;
 }
 
 // ***************************************************
@@ -209,7 +193,7 @@ void setup() {
     // Initialize SPIFFS
     if (!SPIFFS.begin(true)) {
         Serial.println("An Error has occurred while mounting SPIFFS");
-        crash();
+        while (1) {}
     }
 
     pinMode(LED_PWR, OUTPUT);
@@ -226,42 +210,48 @@ void setup() {
     if (getSDcardStatus()) {sdSetup();}
 
     // load settings
-    if (!readSettings()) {crash();}
+    readPreferences();
     delay(500);
+
+    // esp_wifi_set_country_code("CA", true);
+    wifi_country_t wifiCountry = {
+        cc: "CA",   // ISO country code
+        schan: 1,   // Start channel
+        nchan: 11,  // Total number of channels (Canada supports 11 channels)
+        policy: WIFI_COUNTRY_POLICY_MANUAL
+    };
+    esp_wifi_set_country(&wifiCountry);
+    esp_wifi_set_bandwidth(WIFI_IF_AP, WIFI_BW_HT20);
 
     if (settings.isLocalAP) {     // if in local AP mode, create AP
         WiFi.softAPsetHostname("nmeatrax");
         WiFi.mode(WIFI_MODE_AP);
         WiFi.softAPConfig(local_ip, gateway, subnet);
+        esp_wifi_set_bandwidth(WIFI_IF_AP, WIFI_BW_HT20);
         WiFi.softAP(settings.wifiSSID, settings.wifiPass);
         delay(100);
-        Serial.println("Started NMEA Access Point");
+        Serial.println("Hosting Access Point");
     }
     else {       // if the device should connect to an Access Point
         bool connected;
-        wifiManager.setAPStaticIPConfig(local_ip, gateway, subnet);
-        connected = wifiManager.autoConnect("NMEATrax");
+        connected = connectToWiFi(settings.wifiCredentials);
         if (connected) {
             settings.isLocalAP = false;
-            if (!saveSettings()) {crash();}
-        }
-        else {
+            updatePreference("isLocalAP", false);
+        } else {
             settings.isLocalAP = true;
-            if (!saveSettings()) {crash();}
+            updatePreference("isLocalAP", true);
             ESP.restart();
         }
     }
     createWifiText();
 
-    // https://forum.arduino.cc/t/esp32-settimeofday-functionality-giving-odd-results/676136
-    // struct timeval tv;
-    // tv.tv_sec = 1704096000;     // Jan 1 2024 00:00
-    // settimeofday(&tv, NULL);    // set default time
-    // setenv("TZ", getTZdefinition(settings.timeZone), 1);     // set time zone
-    // tzset();
+    for (int i = 0; i < sizeof(nmeaData) / sizeof(nmeaData[0]); i++) {
+        nmeaData[i] = "-";
+    }
 
-    if (!webSetup()) {crash();}
-    if (!NMEAsetup()) {crash();}
+    webSetup();
+    NMEAsetup();
 
     xTaskCreate(vWebTask, "webTask", 4096, (void *) 1, 2, &webTaskHandle);
     delay(100);
@@ -278,9 +268,7 @@ void loop() {}
 
 void vNmeaTask(void * pvParameters) {
     TickType_t delay = 1 / portTICK_PERIOD_MS;
-    // delay = delay * 0.1;
     for (;;) {
-        // Serial.println(uxTaskGetStackHighWaterMark(NULL));
         NMEAloop();
         vTaskDelay(delay);
     }
@@ -289,7 +277,6 @@ void vNmeaTask(void * pvParameters) {
 void vWebTask(void * pvParameters) {
     for (;;) {
         webLoop();
-        // Serial.println(uxTaskGetStackHighWaterMark(NULL));
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
@@ -304,10 +291,10 @@ void vWriteRecording(void * pvParameters) {
 void vBackgroundTasks(void * pvParameters) {
     for (;;) {
         static int count = 0;
-        static int localRecInt;
+        static int localRecInt = settings.recInt;
         static int nmeaSleepCount = 0;
 
-        #ifdef TESTMODE
+        #ifdef TESTMODE1
         // time keeping
         time_t now;
         // struct tm timeDetails;
@@ -343,36 +330,34 @@ void vBackgroundTasks(void * pvParameters) {
         getSDcardStatus();
         count++;
 
-        switch (recMode) {
+        switch (settings.recMode) {
             case AUTO_RPM:
-                if (rpm <= 0) {
-                    recMode=AUTO_RPM_IDLE;
-                    // endGPXfile(GPXFileName.c_str());
+                if (nmeaData[0].toInt() <= 0) {
+                    settings.recMode=AUTO_RPM_IDLE;
                     if (loggingTaskHandle != NULL) {vTaskDelete(loggingTaskHandle);}
                 }
-                localRecInt = rpm > 3900 ? 1 : settings.recInt;
+                localRecInt = nmeaData[0].toInt() > 3900 ? 1 : settings.recInt;
                 break;
 
             case AUTO_RPM_IDLE:
-                if (rpm > 0) {
+                if (nmeaData[0].toInt() > 0) {
                     outOfIdle=true;
-                    recMode=AUTO_RPM;
+                    settings.recMode=AUTO_RPM;
                 }
                 break;
 
             case AUTO_SPD:
-                if (speed <= 0) {
-                    recMode=AUTO_SPD_IDLE;
-                    // endGPXfile(GPXFileName.c_str());
+                if (nmeaData[8].toDouble() <= 0) {
+                    settings.recMode=AUTO_SPD_IDLE;
                     if (loggingTaskHandle != NULL) {vTaskDelete(loggingTaskHandle);}
                 }
-                localRecInt = speed > 15 ? 1 : settings.recInt;
+                localRecInt = nmeaData[8].toDouble() > 15 ? 1 : settings.recInt;
                 break;
 
             case AUTO_SPD_IDLE:
-                if (speed > 0) {
+                if (nmeaData[8].toDouble() > 0) {
                     outOfIdle=true;
-                    recMode=AUTO_SPD;
+                    settings.recMode=AUTO_SPD;
                 }
                 break;
             
@@ -380,12 +365,12 @@ void vBackgroundTasks(void * pvParameters) {
                 break;
         }
         
-        if ((recMode == AUTO_RPM || recMode == AUTO_SPD || recMode == ON) && count >= localRecInt && getSDcardStatus()) {
+        if ((settings.recMode == AUTO_RPM || settings.recMode == AUTO_SPD || settings.recMode == ON) && count >= localRecInt && getSDcardStatus()) {
 
             if (outOfIdle) {
                 int voyageNum = 0;
                 String lastCSVfileName;
-                const char* csvHeaders = "RPM,Engine Temp (K),Oil Temp (K),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Fuel Efficiency (L/km),Leg Tilt (%),Speed (m/s),Heading (*),Depth (m),Water Temp (K),Battery Voltage (V),Engine Hours (s),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp";
+                const char* csvHeaders = "RPM,Engine Temp (K),Oil Temp (K),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Fuel Efficiency (L/km),Leg Tilt (%),Speed (m/s),Heading (*),Depth (m),Water Temp (K),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp,Error Bits";
                 do {
                     voyageNum++;
                     lastCSVfileName = "Voyage";
@@ -402,7 +387,6 @@ void vBackgroundTasks(void * pvParameters) {
             count = 0;
         }
         if (NMEAsleep) {
-            // nmeaTraxGenericMsg = "N2K Bus Standby";
             if (nmeaSleepCount >= 4) {  // 5 seconds
                 nmeaSleepCount = 0;
                 NMEAsleep = false;
@@ -411,7 +395,6 @@ void vBackgroundTasks(void * pvParameters) {
                 nmeaSleepCount++;
             }
         } else {
-            // nmeaTraxGenericMsg = "";
             nmeaSleepCount = 0;
         }
 

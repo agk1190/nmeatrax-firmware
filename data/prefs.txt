@@ -1,0 +1,1 @@
+{"isLocalAP":false,"wifiSSID":"NMEATrax","wifiPass":"nmeatrax","recMode":0,"recInt":5,"wifiCredentials":[]}

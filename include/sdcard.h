@@ -62,30 +62,6 @@ String listDir(fs::FS &fs, const char * dirname, uint8_t levels);
 */
 String getFile(fs::FS &fs, String filePath);
 
-// /**
-//  * @brief Write a point to the GPX file
-//  * @param fileName GPX filename
-//  * @param wptNum Waypoint number
-//  * @param lat Latitude
-//  * @param lon Longitude
-//  * @returns True if succeeded
-// */
-// bool writeGPXpoint(const char * fileName, int wptNum, double lat, double lon);
-
-// /**
-//  * @brief Create and setup gpx file
-//  * @param fileName GPX filename
-//  * @returns True if succeeded
-// */
-// bool createGPXfile(const char * fileName);
-
-// /**
-//  * @brief Put a </gpx> at the end of the file
-//  * @param fileName GPX filename
-//  * @returns True if succeeded
-// */
-// bool endGPXfile(const char * fileName);
-
 /**
  * @brief Setup SD card
  * @returns True if succeeded

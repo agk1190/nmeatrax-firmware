@@ -6,10 +6,7 @@
  * NMEATrax webserver header file.
  */
 
-#include <WiFiManager.h>
-
-// Wifi Manager class
-extern WiFiManager wifiManager;
+#include <esp_wifi.h>
 
 /**
  * @brief Look up the timezone definition based on the offset number provided
@@ -35,6 +32,12 @@ void webLoop();
 void sendEmailData(String text);
 
 /**
- * @brief Init websocket
-*/
-void initWebSocket();
+ * @brief Send data to client(s)
+ */
+void sendDataTask(void *parameter);
+
+/**
+ * @brief Pass data to the queue to be send to client(s)
+ * @param data The data to be sent
+ */
+void sendToWebQueue(String data);

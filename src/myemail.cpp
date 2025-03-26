@@ -20,6 +20,7 @@
 #include "decodeN2K.h"
 #include "main.h"
 #include "webserv.h"
+#include "preferences.h"
 
 /* The SMTP Session object used for Email sending */
 SMTPSession smtp;
@@ -30,32 +31,44 @@ extern Settings settings;
 /* Callback function to get the Email sending status */
 void smtpCallback(SMTP_Status status);
 
-String WIFI_SSID[] = {WIFI_SSID0, WIFI_SSID1, WIFI_SSID2, WIFI_SSID3};
+// String WIFI_SSID[] = {WIFI_SSID0, WIFI_SSID1, WIFI_SSID2, WIFI_SSID3};
 
 void sendEmail(void *pvParameters) {
     String chosenSSID = "";
+    String chosenPassword = "";
+    String textBuffer = "";
     sendEmailData("Starting...");
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, settings.wifiCredentials);
+    if (error) {
+        sendEmailData("Failed to parse WiFi credentials JSON");
+        vTaskDelete(NULL);
+    }
 
     if (settings.isLocalAP) {
         WiFi.mode(WIFI_MODE_APSTA);
 
-        sendEmailData("Started scan of access points");
-        int n = WiFi.scanNetworks();
+        sendEmailData("Starting scan of access points");
+        int numberOfNetworksFound = WiFi.scanNetworks();
         sendEmailData("Completed scan of access points");
-        if (n == 0) {
-            sendEmailData("No WiFi networks found. Failed to send email.");
+        
+        if (numberOfNetworksFound == 0) {
+            sendEmailData("No WiFi networks found. Unable to send email.");
             WiFi.mode(WIFI_MODE_AP);
             vTaskDelete(NULL);
         } else {
             bool _exit = false;
-            for (int i = 0; i < n; ++i) {   // for each access point found
+
+            JsonArray wifiArray = doc.as<JsonArray>();
+
+            for (int i = 0; i < numberOfNetworksFound; ++i) {  // for each access point found
                 if (_exit) break;
-                for (int j = 0; j < WIFI_SSID->length(); j++) {     // for each selectable access point
-                    if (WiFi.SSID(i) == WIFI_SSID[j]) {
-                        String s = "Chose ";
-                        s += WiFi.SSID(i);
-                        sendEmailData(s);
+                
+                for (JsonObject cred : wifiArray) {  // Iterate through parsed credentials   doc.as<JsonArray>()
+                    if (WiFi.SSID(i) == cred["ssid"].as<String>()) {
                         chosenSSID = WiFi.SSID(i);
+                        chosenPassword = cred["password"].as<String>();
                         _exit = true;
                         break;
                     }
@@ -63,27 +76,27 @@ void sendEmail(void *pvParameters) {
                 vTaskDelay(10 / portTICK_PERIOD_MS);
             }
         }
-        String s = "Connecting to ";
-        s += chosenSSID;
-        s += " using ";
-        s += WIFI_PASSWORD;
-        sendEmailData(s);
-        if (chosenSSID != emptyString) {
-            WiFi.begin(chosenSSID.c_str(), WIFI_PASSWORD);
+        
+        if (!chosenSSID.isEmpty()) {
+            textBuffer = "Connecting to ";
+            textBuffer.concat(chosenSSID);
+            sendEmailData(textBuffer);
+            WiFi.begin(chosenSSID.c_str(), chosenPassword.c_str());
             unsigned long t = millis();
             while ((WiFi.status() != WL_CONNECTED) && ((t + 20000) > millis())) {
                 vTaskDelay(200 / portTICK_PERIOD_MS);
             }
-            if ((t + 20000) < millis() || WiFi.status() != WL_CONNECTED)
-            {
-                String f = "Failed to connect to access point: ";
-                f += WiFi.status();
-                sendEmailData(f);
+            if ((t + 20000) < millis() || WiFi.status() != WL_CONNECTED) {
+                textBuffer = "Failed to connect to access point: ";
+                textBuffer.concat(String(WiFi.status()));
+                sendEmailData(textBuffer);
                 WiFi.mode(WIFI_MODE_AP);
                 vTaskDelete(NULL);
             }
-            sendEmailData("Connnected to access point");
+            sendEmailData("Connected to access point");
         } else {
+            sendEmailData("Failed to find matching access point credentials");
+            WiFi.mode(WIFI_MODE_AP);
             vTaskDelete(NULL);
         }
     }
@@ -185,8 +198,6 @@ void sendEmail(void *pvParameters) {
             String filename = file.name();
             if (filename.substring(filename.length() - 3) == "csv") {
                 att.descr.mime = "text/csv";
-            // } else if (filename.substring(filename.length() - 3) == "gpx") {
-            //     att.descr.mime = "text/xml";
             } else {
                 att.descr.mime = "text/plain";
             }

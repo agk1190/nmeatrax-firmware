@@ -10,9 +10,6 @@
 
 //---Contents of secrets.h---
 /** 
- * #define WIFI_SSID ***
- * #define WIFI_PASSWORD ***
- * 
  * #define AUTHOR_EMAIL ***
  * #define AUTHOR_PASSWORD ***
  * #define RECIPIENT_EMAIL ***
