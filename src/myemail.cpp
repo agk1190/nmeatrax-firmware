@@ -190,12 +190,65 @@ void sendEmail(void *pvParameters) {
         vTaskDelete(NULL);
     }
     File file = root.openNextFile();
+    // sendEmailData("Cleaning files...");
+    // while (file) {
+    //     if (!file.isDirectory()) {
+    //         String filename = file.name();
+    //
+    //         // Remove non-printable characters from file contents if CSV
+    //         if (filename.substring(filename.length() - 3) == "csv") {
+    //             String tempPath = String("/tmp_clean.csv");
+    //             File cleanFile = SD.open(tempPath, FILE_WRITE);
+    //             if (cleanFile) {
+    //                 file.seek(0);
+    //                 while (file.available()) {
+    //                     char c = file.read();
+    //                     Serial.print(c);
+    //                     if ((c >= 32 && c <= 126) || c == '\n' || c == '\r' || c == ',') {
+    //                         cleanFile.write(c);
+    //                     }
+    //                 }
+    //                 cleanFile.close();
+    //                 file.close();
+    //                 // Replace original file with cleaned file
+    //                 SD.remove(filename);
+    //                 SD.rename(tempPath, filename);
+    //                 // Reopen the cleaned file for attachment
+    //                 file = SD.open(filename, FILE_READ);
+    //             } else {
+    //                 sendEmailData("Failed to create temp file for cleaning");
+    //                 file = root.openNextFile();
+    //                 continue;
+    //             }
+    //         }
+    //     }
+    //     break;
+    // }
     sendEmailData("Adding attachments...");
     while (file) {
         if (file.isDirectory()) {} 
         else if (file.name() == "wifi.txt") {}
         else {
             String filename = file.name();
+
+            String tempPath = String("/tmp_clean.csv");
+            File cleanFile = SD.open(tempPath, FILE_WRITE, true);
+            if (cleanFile) {
+                file.seek(0);
+                while (file.available()) {
+                    char c = file.read();
+                    Serial.print(c);
+                    if ((c >= 32 && c <= 126) || c == '\n' || c == '\r' || c == ',') {
+                        cleanFile.write(c);
+                    }
+                }
+                cleanFile.close();
+                file.close();
+                // Replace original file with cleaned file
+                SD.remove(filename);
+                SD.rename(tempPath, filename);
+            }
+
             if (filename.substring(filename.length() - 3) == "csv") {
                 att.descr.mime = "text/csv";
             } else {

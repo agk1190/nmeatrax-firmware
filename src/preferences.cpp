@@ -50,7 +50,7 @@ bool addWifiPair(const char* ssid, const char* password) {
 
     DeserializationError error = deserializeJson(doc, fileContents);
     if (error) {
-        Serial.println("Failed to parse JSON (addWifiPair):");
+        Serial.print("Failed to parse JSON (addWifiPair): ");
         Serial.println(error.c_str());
         return false;
     }
@@ -100,7 +100,7 @@ bool clearWifiCredentials() {
 
     DeserializationError error = deserializeJson(doc, fileContents);
     if (error) {
-        Serial.println("Failed to parse JSON (clear wifi credentials):");
+        Serial.print("Failed to parse JSON (clear wifi credentials): ");
         Serial.println(error.c_str());
         return false;
     }

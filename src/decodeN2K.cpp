@@ -219,6 +219,8 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
             lpkm = -273;
         }
 
+        nmeaData[6] = String(lpkm, 3);
+
         std::string text = "{\"messageType\":\"127489\",\"instanceID\":" + std::to_string(EngineInstance) + 
                             ",\"data\":{\"eTemp\":" + to_string_with_precision(N2kIsNA(EngineCoolantTemp) ? -273 : EngineCoolantTemp) + 
                             ",\"oTemp\":" + to_string_with_precision(N2kIsNA(EngineOilTemp) ? -273 : EngineOilTemp) + 
@@ -229,7 +231,6 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
                             ",\"efficiency\":" + to_string_with_precision(lpkm, 3) + 
                             "}}";
         sendToWebQueue(text.c_str());
-        nmeaData[6] = String(lpkm, 3);
 
         std::string errors = "{\"messageType\":\"161616\",\"instanceID\":" + std::to_string(EngineInstance) + 
                             ",\"data\":{\"status1\":" + std::to_string(Status1.Status) + 
