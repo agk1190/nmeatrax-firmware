@@ -37,7 +37,7 @@ enum RecMode {
 /**
  * @brief Structure to store device settings
 */
-struct settings {
+struct Settings {
     bool isLocalAP;
     String wifiSSID;
     String wifiPass;
@@ -46,7 +46,7 @@ struct settings {
     String wifiCredentials;
 };
 
-typedef struct settings Settings;
+extern Settings settings;
 
 /**
  * @brief Update a value in the preferences file

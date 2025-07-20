@@ -4,13 +4,10 @@
  * NMEATrax SPIFFS preferences functions
 */
 
-#include "FS.h"
-#include "SPIFFS.h"
-#include <ArduinoJSON.h>
 #include "preferences.h"
 
 // Structure to store device settings
-Settings settings;
+// Settings settings;
 
 bool readPreferences() {
     JsonDocument doc;

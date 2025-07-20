@@ -8,6 +8,8 @@
 
 #include "SD.h"
 
+// extern bool sdCardItialized;
+
 /**
  * @brief Find the file requested.
  * @param fs Filesystem to look in
@@ -74,3 +76,13 @@ bool sdSetup();
  * @author ChatGPT
 */
 String addCRLF(const String& str);
+
+/**
+ * @brief Check if SD card is present.
+ * @returns Status of the SD card
+ *          0b00 - SD card not present, not initialized
+ *         0b01 - SD card present, not initialized
+ *        0b10 - SD card not present, initialized
+ *       0b11 - SD card present, initialized
+ */
+u_int8_t getSDcardStatus();

@@ -12,21 +12,14 @@
 
 // To use send Email for Gmail to port 465 (SSL), less secure app option should be enabled. https://myaccount.google.com/lesssecureapps?pli=1
 
-#include <Arduino.h>
-#include <WiFi.h>
 #include <ESP_Mail_Client.h>
 #include <ESP32Ping.h>
 #include "myemail.h"
-#include "decodeN2K.h"
-#include "main.h"
 #include "webserv.h"
 #include "preferences.h"
 
 /* The SMTP Session object used for Email sending */
 SMTPSession smtp;
-
-// Structure to store device settings
-extern Settings settings;
 
 /* Callback function to get the Email sending status */
 void smtpCallback(SMTP_Status status);

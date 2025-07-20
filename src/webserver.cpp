@@ -4,105 +4,40 @@
  * @authors Alex Klouda, Greyson Stelmaschuk
  * 
  * NMEATrax webserver file.
- * 
- * Resources
- * https://randomnerdtutorials.com/esp32-web-server-gauges/
- * https://cplusplus.com/reference/ctime/
  *
  */
 
+#include "webserv.h"
 #include <WebServer.h>
 #include "ESPAsyncWebServer.h"
 #include "SPIFFS.h"
-#include "sdcard.h"
 #include <ESPmDNS.h>
 #include <ElegantOTA.h>
-#include <ArduinoJson.h>
-#include <AsyncTCP.h>
 
-#include "main.h"
-#include "webserv.h"
+#include "nmeaVars.h"
+#include "recording.h"
 #include "myemail.h"
 #include "preferences.h"
+#include "nmeaWifi.h"
+#include "sdcard.h"
 
 // WebSever object
 AsyncWebServer server(80);
 
 AsyncEventSource events("/NMEATrax");
 
-// Structure to store device settings
-extern Settings settings;
-
 QueueHandle_t webQueue;
 TaskHandle_t webSendTaskHandle = NULL;
 
-// const char* getTZdefinition(double tz) {
-//     if (tz == 0) {
-//         return("GMT+0");
-//     } else if (tz == +1) {
-//         return("CET-1");
-//     } else if (tz == +2) {
-//         return("EET-2");
-//     } else if (tz == +3) {
-//         return("MSK-3");
-//     } else if (tz == +4) {
-//         return("SAMT-4");
-//     } else if (tz == +5) {
-//         return("PKT-5");
-//     } else if (tz == +6) {
-//         return("ALMT-6");
-//     } else if (tz == +7) {
-//         return("KRAT-7");
-//     } else if (tz == +8) {
-//         return("CST-8");
-//     } else if (tz == +9) {
-//         return("JST-9");
-//     } else if (tz == +10) {
-//         return("AEST-10");
-//     } else if (tz == +11) {
-//         return("AEDT-11");
-//     } else if (tz == +12) {
-//         return("FJT-12");
-//     } else if (tz == +13) {
-//         return("NZDT-13");
-//     } else if (tz == +14) {
-//         return("LINT-14");
-//     }
-//
-//     else if (tz == -1) {
-//         return("EGT+1");
-//     } else if (tz == -2) {
-//         return("GST+2");
-//     } else if (tz == -3) {
-//         return("WGT+3");
-//     } else if (tz == -4) {
-//         return("AST+4");
-//     } else if (tz == -5) {
-//         return("EST+5");
-//     } else if (tz == -6) {
-//         return("CST+6");
-//     } else if (tz == -7) {
-//         return("MST+7");
-//     } else if (tz == -8) {
-//         // return("PST+8PDT,M3.2.0/2,M11.1.0/2");
-//         return("PST+8");
-//     } else if (tz == -9) {
-//         return("AKST+9");
-//     } else if (tz == -10) {
-//         return("HST+10");
-//     } else if (tz == -11) {
-//         return("NUT+11");
-//     }else {
-//         return("GMT+0");
-//     }
-// }
+Settings settings;
 
 bool webSetup() {
+    wifiSetup();
+
     // serve content of root of web server directory
     server.serveStatic("/web", SPIFFS, "/");
 
-    // serve content of sd card
-    if (getSDcardStatus()) {server.serveStatic("/sdCard", SD, "/");}
+    
 
     // redirect request to 192.168.1.1 to 192.168.1.1/web/index.html
     // server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) { 
@@ -111,11 +46,11 @@ bool webSetup() {
 
     // Get all files on the SD card
     server.on("/listDir", HTTP_GET, [](AsyncWebServerRequest *request) {
-        if (getSDcardStatus()) {
+        if (getSDcardStatus() == 3) {
             String fileList = listDir(SD, "/", 0);
             request->send(200, "text/plain", fileList);
         } else {
-            request->send(200, "text/plain", "");
+            request->send(503);
         }
     });
 
@@ -230,7 +165,7 @@ bool webSetup() {
         if(client->lastId()){
             Serial.printf("Client reconnected! Last message ID that it got is: %u\n", client->lastId());
         }
-        client->send("hello!", NULL, millis(), 10000);
+        client->send("Connected to NMEATrax!", NULL, millis(), 10000);
     });
     server.addHandler(&events);
 
@@ -252,15 +187,40 @@ bool webSetup() {
     return(true);
 }
 
+void hostSdCard() {
+    // serve content of sd card
+    server.serveStatic("/sdCard", SD, "/");
+}
+
+void sendToWebQueue(String data) {
+    String *dataToSend = new String(data);
+    if (!xQueueSend(webQueue, &dataToSend, 0)) {
+        delete dataToSend; // Free memory if queue is full
+    }
+}
+
 void webLoop() {
-    std::string heartbeat = "{\"messageType\":\"000000\",\"instanceID\":0,\"data\":{\"millis\":" + std::to_string(millis()) + "}}";
-    sendToWebQueue(heartbeat.c_str());
+    char text[160];
+    snprintf(text, sizeof(text),
+        "{\"messageType\":\"000000\",\"instanceID\":0,\"data\":{\"millis\":%lu}}",
+        millis()
+    );
+    sendToWebQueue(text);
+    // std::string heartbeat = "{\"messageType\":\"000000\",\"instanceID\":0,\"data\":{\"millis\":" + std::to_string(millis()) + "}}";
+    // sendToWebQueue(heartbeat.c_str());
     ElegantOTA.loop();
 }
 
 void sendEmailData(String text) {
-    std::string msg = "{\"messageType\":\"email\",\"instanceID\":0,\"data\":{\"msg\":\"" + std::string(text.c_str()) + "\"}}";
-    sendToWebQueue(msg.c_str());
+    char buf[512];
+    snprintf(buf, sizeof(buf),
+        "{\"messageType\":\"email\",\"instanceID\":0,\"data\":{\"msg\":\"%s\"}}",
+        text.c_str()
+    );
+    sendToWebQueue(buf);
+    Serial.printf("Email data sent: %s\n", buf);
+    // std::string msg = "{\"messageType\":\"email\",\"instanceID\":0,\"data\":{\"msg\":\"" + std::string(text.c_str()) + "\"}}";
+    // sendToWebQueue(msg.c_str());
 }
 
 void sendDataTask(void *parameter) {
@@ -272,12 +232,5 @@ void sendDataTask(void *parameter) {
                 delete dataToSend; // Free allocated memory
             }
         }
-    }
-}
-
-void sendToWebQueue(String data) {
-    String *dataToSend = new String(data);
-    if (!xQueueSend(webQueue, &dataToSend, 0)) {
-        delete dataToSend; // Free memory if queue is full
     }
 }

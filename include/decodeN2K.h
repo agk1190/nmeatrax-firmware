@@ -6,6 +6,8 @@
  * NMEATrax NMEA 2000 decoding header file.
  */
 
+ extern bool nmeaSleep;
+
 /**
  * @brief Set up NMEA2000
  * @returns True if succeeded

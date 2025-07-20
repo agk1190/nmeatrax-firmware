@@ -7,8 +7,11 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
  
-### Coming Soon
-- NMEATrax App Lite builtin
+
+## [12.0.0] - 2025-07-19
+
+### Major Rafactoring
+
 
 
 ## [10.0.0] - 2025-03-25

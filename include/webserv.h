@@ -6,20 +6,18 @@
  * NMEATrax webserver header file.
  */
 
-#include <esp_wifi.h>
-
-/**
- * @brief Look up the timezone definition based on the offset number provided
- * @param tz Timezone offset number. Integer between -11 and +14.
- * @returns The timezone string used to set the ESP32s internal timezone settings 
-*/
-const char* getTZdefinition(double tz);
+#include <Arduino.h>
 
 /**
  * @brief Set up webserver functions
  * @returns True if succeeded
 */
 bool webSetup();
+
+/**
+ * @brief Host the SD card on the webserver
+*/
+void hostSdCard();
 
 /**
  * @brief Send new NMEA data

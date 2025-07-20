@@ -4,11 +4,22 @@
  * NMEATrax SD Card functions
 */
 
+#include "sdcard.h"
+#include "nmeaVars.h"
 #include "FS.h"
 #include "SPI.h"
-#include "sdcard.h"
+
+bool sdCardInitialized = false;
 
 SPIClass spi = SPIClass(VSPI);
+
+uint8_t getSDcardStatus() {
+    if (!digitalRead(SD_Detect)) {sdCardInitialized = false;}
+    uint8_t sdPresent = (digitalRead(SD_Detect) & 0x01);
+    uint8_t sdInit = sdCardInitialized ? 1 : 0;
+    uint8_t status = (sdInit << 1) | sdPresent;
+    return status;
+}
 
 String addCRLF(const String& str) {
   String result = str;
@@ -158,6 +169,7 @@ bool sdSetup(){
 
     if (!SD.begin(CS,spi,8000000)) {
         Serial.println("Card Mount Failed");
+        sdCardInitialized = false;
         return(false);
     }
 
@@ -165,8 +177,10 @@ bool sdSetup(){
 
     if(cardType == CARD_NONE){
         Serial.println("No SD card attached");
+        sdCardInitialized = false;
         return(false);
     }
     Serial.println("SD Card Initialized");
+    sdCardInitialized = true;
     return(true);
 }
