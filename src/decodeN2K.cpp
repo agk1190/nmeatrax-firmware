@@ -219,9 +219,12 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
         }
         nmeaData->fEfficiency = lpkm;
 
+        uint32_t errorBitsCollection = (Status1.Status << 16) | Status2.Status;
+        nmeaData->errorBits = errorBitsCollection;
+
         char text[256];
         snprintf(text, sizeof(text),
-            "{\"messageType\":\"127489\",\"instanceID\":%u,\"data\":{\"eTemp\":%.2f,\"oTemp\":%.2f,\"oPres\":%.2f,\"battV\":%.2f,\"fuelRate\":%.2f,\"eHours\":%.0f,\"efficiency\":%.3f}}",
+            "{\"messageType\":\"127489\",\"instanceID\":%u,\"data\":{\"eTemp\":%.2f,\"oTemp\":%.2f,\"oPres\":%.2f,\"battV\":%.2f,\"fuelRate\":%.2f,\"eHours\":%.0f,\"efficiency\":%.3f,\"status1\":%u,\"status2\":%u}}",
             EngineInstance,
             !N2kIsNA(EngineCoolantTemp) ? EngineCoolantTemp : -273,
             !N2kIsNA(EngineOilTemp) ? EngineOilTemp : -273,
@@ -229,22 +232,23 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
             !N2kIsNA(AltenatorVoltage) ? AltenatorVoltage : -273,
             !N2kIsNA(FuelRate) ? FuelRate : -273,
             !N2kIsNA(EngineHours) ? EngineHours / 3600 : -273,
-            !N2kIsNA(lpkm) ? lpkm : -273
+            !N2kIsNA(lpkm) ? lpkm : -273,
+            Status1.Status, 
+            Status2.Status
         );
         sendToWebQueue(text);
 
-        char text2[256];
-        snprintf(text, sizeof(text),
-            "{\"messageType\":\"161616\",\"instanceID\":%u,\"data\":{\"status1\":%lu,\"status2\":%lu}}",
-            EngineInstance,
-            Status1.Status,
-            Status2.Status
-        );
-        sendToWebQueue(text2);
+        // char text2[256];
+        // snprintf(text, sizeof(text),
+        //     "{\"messageType\":\"161616\",\"instanceID\":%u,\"data\":{\"status1\":%lu,\"status2\":%lu}}",
+        //     EngineInstance,
+        //     Status1.Status,
+        //     Status2.Status
+        // );
+        // sendToWebQueue(text2);
 
         // char errorBits[32];
-        uint32_t errorBitsCollection = (Status1.Status << 16) | Status2.Status;
-        nmeaData->errorBits = errorBitsCollection;
+        
         // snprintf(errorBits, sizeof(errorBits), "%u", errorBitsCollection);
 
         // strcpy(nmeaData->errorBits, errorBitsCollection);

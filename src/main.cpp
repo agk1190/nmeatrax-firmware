@@ -61,7 +61,7 @@ void setup() {
 
     xTaskCreate(vWebTask, "webTask", 4096, (void *) 1, 2, &webTaskHandle);
     delay(100);
-    xTaskCreate(vBackgroundTasks, "bgTasks", 4096, (void *) 1, 3, &bgTaskHandle);
+    xTaskCreate(vBackgroundTasks, "bgTasks", 8192, (void *) 1, 3, &bgTaskHandle);
     delay(100);
     xTaskCreate(vNmeaTask, "nmeaTask", 8192, (void *) 1, 1, &nmeaTaskHandle);
 }

@@ -57,9 +57,8 @@ String getCSV() {
 
     return rdata; */
     char buffer[1024]; // Adjust size as needed
-    Serial.printf("errorBits raw: %lu\n", nmeaData->errorBits);
     snprintf(buffer, sizeof(buffer),
-        "%d,%.2f,%.2f,%.2f,%.1f,%.1f,%.3f,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%c,%.6f,%.6f,%.2f,%" PRIu64 ",%" PRIu32 "",
+        "%d,%.2f,%.2f,%.2f,%.1f,%.1f,%.3f,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%c,%.6f,%.6f,%.2f,%" PRIu32 ",%lu",
         nmeaData->rpm,
         nmeaData->eTemp,
         nmeaData->oTemp,
@@ -78,10 +77,9 @@ String getCSV() {
         nmeaData->lat,
         nmeaData->lon,
         nmeaData->magVar,
-        nmeaData->unixTime,
-        nmeaData->errorBits
+        nmeaData->errorBits,
+        nmeaData->unixTime
     );
-    Serial.printf("CSV Data: %s\n", buffer); // Debugging output
     return String(buffer);
 }
 
@@ -159,7 +157,7 @@ void recorderLoop() {
         if (outOfIdle) {
             int voyageNum = 0;
             String lastCSVfileName;
-            const char* csvHeaders = "RPM,Engine Temp (K),Oil Temp (K),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Fuel Efficiency (L/km),Leg Tilt (%),Speed (m/s),Heading (*),Depth (m),Water Temp (K),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Time Stamp,Error Bits";
+            const char* csvHeaders = "RPM,Engine Temp (K),Oil Temp (K),Oil Pressure (kpa),Fuel Rate (L/h),Fuel Level (%),Fuel Efficiency (L/km),Leg Tilt (%),Speed (m/s),Heading (*),Depth (m),Water Temp (K),Battery Voltage (V),Engine Hours (h),Gear,Latitude,Longitude,Magnetic Variation (*),Error Bits,Time Stamp";
             do {
                 voyageNum++;
                 lastCSVfileName = "Voyage";
