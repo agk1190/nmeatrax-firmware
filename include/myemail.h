@@ -26,4 +26,26 @@
 */
 #define SMTP_PORT 465
 
+#define ENABLE_SMTP  // Allows SMTP class and data
+// #define ENABLE_DEBUG // Allows debugging
+#define READYMAIL_DEBUG_PORT Serial
+#define ENABLE_FS // Allow filesystem integration
+
+/**
+ * @brief Sets the wifi mode as it should be and deletes the task
+ */
+void quitAndDelete();
+
+/**
+ * @brief Main function to send an email
+ */
 void sendEmail(void *pvParameters);
+
+/**
+ * @brief Connects to the WiFi network based on stored credentials
+ * 
+ * This function scans for available WiFi networks, matches them with stored credentials,
+ * and connects to the chosen network. If no matching network is found or connection fails,
+ * it sends an email notification and deletes the task.
+ */
+void connectToWifi();

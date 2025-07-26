@@ -6,12 +6,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project tries to adhere to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
- 
+- get app to send time on connect 
 
 ## [12.0.0] - 2025-07-19
 
 ### Major Rafactoring
 
+### Changed
+- Switched to updated email library
 
 
 ## [10.0.0] - 2025-03-25

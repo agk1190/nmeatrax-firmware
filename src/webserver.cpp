@@ -37,8 +37,6 @@ bool webSetup() {
     // serve content of root of web server directory
     server.serveStatic("/web", SPIFFS, "/");
 
-    
-
     // redirect request to 192.168.1.1 to 192.168.1.1/web/index.html
     // server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) { 
     //     request->redirect("/web/index.html"); 
@@ -108,8 +106,11 @@ bool webSetup() {
         } 
         else if (request->hasParam("otaUpdate")) {
             request->send(200, "text/plain", "OK");
-            ElegantOTA.begin(&server);  // Start ElegantOTA
             digitalWrite(N2K_STBY, HIGH);
+            vTaskDelete(nmeaTaskHandle);
+            vTaskDelete(bgTaskHandle);
+            vTaskDelete(webSendTaskHandle);
+            ElegantOTA.begin(&server);  // Start ElegantOTA
         }
         else if (request->hasParam("recMode")) {
             int mode = atoi(request->getParam("recMode")->value().c_str());
@@ -206,8 +207,6 @@ void webLoop() {
         millis()
     );
     sendToWebQueue(text);
-    // std::string heartbeat = "{\"messageType\":\"000000\",\"instanceID\":0,\"data\":{\"millis\":" + std::to_string(millis()) + "}}";
-    // sendToWebQueue(heartbeat.c_str());
     ElegantOTA.loop();
 }
 
@@ -218,9 +217,6 @@ void sendEmailData(String text) {
         text.c_str()
     );
     sendToWebQueue(buf);
-    Serial.printf("Email data sent: %s\n", buf);
-    // std::string msg = "{\"messageType\":\"email\",\"instanceID\":0,\"data\":{\"msg\":\"" + std::string(text.c_str()) + "\"}}";
-    // sendToWebQueue(msg.c_str());
 }
 
 void sendDataTask(void *parameter) {

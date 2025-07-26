@@ -6,11 +6,6 @@
  * NMEATrax main header file.
  */
 
-/**
- * @brief Check if SD card is present.
- * @return True if present
-*/
-
 void vWebTask(void * pvParameters);
 
 void vBackgroundTasks(void * pvParameters);
