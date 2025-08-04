@@ -58,6 +58,8 @@
         "ratio": "cpp",
         "mutex": "cpp",
         "thread": "cpp",
-        "*.tpp": "cpp"
+        "*.tpp": "cpp",
+        "future": "cpp",
+        "variant": "cpp"
     }
 }

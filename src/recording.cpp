@@ -203,3 +203,13 @@ void vWriteRecording(void * pvParameters) {
         vTaskSuspend(loggingTaskHandle);
     } 
 }
+
+void setRecordingMode(int mode) {
+    if (mode < 0 || mode > 3) {
+        Serial.println("Invalid recording mode");
+        return;
+    }
+    settings.recMode = static_cast<RecMode>(mode);
+    updatePreference("recMode", settings.recMode);
+    Serial.printf("Recording mode set to %d\n", settings.recMode);
+}

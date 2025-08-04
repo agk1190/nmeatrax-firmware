@@ -39,3 +39,13 @@ void sendDataTask(void *parameter);
  * @param data The data to be sent
  */
 void sendToWebQueue(String data);
+
+/**
+ * @brief Make a JSON string of the settings
+ * @returns JSON string of settings
+ */
+String makeSettingsJson();
+
+void startEmailTask();
+
+void startOTAupdate();

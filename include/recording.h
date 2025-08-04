@@ -60,3 +60,11 @@ bool writeRecording();
  * on the SD card. It suspends itself when not needed.
 */
 void vWriteRecording(void * pvParameters);
+
+/**
+ * @brief Set the recording mode.
+ * This function updates the recording mode based on the provided mode value.
+ * It also updates the preference for the recording mode.
+ * @param mode The new recording mode to set.
+*/
+void setRecordingMode(int mode);

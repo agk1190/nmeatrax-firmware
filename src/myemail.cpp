@@ -94,6 +94,10 @@ void sendEmail(void *pvParameters) {
     }
     sendEmailData("Connected to internet");
 
+    char heapMsg[64];
+    snprintf(heapMsg, sizeof(heapMsg), "Free heap before SSL: %u", esp_get_free_heap_size());
+    sendEmailData(heapMsg);
+
     ssl_client.setInsecure();
 
     smtp.connect(SMTP_HOST, SMTP_PORT, smtpCb);
@@ -162,7 +166,9 @@ void sendEmail(void *pvParameters) {
     }
 
     sendEmailData("Sending email...");
-    smtp.send(msg);
+    String result;
+    smtp.send(msg, result);
+    sendEmailData("Email result: " + result);
     sendEmailData("Email sent successfully!");
     quitAndDelete();
 }
