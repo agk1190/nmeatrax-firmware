@@ -94,9 +94,9 @@ void sendEmail(void *pvParameters) {
     }
     sendEmailData("Connected to internet");
 
-    char heapMsg[64];
-    snprintf(heapMsg, sizeof(heapMsg), "Free heap before SSL: %u", esp_get_free_heap_size());
-    sendEmailData(heapMsg);
+    // char heapMsg[64];
+    // snprintf(heapMsg, sizeof(heapMsg), "Free heap before SSL: %u", esp_get_free_heap_size());
+    // sendEmailData(heapMsg);
 
     ssl_client.setInsecure();
 

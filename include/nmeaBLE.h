@@ -28,3 +28,9 @@ void sendBLEmessage(String &message);
 //  * @param data The download data to send.
 //  */
 // void sendDownloadData(String &data);
+
+/**
+ * @brief Sends a file over BLE.
+ * @param fileName The name of the file to send.
+ */
+void sendFileOverBLE(const char *fileName);
