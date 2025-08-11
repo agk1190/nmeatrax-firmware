@@ -51,32 +51,36 @@ bool searchForFile(fs::FS &fs, const char* fileName) {
     return false;
 }
 
-String listDir(fs::FS &fs, const char * dirname, uint8_t levels){
+String listDir(fs::FS &fs, const char * dirname, uint8_t levels) {
     File root = fs.open(dirname);
-    if (!root){
+    if (!root) {
         Serial.println("Failed to open directory");
-        return ("None");
+        return "[]";
     }
-    if (!root.isDirectory()){
+    if (!root.isDirectory()) {
         Serial.println("Not a directory");
-        return ("None");
+        return "[]";
     }
-    String fileList;
+    String json = "[";
     File file = root.openNextFile();
-    while (file){
-        if (file.isDirectory()){
-            if (levels){listDir(fs, file.name(), levels - 1);}
-        } else {
-            fileList += file.name();
-            fileList += ",";
+    bool first = true;
+    while (file) {
+        if (!file.isDirectory()) {
+            if (!first) json += ",";
+            json += "{\"name\":\"";
+            json += file.name();
+            json += "\",\"size\":";
+            json += String(file.size());
+            json += "}";
+            first = false;
+        } else if (levels) {
+            // Optionally, recurse into subdirectories if needed
+            // json += listDir(fs, file.name(), levels - 1);
         }
         file = root.openNextFile();
     }
-    if (fileList == ""){
-        return ("No Logs");
-    } else {
-        return (fileList);
-    }
+    json += "]";
+    return json;
 }
 
 String getFile(fs::FS &fs, String filePath) {
