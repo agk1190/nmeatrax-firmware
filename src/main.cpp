@@ -14,6 +14,14 @@
 #include "preferences.h"
 #include "recording.h"
 
+// New modular managers
+#include "CommunicationManager.h"
+#include "ConfigurationManager.h"
+#include "TaskManager.h"
+#include "HardwareManager.h"
+
+// Legacy task handles for backward compatibility
+// TODO: Remove once all code migrated to TaskManager
 TaskHandle_t webTaskHandle = NULL;
 TaskHandle_t loggingTaskHandle = NULL;
 TaskHandle_t bgTaskHandle = NULL;
@@ -21,49 +29,75 @@ TaskHandle_t nmeaTaskHandle = NULL;
 
 // ***************************************************
 /**
- * @brief Main program setup function
+ * @brief Main program setup function - Now using modular managers
 */
 void setup() {
     Serial.begin(115200);
     delay(500);
     Serial.println();
+    Serial.println("NMEATrax Firmware Starting...");
 
+    // Initialize SPIFFS first
     if (!SPIFFS.begin(true)) {
         Serial.println("An Error has occurred while mounting SPIFFS");
         ESP.restart();
     }
 
-    pinMode(LED_PWR, OUTPUT);
-    pinMode(LED_N2K, OUTPUT);
-    pinMode(LED_SD, OUTPUT);
-    pinMode(SD_Detect, INPUT_PULLUP);
-    pinMode(N2K_STBY, OUTPUT);
+    // Initialize all managers
+    HardwareManager& hardware = HardwareManager::getInstance();
+    ConfigurationManager& config = ConfigurationManager::getInstance();
+    TaskManager& taskMgr = TaskManager::getInstance();
+    CommunicationManager& comm = CommunicationManager::getInstance();
+    
+    // Initialize hardware (replaces manual pin setup)
+    if (!hardware.initialize()) {
+        Serial.println("Failed to initialize hardware");
+        ESP.restart();
+    }
 
-    digitalWrite(LED_PWR, HIGH);
-    digitalWrite(LED_N2K, LOW);
-    digitalWrite(LED_SD, LOW);
-    digitalWrite(N2K_STBY, LOW);
+    // Initialize configuration (replaces readPreferences)
+    if (!config.initialize()) {
+        Serial.println("Failed to initialize configuration");
+        // Continue with defaults
+    }
 
-    if (getSDcardStatus() == 1) {
+    // Initialize SD card and set LED accordingly
+    int sdStatus = hardware.getSDCardStatus();
+    if (sdStatus == 1) {
         if (sdSetup()) {
-            digitalWrite(LED_SD, HIGH);
+            hardware.setLed(Led::SD, LedState::ON);
             hostSdCard();
         } else {
-            digitalWrite(LED_SD, LOW);
+            hardware.setLed(Led::SD, LedState::OFF);
         }
     }
 
-    readPreferences();
-    delay(500);
+    // Initialize communication based on configuration
+    CommunicationMode commMode = config.isLocalAP() ? 
+        CommunicationMode::WIFI_ONLY : CommunicationMode::AUTO;
+    
+    if (!comm.initialize(commMode)) {
+        Serial.println("Warning: Communication initialization failed, falling back to BLE");
+        comm.initialize(CommunicationMode::BLE_ONLY);
+    }
 
+    // Initialize web server and NMEA
     webSetup();
     NMEAsetup();
 
-    xTaskCreate(vWebTask, "webTask", 4096, (void *) 1, 2, &webTaskHandle);
+    // Create tasks using TaskManager
+    taskMgr.createTask(TaskType::WEB_TASK, vWebTask, (void *) 1);
     delay(100);
-    xTaskCreate(vBackgroundTasks, "bgTasks", 8192, (void *) 1, 3, &bgTaskHandle);
+    taskMgr.createTask(TaskType::BACKGROUND_TASK, vBackgroundTasks, (void *) 1);
     delay(100);
-    xTaskCreate(vNmeaTask, "nmeaTask", 8192, (void *) 1, 1, &nmeaTaskHandle);
+    taskMgr.createTask(TaskType::NMEA_TASK, vNmeaTask, (void *) 1);
+    
+    // Update legacy task handles for backward compatibility
+    webTaskHandle = taskMgr.getTaskHandle(TaskType::WEB_TASK);
+    bgTaskHandle = taskMgr.getTaskHandle(TaskType::BACKGROUND_TASK);
+    nmeaTaskHandle = taskMgr.getTaskHandle(TaskType::NMEA_TASK);
+    
+    Serial.println("NMEATrax initialization complete");
 }
 
 // ***************************************************
@@ -88,26 +122,30 @@ void vWebTask(void * pvParameters) {
 }
 
 void vBackgroundTasks(void * pvParameters) {
+    HardwareManager& hardware = HardwareManager::getInstance();
+    TaskManager& taskMgr = TaskManager::getInstance();
+    
     for (;;) {
         static int nmeaSleepCount = 0;
 
-        switch (getSDcardStatus()) {
+        int sdStatus = hardware.getSDCardStatus();
+        switch (sdStatus) {
             case 0b00:
-                digitalWrite(LED_SD, LOW);
+                hardware.setLed(Led::SD, LedState::OFF);
                 break;
             case 0b01:
                 if (sdSetup()) {
-                    digitalWrite(LED_SD, HIGH);
+                    hardware.setLed(Led::SD, LedState::ON);
                     hostSdCard();
                 } else {
-                    digitalWrite(LED_SD, LOW);
+                    hardware.setLed(Led::SD, LedState::OFF);
                 }
                 break;
             case 0b10:
-                digitalWrite(LED_SD, LOW);
+                hardware.setLed(Led::SD, LedState::OFF);
                 break; 
             case 0b11:
-                digitalWrite(LED_SD, HIGH);
+                hardware.setLed(Led::SD, LedState::ON);
                 recorderLoop();
                 break;
             default:

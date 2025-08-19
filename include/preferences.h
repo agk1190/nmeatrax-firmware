@@ -13,41 +13,6 @@
 #include "SPIFFS.h"
 #include <ArduinoJSON.h>
 
-// SD card recording state
-enum RecMode {
-    OFF = 0,
-    ON = 1,
-    AUTO_SPD = 2,
-    AUTO_RPM = 3,
-    AUTO_SPD_IDLE = 4,
-    AUTO_RPM_IDLE = 5
-};
-
-/**
- * SD card logging mode
- * @param OFF
- * @param ON
- * @param AUTO_SPD
- * @param AUTO_RPM
- * @param AUTO_SPD_IDLE
- * @param AUTO_RPM_IDLE
-*/
-// extern enum RecMode recMode;
-
-/**
- * @brief Structure to store device settings
-*/
-struct Settings {
-    bool isLocalAP;
-    String wifiSSID;
-    String wifiPass;
-    RecMode recMode;
-    int recInt;
-    String wifiCredentials;
-};
-
-extern Settings settings;
-
 /**
  * @brief Update a value in the preferences file
  * @param key The key to update

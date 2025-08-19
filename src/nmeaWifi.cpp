@@ -1,6 +1,6 @@
 #include "nmeaWifi.h"
 #include "sdcard.h"
-#include "preferences.h"
+#include "ConfigurationManager.h"
 
 #include <ArduinoJSON.h>
 #include <WiFi.h>
@@ -21,23 +21,23 @@ bool wifiSetup() {
     esp_wifi_set_country(&wifiCountry);
     esp_wifi_set_bandwidth(WIFI_IF_AP, WIFI_BW_HT20);
 
-    if (settings.isLocalAP) {     // if in local AP mode, create AP
+    ConfigurationManager& config = ConfigurationManager::getInstance();
+    
+    if (config.isLocalAP()) {     // if in local AP mode, create AP
         WiFi.softAPsetHostname("nmeatrax");
         WiFi.mode(WIFI_MODE_AP);
         WiFi.softAPConfig(local_ip, gateway, subnet);
         esp_wifi_set_bandwidth(WIFI_IF_AP, WIFI_BW_HT20);
-        WiFi.softAP(settings.wifiSSID, settings.wifiPass);
+        WiFi.softAP(config.getWifiSSID(), config.getWifiPass());
         delay(100);
         Serial.println("Hosting Access Point");
     } else {       // if the device should connect to an Access Point
         bool connected;
-        connected = connectToWiFi(settings.wifiCredentials);
+        connected = connectToWiFi(config.getWifiCredentials());
         if (connected) {
-            settings.isLocalAP = false;
-            updatePreference("isLocalAP", false);
+            config.setLocalAP(false);
         } else {
-            settings.isLocalAP = true;
-            updatePreference("isLocalAP", true);
+            config.setLocalAP(true);
             ESP.restart();
         }
     }

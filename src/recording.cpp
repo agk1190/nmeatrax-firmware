@@ -1,6 +1,7 @@
 
 #include "recording.h"
-#include "preferences.h"
+#include "ConfigurationManager.h"
+#include "TaskManager.h"
 #include "nmeaVars.h"
 #include "sdcard.h"
 
@@ -85,7 +86,8 @@ String getCSV() {
 
 void recorderLoop() {
     static int count = 0;
-    int localRecInt = settings.recInt;
+    ConfigurationManager& config = ConfigurationManager::getInstance();
+    int localRecInt = config.getRecInterval();
 
     #ifdef TESTMODE1
     // time keeping
@@ -121,39 +123,42 @@ void recorderLoop() {
     #endif
 
     count++;
+    TaskManager& taskMgr = TaskManager::getInstance();
+    RecMode currentRecMode = config.getRecMode();
 
-    switch (settings.recMode) {
+    switch (currentRecMode) {
         case AUTO_RPM:
             if (nmeaData->rpm <= 0) {
-                settings.recMode=AUTO_RPM_IDLE;
-                if (loggingTaskHandle != NULL) {vTaskDelete(loggingTaskHandle);}
+                config.setRecMode(AUTO_RPM_IDLE);
+                taskMgr.deleteTask(TaskType::LOGGING_TASK);
             }
-            localRecInt = nmeaData->rpm > 3900 ? 1 : settings.recInt;
+            localRecInt = nmeaData->rpm > 3900 ? 1 : config.getRecInterval();
             break;
         case AUTO_RPM_IDLE:
             if (nmeaData->rpm > 0) {
                 outOfIdle=true;
-                settings.recMode=AUTO_RPM;
+                config.setRecMode(AUTO_RPM);
             }
             break;
         case AUTO_SPD:
             if (nmeaData->speed <= 0) {
-                settings.recMode=AUTO_SPD_IDLE;
-                if (loggingTaskHandle != NULL) {vTaskDelete(loggingTaskHandle);}
+                config.setRecMode(AUTO_SPD_IDLE);
+                taskMgr.deleteTask(TaskType::LOGGING_TASK);
             }
-            localRecInt = nmeaData->speed > 15 ? 1 : settings.recInt;
+            localRecInt = nmeaData->speed > 15 ? 1 : config.getRecInterval();
             break;
         case AUTO_SPD_IDLE:
             if (nmeaData->speed > 0) {
                 outOfIdle=true;
-                settings.recMode=AUTO_SPD;
+                config.setRecMode(AUTO_SPD);
             }
             break;
         default:
             break;
     }
     
-    if ((settings.recMode == AUTO_RPM || settings.recMode == AUTO_SPD || settings.recMode == ON) && count >= localRecInt) {
+    currentRecMode = config.getRecMode(); // Get updated mode
+    if ((currentRecMode == AUTO_RPM || currentRecMode == AUTO_SPD || currentRecMode == ON) && count >= localRecInt) {
         if (outOfIdle) {
             int voyageNum = 0;
             String lastCSVfileName;
@@ -167,16 +172,17 @@ void recorderLoop() {
             CSVFileName = "/";
             CSVFileName += lastCSVfileName;       // current = last because search function failed on search for current file name
             writeFile(SD, CSVFileName.c_str(), csvHeaders, true);
-            xTaskCreate(vWriteRecording, "recordingTask", 4096, (void *) 1, 5, &loggingTaskHandle);
+            taskMgr.createTask(TaskType::LOGGING_TASK, vWriteRecording, (void*)1);
             outOfIdle = false;
         }
-        vTaskResume(loggingTaskHandle);     // trigger log to be written
+        taskMgr.resumeTask(TaskType::LOGGING_TASK);     // trigger log to be written
         count = 0;
     }
 }
 
 bool writeRecording() {
-    if (loggingTaskHandle == NULL) {
+    TaskManager& taskMgr = TaskManager::getInstance();
+    if (!taskMgr.isTaskRunning(TaskType::LOGGING_TASK)) {
         Serial.println("Logging task not created");
         return false;
     }
@@ -197,19 +203,20 @@ bool writeRecording() {
 }
 
 void vWriteRecording(void * pvParameters) {
+    TaskManager& taskMgr = TaskManager::getInstance();
     for (;;) {
         // appendFile(SD, CSVFileName.c_str(), getCSV().c_str(), true);
         writeRecording();
-        vTaskSuspend(loggingTaskHandle);
+        taskMgr.suspendTask(TaskType::LOGGING_TASK);
     } 
 }
 
 void setRecordingMode(int mode) {
-    if (mode < 0 || mode > 3) {
+    if (mode < 0 || mode > 5) {
         Serial.println("Invalid recording mode");
         return;
     }
-    settings.recMode = static_cast<RecMode>(mode);
-    updatePreference("recMode", settings.recMode);
-    Serial.printf("Recording mode set to %d\n", settings.recMode);
+    ConfigurationManager& config = ConfigurationManager::getInstance();
+    config.setRecMode(static_cast<RecMode>(mode));
+    Serial.printf("Recording mode set to %d\n", mode);
 }

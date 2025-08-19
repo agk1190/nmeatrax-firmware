@@ -17,10 +17,17 @@
 #include "nmeaVars.h"
 #include "recording.h"
 #include "myemail.h"
-#include "preferences.h"
+#include "ConfigurationManager.h"
+#include "CommunicationManager.h"
 #include "nmeaWifi.h"
 #include "sdcard.h"
 #include "nmeaBLE.h"
+
+// New modular managers
+#include "CommunicationManager.h"
+#include "ConfigurationManager.h"
+#include "TaskManager.h"
+#include "HardwareManager.h"
 
 // WebSever object
 AsyncWebServer server(80);
@@ -29,8 +36,6 @@ AsyncEventSource events("/NMEATrax");
 
 QueueHandle_t webQueue;
 TaskHandle_t webSendTaskHandle = NULL;
-
-Settings settings;
 
 bool useWifi = false;
 
@@ -58,25 +63,25 @@ bool webSetup() {
 
         // all functions related to doing or setting something
         server.on("/set", HTTP_POST, [](AsyncWebServerRequest *request) {
+            ConfigurationManager& config = ConfigurationManager::getInstance();
+            
             if (request->hasParam("wifiSSID")) {
-                settings.wifiSSID = request->getParam("wifiSSID")->value().c_str();
-                updatePreference("wifiSSID", settings.wifiSSID.c_str());
+                config.setWifiSSID(request->getParam("wifiSSID")->value());
                 request->send(200, "text/plain", "OK");
             }
             else if (request->hasParam("wifiPass")) {
-                settings.wifiPass = request->getParam("wifiPass")->value().c_str();
-                updatePreference("wifiPass", settings.wifiPass.c_str());
+                config.setWifiPass(request->getParam("wifiPass")->value());
                 request->send(200, "text/plain", "OK");
             }
             else if (request->hasParam("wifiMode")) {
-                settings.isLocalAP = request->getParam("wifiMode")->value() == "true" ? true : false;
-                updatePreference("isLocalAP", settings.isLocalAP);
+                bool isLocalAP = request->getParam("wifiMode")->value() == "true";
+                config.setLocalAP(isLocalAP);
                 request->send(200, "text/plain", "OK");
             }
             else if (request->hasParam("recInt")) {
-                settings.recInt = atoi(request->getParam("recInt")->value().c_str());
-                if (settings.recInt < 1){settings.recInt = 1;}                
-                updatePreference("recInt", settings.recInt);
+                int recInt = atoi(request->getParam("recInt")->value().c_str());
+                if (recInt < 1) { recInt = 1; }
+                config.setRecInterval(recInt);
                 request->send(200, "text/plain", "OK");
             }
             else if (request->hasParam("setWifiCred")) {
@@ -142,6 +147,47 @@ bool webSetup() {
             }       
         });
 
+        // Communication mode switching endpoint
+        server.on("/comm", HTTP_POST, [](AsyncWebServerRequest *request) {
+            if (request->hasParam("mode")) {
+                String modeStr = request->getParam("mode")->value();
+                CommunicationManager& comm = CommunicationManager::getInstance();
+                
+                CommunicationMode newMode;
+                if (modeStr.equalsIgnoreCase("wifi")) {
+                    newMode = CommunicationMode::WIFI_ONLY;
+                } else if (modeStr.equalsIgnoreCase("ble")) {
+                    newMode = CommunicationMode::BLE_ONLY;
+                } else {
+                    request->send(400, "text/plain", "Invalid mode. Use: wifi or ble");
+                    return;
+                }
+                
+                bool success = comm.switchMode(newMode);
+                if (success) {
+                    String response = "Communication mode switched to " + modeStr;
+                    request->send(200, "text/plain", response);
+                } else {
+                    request->send(500, "text/plain", "Failed to switch communication mode");
+                }
+            }
+            else if (request->hasParam("status")) {
+                CommunicationManager& comm = CommunicationManager::getInstance();
+                JsonDocument status;
+                
+                status["currentMode"] = (int)comm.getCurrentMode();
+                status["wifiEnabled"] = comm.isWifiEnabled();
+                status["bleEnabled"] = comm.isBleEnabled();
+                
+                String response;
+                serializeJson(status, response);
+                request->send(200, "application/json", response);
+            }
+            else {
+                request->send(400, "text/plain", "Missing parameter. Use 'mode' or 'status'");
+            }
+        });
+
         // send current settings to client
         server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request) {
             request->send(200, "application/json", makeSettingsJson());
@@ -171,28 +217,45 @@ bool webSetup() {
         MDNS.begin("NMEATrax");
         Serial.printf("MDNS responder started at http://%s.local\n", HOSTNAME);
     } else {
-        wifiSetup();
-        bleSetup();
+        // Use new CommunicationManager instead of direct calls
+        CommunicationManager& comm = CommunicationManager::getInstance();
+        ConfigurationManager& config = ConfigurationManager::getInstance();
+        
+        // Initialize communication - default to BLE mode (user can switch via API)
+        comm.initialize(CommunicationMode::BLE_ONLY);
     }
 
     webQueue = xQueueCreate(20, sizeof(String *)); // Queue for 20 messages
-    xTaskCreatePinnedToCore(sendDataTask, "sendDataTask", 4096, NULL, 1, &webSendTaskHandle, 1);
+    
+    // Use TaskManager for web send task
+    TaskManager& taskMgr = TaskManager::getInstance();
+    taskMgr.createTask(TaskType::WEB_SEND_TASK, sendDataTask, NULL);
+    webSendTaskHandle = taskMgr.getTaskHandle(TaskType::WEB_SEND_TASK);
 
     return(true);
 }
 
 String makeSettingsJson() {
+    ConfigurationManager& config = ConfigurationManager::getInstance();
+    CommunicationManager& comm = CommunicationManager::getInstance();
+    
     JsonDocument values;
     char buffer[1024];
     values["firmware"] = FW_VERSION;
     values["hardware"] = "2.0";
-    values["recMode"] = settings.recMode;
-    values["recInt"] = settings.recInt;
-    values["wifiMode"] = settings.isLocalAP;
-    values["wifiSSID"] = settings.wifiSSID;
-    values["wifiPass"] = settings.wifiPass;
-    values["wifiCredentials"] = settings.wifiCredentials;
+    values["recMode"] = config.getRecMode();
+    values["recInt"] = config.getRecInterval();
+    values["wifiMode"] = config.isLocalAP();
+    values["wifiSSID"] = config.getWifiSSID();
+    values["wifiPass"] = config.getWifiPass();
+    values["wifiCredentials"] = config.getWifiCredentials();
     values["buildDate"] = BUILD_DATE;
+    
+    // Add communication status
+    values["commMode"] = (int)comm.getCurrentMode();
+    values["wifiEnabled"] = comm.isWifiEnabled();
+    values["bleEnabled"] = comm.isBleEnabled();
+    
     serializeJson(values, buffer);
     String settingsStr(buffer);
     return buffer;
@@ -203,10 +266,13 @@ void startEmailTask() {
 }
 
 void startOTAupdate() {
-    digitalWrite(N2K_STBY, HIGH);
-    vTaskDelete(nmeaTaskHandle);
-    vTaskDelete(bgTaskHandle);
-    vTaskDelete(webSendTaskHandle);
+    HardwareManager& hardware = HardwareManager::getInstance();
+    TaskManager& taskMgr = TaskManager::getInstance();
+    
+    hardware.setN2KStandby(true);
+    taskMgr.deleteTask(TaskType::NMEA_TASK);
+    taskMgr.deleteTask(TaskType::BACKGROUND_TASK);
+    taskMgr.deleteTask(TaskType::WEB_SEND_TASK);
     ElegantOTA.begin(&server);  // Start ElegantOTA
 }
 
@@ -216,7 +282,9 @@ void hostSdCard() {
 }
 
 void sendToWebQueue(String data) {
-    sendBLEmessage(data); // Send data over BLE as well
+    CommunicationManager& comm = CommunicationManager::getInstance();
+    comm.sendData(data);
+    
     String *dataToSend = new String(data);
     if (!xQueueSend(webQueue, &dataToSend, 0)) {
         delete dataToSend; // Free memory if queue is full
