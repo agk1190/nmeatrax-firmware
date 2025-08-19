@@ -17,7 +17,8 @@
 #include "nmeaVars.h"
 #include "recording.h"
 #include "myemail.h"
-#include "preferences.h"
+#include "ConfigurationManager.h"
+#include "CommunicationManager.h"
 #include "nmeaWifi.h"
 #include "sdcard.h"
 #include "nmeaBLE.h"
@@ -35,8 +36,6 @@ AsyncEventSource events("/NMEATrax");
 
 QueueHandle_t webQueue;
 TaskHandle_t webSendTaskHandle = NULL;
-
-Settings settings;
 
 bool useWifi = false;
 
@@ -64,25 +63,25 @@ bool webSetup() {
 
         // all functions related to doing or setting something
         server.on("/set", HTTP_POST, [](AsyncWebServerRequest *request) {
+            ConfigurationManager& config = ConfigurationManager::getInstance();
+            
             if (request->hasParam("wifiSSID")) {
-                settings.wifiSSID = request->getParam("wifiSSID")->value().c_str();
-                updatePreference("wifiSSID", settings.wifiSSID.c_str());
+                config.setWifiSSID(request->getParam("wifiSSID")->value());
                 request->send(200, "text/plain", "OK");
             }
             else if (request->hasParam("wifiPass")) {
-                settings.wifiPass = request->getParam("wifiPass")->value().c_str();
-                updatePreference("wifiPass", settings.wifiPass.c_str());
+                config.setWifiPass(request->getParam("wifiPass")->value());
                 request->send(200, "text/plain", "OK");
             }
             else if (request->hasParam("wifiMode")) {
-                settings.isLocalAP = request->getParam("wifiMode")->value() == "true" ? true : false;
-                updatePreference("isLocalAP", settings.isLocalAP);
+                bool isLocalAP = request->getParam("wifiMode")->value() == "true";
+                config.setLocalAP(isLocalAP);
                 request->send(200, "text/plain", "OK");
             }
             else if (request->hasParam("recInt")) {
-                settings.recInt = atoi(request->getParam("recInt")->value().c_str());
-                if (settings.recInt < 1){settings.recInt = 1;}                
-                updatePreference("recInt", settings.recInt);
+                int recInt = atoi(request->getParam("recInt")->value().c_str());
+                if (recInt < 1) { recInt = 1; }
+                config.setRecInterval(recInt);
                 request->send(200, "text/plain", "OK");
             }
             else if (request->hasParam("setWifiCred")) {
@@ -153,17 +152,14 @@ bool webSetup() {
             if (request->hasParam("mode")) {
                 String modeStr = request->getParam("mode")->value();
                 CommunicationManager& comm = CommunicationManager::getInstance();
-                ConfigurationManager& config = ConfigurationManager::getInstance();
                 
                 CommunicationMode newMode;
                 if (modeStr.equalsIgnoreCase("wifi")) {
                     newMode = CommunicationMode::WIFI_ONLY;
                 } else if (modeStr.equalsIgnoreCase("ble")) {
                     newMode = CommunicationMode::BLE_ONLY;
-                } else if (modeStr.equalsIgnoreCase("auto")) {
-                    newMode = CommunicationMode::AUTO;
                 } else {
-                    request->send(400, "text/plain", "Invalid mode. Use: wifi, ble, or auto");
+                    request->send(400, "text/plain", "Invalid mode. Use: wifi or ble");
                     return;
                 }
                 
@@ -225,10 +221,8 @@ bool webSetup() {
         CommunicationManager& comm = CommunicationManager::getInstance();
         ConfigurationManager& config = ConfigurationManager::getInstance();
         
-        // Initialize communication based on configuration
-        CommunicationMode mode = config.isLocalAP() ? 
-            CommunicationMode::WIFI_ONLY : CommunicationMode::AUTO;
-        comm.initialize(mode);
+        // Initialize communication - default to BLE mode (user can switch via API)
+        comm.initialize(CommunicationMode::BLE_ONLY);
     }
 
     webQueue = xQueueCreate(20, sizeof(String *)); // Queue for 20 messages

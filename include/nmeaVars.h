@@ -12,9 +12,4 @@
 #define FW_VERSION "12.0.0"
 // #define UI_VERSION1 "3.1.0"
 
-extern TaskHandle_t webTaskHandle;
-extern TaskHandle_t loggingTaskHandle;
-extern TaskHandle_t bgTaskHandle;
-extern TaskHandle_t nmeaTaskHandle;
-
 #endif // NMEAVARS_H

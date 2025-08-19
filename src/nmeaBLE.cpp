@@ -3,7 +3,7 @@
 #include <ArduinoJson.h>
 #include <map>
 #include "sdcard.h"
-#include "preferences.h"
+#include "ConfigurationManager.h"
 #include "recording.h"
 #include "webserv.h"
 
@@ -53,27 +53,28 @@ class SettingsCallback : public NimBLECharacteristicCallbacks {
                 pSettingsCharacteristic->notify();
             }},
             { "recInt", [](String value) {
-                settings.recInt = value.toInt();
-                if (settings.recInt < 1) { settings.recInt = 1; }
-                updatePreference("recInt", settings.recInt);
+                ConfigurationManager& config = ConfigurationManager::getInstance();
+                int recInt = value.toInt();
+                if (recInt < 1) { recInt = 1; }
+                config.setRecInterval(recInt);
                 pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
                 pSettingsCharacteristic->notify();
             }},
             { "wifiSSID", [](String value) {
-                settings.wifiSSID = value;
-                updatePreference("wifiSSID", settings.wifiSSID.c_str());
+                ConfigurationManager& config = ConfigurationManager::getInstance();
+                config.setWifiSSID(value);
                 pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
                 pSettingsCharacteristic->notify();
             }},
             { "wifiPass", [](String value) {
-                settings.wifiPass = value;
-                updatePreference("wifiPass", settings.wifiPass.c_str());
+                ConfigurationManager& config = ConfigurationManager::getInstance();
+                config.setWifiPass(value);
                 pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
                 pSettingsCharacteristic->notify();
             }},
             { "wifiMode", [](String value) {
-                settings.isLocalAP = (value == "true");
-                updatePreference("isLocalAP", settings.isLocalAP);
+                ConfigurationManager& config = ConfigurationManager::getInstance();
+                config.setLocalAP(value == "true");
                 pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
                 pSettingsCharacteristic->notify();
             }},

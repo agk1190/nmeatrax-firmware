@@ -14,7 +14,7 @@
 #include <WiFiClientSecure.h>
 #include <ESP32Ping.h>
 #include "webserv.h"
-#include "preferences.h"
+#include "ConfigurationManager.h"
 #include "sdcard.h"
 
 #include <ReadyMail.h>
@@ -74,7 +74,8 @@ time_t getCurrentTime() {
 }
 
 void quitAndDelete() {
-    if (settings.isLocalAP) {WiFi.mode(WIFI_MODE_AP);}
+    ConfigurationManager& config = ConfigurationManager::getInstance();
+    if (config.isLocalAP()) {WiFi.mode(WIFI_MODE_AP);}
     vTaskDelete(NULL);
 }
 
@@ -178,13 +179,15 @@ void connectToWifi() {
     String chosenPassword = "";
     String textBuffer = "";
     JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, settings.wifiCredentials);
+    ConfigurationManager& config = ConfigurationManager::getInstance();
+    
+    DeserializationError error = deserializeJson(doc, config.getWifiCredentials());
     if (error) {
         sendEmailData("Failed to parse WiFi credentials JSON");
         quitAndDelete();
     }
 
-    if (settings.isLocalAP) {
+    if (config.isLocalAP()) {
         WiFi.mode(WIFI_MODE_APSTA);
 
         sendEmailData("Starting scan of access points");

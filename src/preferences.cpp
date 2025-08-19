@@ -6,9 +6,6 @@
 
 #include "preferences.h"
 
-// Structure to store device settings
-// Settings settings;
-
 bool readPreferences() {
     JsonDocument doc;
 
@@ -27,13 +24,7 @@ bool readPreferences() {
         return false;
     }
 
-    settings.isLocalAP = doc["isLocalAP"];
-    settings.wifiSSID = doc["wifiSSID"].as<String>();
-    settings.wifiPass = doc["wifiPass"].as<String>();
-    settings.recMode = doc["recMode"];
-    settings.recInt = doc["recInt"];
-    settings.wifiCredentials = doc["wifiCredentials"].as<String>();
-
+    // Note: ConfigurationManager will handle reading these values
     Serial.println("Preferences read successfully");
     return true;
 }
@@ -74,8 +65,6 @@ bool addWifiPair(const char* ssid, const char* password) {
         newWifiPair["password"] = password;
     }
 
-    settings.wifiCredentials = doc["wifiCredentials"].as<String>();
-
     file = SPIFFS.open("/prefs.txt", FILE_WRITE);
     if (serializeJson(doc, file) == 0) {
         Serial.println("Failed to write to file (addWifiPair)");
@@ -104,7 +93,6 @@ bool clearWifiCredentials() {
 
     JsonArray wifiArray = doc["wifiCredentials"].as<JsonArray>();
     wifiArray.clear();
-    settings.wifiCredentials = doc["wifiCredentials"].as<String>();
 
     file = SPIFFS.open("/prefs.txt", FILE_WRITE);
     if (serializeJson(doc, file) == 0) {

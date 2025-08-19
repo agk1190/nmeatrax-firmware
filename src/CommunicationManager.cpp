@@ -7,9 +7,9 @@
  */
 
 #include "CommunicationManager.h"
+#include "ConfigurationManager.h"
 #include "nmeaWifi.h"
 #include "nmeaBLE.h"
-#include "preferences.h"
 #include "webserv.h"
 
 // External references to existing functions
@@ -37,18 +37,6 @@ bool CommunicationManager::initialize(CommunicationMode mode) {
             
         case CommunicationMode::WIFI_ONLY:
             success = initializeWifi();
-            break;
-            
-        case CommunicationMode::AUTO:
-            // Auto-select based on configuration
-            // Default to BLE, enable WiFi if configured
-            success = initializeBle();
-            if (settings.isLocalAP || !settings.wifiCredentials.isEmpty()) {
-                // Also initialize WiFi if credentials are available
-                if (initializeWifi()) {
-                    currentMode = CommunicationMode::WIFI_ONLY;
-                }
-            }
             break;
     }
     

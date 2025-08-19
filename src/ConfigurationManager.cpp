@@ -8,12 +8,12 @@
 
 #include "ConfigurationManager.h"
 #include <ArduinoJson.h>
+#include "FS.h"
+#include "SPIFFS.h"
 
 // External preferences functions
-extern bool readPreferences();
 extern bool addWifiPair(const char* ssid, const char* password);
 extern bool clearWifiCredentials();
-extern Settings settings; // Will be replaced by this manager
 
 ConfigurationManager& ConfigurationManager::getInstance() {
     static ConfigurationManager instance;
@@ -29,50 +29,107 @@ bool ConfigurationManager::initialize() {
     bool success = loadFromStorage();
     initialized = true;
     
-    // Copy to global settings for backward compatibility
-    // TODO: Remove this once all code uses ConfigurationManager
-    settings = config;
+    // Validate configuration after loading
+    if (!validateSettings()) {
+        Serial.println("Configuration validation failed, using defaults");
+        setDefaults();
+        saveToStorage();
+    }
     
     return success;
 }
 
 bool ConfigurationManager::loadFromStorage() {
-    // Use existing readPreferences function
-    bool success = readPreferences();
-    if (success) {
-        // Copy from global settings
-        config = settings;
-        validateSettings();
+    Serial.println("Loading configuration from storage...");
+    
+    File file = SPIFFS.open("/prefs.txt", "r");
+    if (!file) {
+        Serial.println("Preferences file not found, using defaults");
+        return false;
     }
-    return success;
+    
+    String fileContents = file.readString();
+    file.close();
+    
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, fileContents);
+    if (error) {
+        Serial.print("Failed to parse preferences JSON: ");
+        Serial.println(error.c_str());
+        return false;
+    }
+    
+    // Load settings from JSON
+    if (doc.containsKey("isLocalAP")) {
+        localAP = doc["isLocalAP"];
+    }
+    if (doc.containsKey("wifiSSID")) {
+        wifiSSID = doc["wifiSSID"].as<String>();
+    }
+    if (doc.containsKey("wifiPass")) {
+        wifiPass = doc["wifiPass"].as<String>();
+    }
+    if (doc.containsKey("recMode")) {
+        recMode = (RecMode)doc["recMode"].as<int>();
+    }
+    if (doc.containsKey("recInt")) {
+        recInterval = doc["recInt"];
+    }
+    if (doc.containsKey("wifiCredentials")) {
+        wifiCredentials = doc["wifiCredentials"].as<String>();
+    }
+    
+    Serial.println("Configuration loaded successfully");
+    return true;
 }
 
 bool ConfigurationManager::saveToStorage() {
-    // Update global settings for backward compatibility
-    settings = config;
+    Serial.println("Saving configuration to storage...");
     
-    // Settings are automatically saved when using updatePreference
-    // This just validates the current state
-    return validateSettings();
+    JsonDocument doc;
+    doc["isLocalAP"] = localAP;
+    doc["wifiSSID"] = wifiSSID;
+    doc["wifiPass"] = wifiPass;
+    doc["recMode"] = (int)recMode;
+    doc["recInt"] = recInterval;
+    doc["wifiCredentials"] = wifiCredentials;
+    
+    String json;
+    if (serializeJson(doc, json) == 0) {
+        Serial.println("Failed to serialize configuration");
+        return false;
+    }
+    
+    File file = SPIFFS.open("/prefs.txt", "w");
+    if (!file) {
+        Serial.println("Failed to open preferences file for writing");
+        return false;
+    }
+    
+    file.print(json);
+    file.close();
+    
+    Serial.println("Configuration saved successfully");
+    return true;
 }
 
 bool ConfigurationManager::setLocalAP(bool value) {
-    config.isLocalAP = value;
+    localAP = value;
     return updateSetting("isLocalAP", value);
 }
 
 bool ConfigurationManager::setWifiSSID(const String& ssid) {
-    config.wifiSSID = ssid;
+    wifiSSID = ssid;
     return updateSetting("wifiSSID", ssid.c_str());
 }
 
 bool ConfigurationManager::setWifiPass(const String& password) {
-    config.wifiPass = password;
+    wifiPass = password;
     return updateSetting("wifiPass", password.c_str());
 }
 
 bool ConfigurationManager::setRecMode(RecMode mode) {
-    config.recMode = mode;
+    recMode = mode;
     return updateSetting("recMode", (int)mode);
 }
 
@@ -80,12 +137,12 @@ bool ConfigurationManager::setRecInterval(int interval) {
     if (interval < 1) {
         interval = 1;
     }
-    config.recInt = interval;
+    recInterval = interval;
     return updateSetting("recInt", interval);
 }
 
 bool ConfigurationManager::setWifiCredentials(const String& credentials) {
-    config.wifiCredentials = credentials;
+    wifiCredentials = credentials;
     return updateSetting("wifiCredentials", credentials.c_str());
 }
 
@@ -96,24 +153,24 @@ bool ConfigurationManager::addWifiCredential(const String& ssid, const String& p
 bool ConfigurationManager::clearWifiCredentials() {
     bool success = ::clearWifiCredentials(); // Call global function
     if (success) {
-        config.wifiCredentials = "";
+        wifiCredentials = "";
     }
     return success;
 }
 
 bool ConfigurationManager::validateSettings() const {
     // Validate recording interval
-    if (config.recInt < 1) {
+    if (recInterval < 1) {
         return false;
     }
     
     // Validate recording mode
-    if (config.recMode < OFF || config.recMode > AUTO_RPM_IDLE) {
+    if (recMode < OFF || recMode > AUTO_RPM_IDLE) {
         return false;
     }
     
     // If not local AP, should have WiFi credentials
-    if (!config.isLocalAP && config.wifiCredentials.isEmpty()) {
+    if (!localAP && wifiCredentials.isEmpty()) {
         Serial.println("Warning: Not in AP mode but no WiFi credentials configured");
     }
     
@@ -121,22 +178,25 @@ bool ConfigurationManager::validateSettings() const {
 }
 
 void ConfigurationManager::setDefaults() {
-    config.isLocalAP = true;
-    config.wifiSSID = "NMEATrax";
-    config.wifiPass = "password123";
-    config.recMode = OFF;
-    config.recInt = 1;
-    config.wifiCredentials = "";
+    localAP = true;
+    wifiSSID = "NMEATrax";
+    wifiPass = "12345678";
+    recMode = OFF;
+    recInterval = 5;
+    wifiCredentials = "";
+    
+    Serial.println("Configuration set to defaults");
 }
 
 String ConfigurationManager::toJson() const {
     JsonDocument doc;
-    doc["isLocalAP"] = config.isLocalAP;
-    doc["wifiSSID"] = config.wifiSSID;
-    doc["wifiPass"] = config.wifiPass;
-    doc["recMode"] = (int)config.recMode;
-    doc["recInt"] = config.recInt;
-    doc["wifiCredentials"] = config.wifiCredentials;
+    
+    doc["isLocalAP"] = localAP;
+    doc["wifiSSID"] = wifiSSID;
+    doc["wifiPass"] = wifiPass;
+    doc["recMode"] = (int)recMode;
+    doc["recInt"] = recInterval;
+    doc["wifiCredentials"] = wifiCredentials;
     
     String result;
     serializeJson(doc, result);
@@ -146,31 +206,69 @@ String ConfigurationManager::toJson() const {
 bool ConfigurationManager::fromJson(const String& json) {
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, json);
+    
     if (error) {
-        Serial.print("Failed to parse configuration JSON: ");
+        Serial.print("JSON parsing error: ");
         Serial.println(error.c_str());
         return false;
     }
     
-    config.isLocalAP = doc["isLocalAP"];
-    config.wifiSSID = doc["wifiSSID"].as<String>();
-    config.wifiPass = doc["wifiPass"].as<String>();
-    config.recMode = (RecMode)doc["recMode"].as<int>();
-    config.recInt = doc["recInt"];
-    config.wifiCredentials = doc["wifiCredentials"].as<String>();
+    // Update configuration from JSON
+    if (doc.containsKey("isLocalAP")) {
+        localAP = doc["isLocalAP"];
+    }
+    if (doc.containsKey("wifiSSID")) {
+        wifiSSID = doc["wifiSSID"].as<String>();
+    }
+    if (doc.containsKey("wifiPass")) {
+        wifiPass = doc["wifiPass"].as<String>();
+    }
+    if (doc.containsKey("recMode")) {
+        recMode = (RecMode)doc["recMode"].as<int>();
+    }
+    if (doc.containsKey("recInt")) {
+        recInterval = doc["recInt"];
+    }
+    if (doc.containsKey("wifiCredentials")) {
+        wifiCredentials = doc["wifiCredentials"].as<String>();
+    }
     
     return validateSettings();
 }
 
 template<typename T>
 bool ConfigurationManager::updateSetting(const char* key, const T& value) {
-    // Use existing updatePreference template function
-    bool success = updatePreference(key, value);
+    JsonDocument doc;
     
-    if (success) {
-        // Update global settings for backward compatibility
-        settings = config;
+    File file = SPIFFS.open("/prefs.txt", "r");
+    if (!file) {
+        Serial.println("Failed to read file during write");
+        return false;
     }
+    String fileContents = file.readString();
+    file.close();
     
-    return success;
+    DeserializationError error = deserializeJson(doc, fileContents);
+    if (error) {
+        Serial.print("Failed to parse JSON during update: ");
+        Serial.println(error.c_str());
+        return false;
+    }
+
+    doc[key] = value;
+
+    if (serializeJson(doc, fileContents) == 0) {
+        Serial.println("Failed to create JSON during update");
+        return false;
+    }
+
+    file = SPIFFS.open("/prefs.txt", "w");
+    if (!file) {
+        Serial.println("Failed to open file for writing during update");
+        return false;
+    }
+    file.print(fileContents);
+    file.close();
+    Serial.println("Preferences updated successfully");
+    return true;
 }

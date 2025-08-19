@@ -10,7 +10,16 @@
 #define CONFIGURATION_MANAGER_H
 
 #include <Arduino.h>
-#include "preferences.h"
+
+// SD card recording state
+enum RecMode {
+    OFF = 0,
+    ON = 1,
+    AUTO_SPD = 2,
+    AUTO_RPM = 3,
+    AUTO_SPD_IDLE = 4,
+    AUTO_RPM_IDLE = 5
+};
 
 class ConfigurationManager {
 public:
@@ -21,17 +30,15 @@ public:
     bool loadFromStorage();
     bool saveToStorage();
     
-    // Settings accessors
-    const Settings& getSettings() const { return config; }
-    Settings& getSettingsRef() { return config; }
+    // WiFi Configuration - separate from communication mode
+    bool isLocalAP() const { return localAP; }
+    const String& getWifiSSID() const { return wifiSSID; }
+    const String& getWifiPass() const { return wifiPass; }
+    const String& getWifiCredentials() const { return wifiCredentials; }
     
-    // Individual setting getters
-    bool isLocalAP() const { return config.isLocalAP; }
-    const String& getWifiSSID() const { return config.wifiSSID; }
-    const String& getWifiPass() const { return config.wifiPass; }
-    RecMode getRecMode() const { return config.recMode; }
-    int getRecInterval() const { return config.recInt; }
-    const String& getWifiCredentials() const { return config.wifiCredentials; }
+    // Recording Configuration
+    RecMode getRecMode() const { return recMode; }
+    int getRecInterval() const { return recInterval; }
     
     // Individual setting setters with auto-save
     bool setLocalAP(bool value);
@@ -59,7 +66,14 @@ private:
     ConfigurationManager(const ConfigurationManager&) = delete;
     ConfigurationManager& operator=(const ConfigurationManager&) = delete;
     
-    Settings config;
+    // Configuration data - no Settings struct dependency
+    bool localAP = true;
+    String wifiSSID = "NMEATrax";
+    String wifiPass = "12345678";
+    RecMode recMode = OFF;
+    int recInterval = 5;
+    String wifiCredentials = "";
+    
     bool initialized = false;
     
     // Helper for updating individual preferences
