@@ -203,10 +203,10 @@ void startEmailTask() {
 }
 
 void startOTAupdate() {
+    server.begin();
     digitalWrite(N2K_STBY, HIGH);
     vTaskDelete(nmeaTaskHandle);
     vTaskDelete(bgTaskHandle);
-    vTaskDelete(webSendTaskHandle);
     ElegantOTA.begin(&server);  // Start ElegantOTA
 }
 
