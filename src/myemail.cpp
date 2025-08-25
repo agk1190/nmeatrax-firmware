@@ -16,6 +16,7 @@
 #include "webserv.h"
 #include "ConfigurationManager.h"
 #include "sdcard.h"
+#include "ArduinoJson.h"
 
 #include <ReadyMail.h>
 

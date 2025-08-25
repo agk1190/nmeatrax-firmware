@@ -13,6 +13,7 @@
 #include "webserv.h"
 #include "preferences.h"
 #include "recording.h"
+#include "SPIFFS.h"
 
 // New modular managers
 #include "CommunicationManager.h"
@@ -72,9 +73,7 @@ void setup() {
         }
     }
 
-    // Initialize communication based on configuration
-    CommunicationMode commMode = config.isLocalAP() ? 
-        CommunicationMode::WIFI_ONLY : CommunicationMode::AUTO;
+    CommunicationMode commMode = CommunicationMode::BLE_ONLY;
     
     if (!comm.initialize(commMode)) {
         Serial.println("Warning: Communication initialization failed, falling back to BLE");

@@ -60,22 +60,22 @@ bool ConfigurationManager::loadFromStorage() {
     }
     
     // Load settings from JSON
-    if (doc.containsKey("isLocalAP")) {
+    if (doc["isLocalAP"].is<bool>()) {
         localAP = doc["isLocalAP"];
     }
-    if (doc.containsKey("wifiSSID")) {
+    if (doc["wifiSSID"].is<const char*>()) {
         wifiSSID = doc["wifiSSID"].as<String>();
     }
-    if (doc.containsKey("wifiPass")) {
+    if (doc["wifiPass"].is<const char*>()) {
         wifiPass = doc["wifiPass"].as<String>();
     }
-    if (doc.containsKey("recMode")) {
+    if (doc["recMode"].is<int>()) {
         recMode = (RecMode)doc["recMode"].as<int>();
     }
-    if (doc.containsKey("recInt")) {
+    if (doc["recInt"].is<int>()) {
         recInterval = doc["recInt"];
     }
-    if (doc.containsKey("wifiCredentials")) {
+    if (doc["wifiCredentials"].is<const char*>()) {
         wifiCredentials = doc["wifiCredentials"].as<String>();
     }
     
@@ -147,15 +147,80 @@ bool ConfigurationManager::setWifiCredentials(const String& credentials) {
 }
 
 bool ConfigurationManager::addWifiCredential(const String& ssid, const String& password) {
-    return addWifiPair(ssid.c_str(), password.c_str());
+    JsonDocument doc;
+
+    File file = SPIFFS.open("/prefs.txt", FILE_READ);
+    String fileContents = file.readString();
+    file.close();
+
+    DeserializationError error = deserializeJson(doc, fileContents);
+    if (error) {
+        Serial.println("Failed to parse JSON (addWifiPair):");
+        Serial.println(error.c_str());
+        return false;
+    }
+
+    if (!doc["wifiCredentials"].is<JsonArray>()) {
+        JsonArray wifiArray = doc["wifiCredentials"].as<JsonArray>();
+        wifiArray.clear();
+    }
+
+    JsonArray wifiArray = doc["wifiCredentials"].as<JsonArray>();
+
+    bool found = false;
+    for (JsonObject wifiPair : wifiArray) {
+        if (strcmp(wifiPair["ssid"], ssid.c_str()) == 0) {
+            wifiPair["password"] = password;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        JsonObject newWifiPair = wifiArray.add<JsonObject>();
+        newWifiPair["ssid"] = ssid;
+        newWifiPair["password"] = password;
+    }
+
+    file = SPIFFS.open("/prefs.txt", FILE_WRITE);
+    if (serializeJson(doc, file) == 0) {
+        Serial.println("Failed to write to file (addWifiPair)");
+        file.close();
+        return false;
+    }
+    file.close();
+    Serial.println("Wifi pair added successfully");
+    return true;
 }
 
 bool ConfigurationManager::clearWifiCredentials() {
-    bool success = ::clearWifiCredentials(); // Call global function
-    if (success) {
-        wifiCredentials = "";
+    JsonDocument doc;
+    Serial.println("Clearing Wifi credentials");
+
+    File file = SPIFFS.open("/prefs.txt", FILE_READ);
+    String fileContents = file.readString();
+    file.close();
+
+    DeserializationError error = deserializeJson(doc, fileContents);
+    if (error) {
+        Serial.println("Failed to parse JSON (clear wifi credentials):");
+        Serial.println(error.c_str());
+        return false;
     }
-    return success;
+
+    JsonArray wifiArray = doc["wifiCredentials"].as<JsonArray>();
+    wifiArray.clear();
+
+    file = SPIFFS.open("/prefs.txt", FILE_WRITE);
+    if (serializeJson(doc, file) == 0) {
+        Serial.println("Failed to write to file (clear wifi credentials)");
+        file.close();
+        return false;
+    }
+    file.close();
+    Serial.println("Wifi credentials cleared successfully");
+    wifiCredentials = "";
+    return true;
 }
 
 bool ConfigurationManager::validateSettings() const {
@@ -214,22 +279,22 @@ bool ConfigurationManager::fromJson(const String& json) {
     }
     
     // Update configuration from JSON
-    if (doc.containsKey("isLocalAP")) {
+    if (doc["isLocalAP"].is<bool>()) {
         localAP = doc["isLocalAP"];
     }
-    if (doc.containsKey("wifiSSID")) {
+    if (doc["wifiSSID"].is<const char*>()) {
         wifiSSID = doc["wifiSSID"].as<String>();
     }
-    if (doc.containsKey("wifiPass")) {
+    if (doc["wifiPass"].is<const char*>()) {
         wifiPass = doc["wifiPass"].as<String>();
     }
-    if (doc.containsKey("recMode")) {
+    if (doc["recMode"].is<int>()) {
         recMode = (RecMode)doc["recMode"].as<int>();
     }
-    if (doc.containsKey("recInt")) {
+    if (doc["recInt"].is<int>()) {
         recInterval = doc["recInt"];
     }
-    if (doc.containsKey("wifiCredentials")) {
+    if (doc["wifiCredentials"].is<const char*>()) {
         wifiCredentials = doc["wifiCredentials"].as<String>();
     }
     

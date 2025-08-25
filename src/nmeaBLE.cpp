@@ -91,13 +91,15 @@ class SettingsCallback : public NimBLECharacteristicCallbacks {
                     Serial.println("Failed to parse JSON (ble receive):");
                     Serial.println(error.c_str());
                 } else {
-                    addWifiPair(doc["ssid"], doc["password"]);
+                    ConfigurationManager& config = ConfigurationManager::getInstance();
+                    config.addWifiCredential(doc["ssid"], doc["password"]);
                 }
                 pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
                 pSettingsCharacteristic->notify();
             }}, 
             { "clrWifiCred", [](String value) {
-                clearWifiCredentials();
+                ConfigurationManager& config = ConfigurationManager::getInstance();
+                config.clearWifiCredentials();
                 pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
                 pSettingsCharacteristic->notify();
             }},

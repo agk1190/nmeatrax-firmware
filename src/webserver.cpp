@@ -13,12 +13,11 @@
 #include "SPIFFS.h"
 #include <ESPmDNS.h>
 #include <ElegantOTA.h>
+#include <ArduinoJson.h>
 
 #include "nmeaVars.h"
 #include "recording.h"
 #include "myemail.h"
-#include "ConfigurationManager.h"
-#include "CommunicationManager.h"
 #include "nmeaWifi.h"
 #include "sdcard.h"
 #include "nmeaBLE.h"
@@ -93,12 +92,12 @@ bool webSetup() {
                     request->send(200, "text/plain", "Failed to parse JSON");
                 }
                 else {
-                    addWifiPair(doc["ssid"], doc["password"]);
+                    config.addWifiCredential(doc["ssid"].as<String>(), doc["password"].as<String>());
                     request->send(200, "text/plain", "OK");
                 }
             }
             else if (request->hasParam("clrWifiCred")) {
-                clearWifiCredentials();
+                config.clearWifiCredentials();
                 request->send(200, "text/plain", "OK");
             }
             else if (request->hasParam("eraseData")) {
