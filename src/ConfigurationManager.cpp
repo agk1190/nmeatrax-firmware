@@ -4,6 +4,8 @@
  * @authors Alex Klouda, Greyson Stelmaschuk
  * 
  * Centralizes configuration management and reduces global variable usage.
+ * All setters update the in-memory state and then delegate to saveToStorage(),
+ * which is the single function that writes to the filesystem.
  */
 
 #include "ConfigurationManager.h"
@@ -11,9 +13,56 @@
 #include "FS.h"
 #include "SPIFFS.h"
 
-// External preferences functions
-extern bool addWifiPair(const char* ssid, const char* password);
-extern bool clearWifiCredentials();
+namespace {
+
+// Normalize station credential list to a JSON array string.
+String normalizeStationCredentialsJson(const String& raw) {
+    if (raw.isEmpty()) {
+        return "[]";
+    }
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, raw);
+    if (error || !doc.is<JsonArray>()) {
+        return "[]";
+    }
+
+    String normalized;
+    serializeJson(doc, normalized);
+    return normalized;
+}
+
+String readStationCredentialsFromDoc(JsonDocument& doc) {
+    if (doc["wifiCredentials"].is<JsonArray>()) {
+        String json;
+        serializeJson(doc["wifiCredentials"], json);
+        return normalizeStationCredentialsJson(json);
+    }
+
+    if (doc["wifiCredentials"].is<const char*>()) {
+        return normalizeStationCredentialsJson(doc["wifiCredentials"].as<String>());
+    }
+
+    return "[]";
+}
+
+void writeStationCredentialsToDoc(JsonDocument& doc, const String& credentialsJson) {
+    JsonArray outArray = doc["wifiCredentials"].to<JsonArray>();
+
+    JsonDocument credsDoc;
+    DeserializationError credsError = deserializeJson(credsDoc, credentialsJson);
+    if (credsError || !credsDoc.is<JsonArray>()) {
+        return;
+    }
+
+    for (JsonObject cred : credsDoc.as<JsonArray>()) {
+        JsonObject outCred = outArray.add<JsonObject>();
+        outCred["ssid"] = cred["ssid"] | "";
+        outCred["password"] = cred["password"] | "";
+    }
+}
+
+}
 
 ConfigurationManager& ConfigurationManager::getInstance() {
     static ConfigurationManager instance;
@@ -50,11 +99,13 @@ bool ConfigurationManager::loadFromStorage() {
     
     String fileContents = file.readString();
     file.close();
+
+    Serial.println("Raw configuration JSON:" + fileContents);
     
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, fileContents);
     if (error) {
-        Serial.print("Failed to parse preferences JSON: ");
+        Serial.print("Failed to parse preferences JSON (loadFromStorage): ");
         Serial.println(error.c_str());
         return false;
     }
@@ -75,9 +126,7 @@ bool ConfigurationManager::loadFromStorage() {
     if (doc["recInt"].is<int>()) {
         recInterval = doc["recInt"];
     }
-    if (doc["wifiCredentials"].is<const char*>()) {
-        wifiCredentials = doc["wifiCredentials"].as<String>();
-    }
+    wifiCredentials = readStationCredentialsFromDoc(doc);
     
     Serial.println("Configuration loaded successfully");
     return true;
@@ -92,7 +141,7 @@ bool ConfigurationManager::saveToStorage() {
     doc["wifiPass"] = wifiPass;
     doc["recMode"] = (int)recMode;
     doc["recInt"] = recInterval;
-    doc["wifiCredentials"] = wifiCredentials;
+    writeStationCredentialsToDoc(doc, wifiCredentials);
     
     String json;
     if (serializeJson(doc, json) == 0) {
@@ -105,6 +154,8 @@ bool ConfigurationManager::saveToStorage() {
         Serial.println("Failed to open preferences file for writing");
         return false;
     }
+
+    Serial.println("Configuration JSON to save:" + json);
     
     file.print(json);
     file.close();
@@ -115,22 +166,22 @@ bool ConfigurationManager::saveToStorage() {
 
 bool ConfigurationManager::setLocalAP(bool value) {
     localAP = value;
-    return updateSetting("isLocalAP", value);
+    return saveToStorage();
 }
 
 bool ConfigurationManager::setWifiSSID(const String& ssid) {
     wifiSSID = ssid;
-    return updateSetting("wifiSSID", ssid.c_str());
+    return saveToStorage();
 }
 
 bool ConfigurationManager::setWifiPass(const String& password) {
     wifiPass = password;
-    return updateSetting("wifiPass", password.c_str());
+    return saveToStorage();
 }
 
 bool ConfigurationManager::setRecMode(RecMode mode) {
     recMode = mode;
-    return updateSetting("recMode", (int)mode);
+    return saveToStorage();
 }
 
 bool ConfigurationManager::setRecInterval(int interval) {
@@ -138,89 +189,74 @@ bool ConfigurationManager::setRecInterval(int interval) {
         interval = 1;
     }
     recInterval = interval;
-    return updateSetting("recInt", interval);
+    return saveToStorage();
 }
 
-bool ConfigurationManager::setWifiCredentials(const String& credentials) {
-    wifiCredentials = credentials;
-    return updateSetting("wifiCredentials", credentials.c_str());
-}
+// bool ConfigurationManager::setWifiCredentials(const String& credentialsJson) {
+//     wifiCredentials = normalizeStationCredentialsJson(credentialsJson);
+//     return saveToStorage();
+// }
 
-bool ConfigurationManager::addWifiCredential(const String& ssid, const String& password) {
+bool ConfigurationManager::addWifiCredentialFromJson(const String& credentialJson) {
     JsonDocument doc;
-
-    File file = SPIFFS.open("/prefs.txt", FILE_READ);
-    String fileContents = file.readString();
-    file.close();
-
-    DeserializationError error = deserializeJson(doc, fileContents);
-    if (error) {
-        Serial.println("Failed to parse JSON (addWifiPair):");
-        Serial.println(error.c_str());
+    DeserializationError error = deserializeJson(doc, credentialJson);
+    if (error || !doc.is<JsonObject>()) {
         return false;
     }
 
-    if (!doc["wifiCredentials"].is<JsonArray>()) {
-        JsonArray wifiArray = doc["wifiCredentials"].as<JsonArray>();
-        wifiArray.clear();
+    if (!doc["ssid"].is<const char*>() || !doc["password"].is<const char*>()) {
+        return false;
     }
 
-    JsonArray wifiArray = doc["wifiCredentials"].as<JsonArray>();
+    String ssid = doc["ssid"].as<String>();
+    String password = doc["password"].as<String>();
+    Serial.println("Adding Wi-Fi credential from JSON: " + ssid);
 
+    return addWifiCredential(ssid, password);
+}
+
+bool ConfigurationManager::addWifiCredential(const String& ssid, const String& password) {
+    if (ssid.isEmpty()) {
+        return false;
+    }
+
+    Serial.println("Adding Wi-Fi credential: " + ssid);
+
+    JsonDocument credsDoc;
+    DeserializationError error = deserializeJson(credsDoc, wifiCredentials);
+    if (error || !credsDoc.is<JsonArray>()) {
+        credsDoc.to<JsonArray>();
+    }
+
+    JsonArray wifiArray = credsDoc.as<JsonArray>();
+
+    serializeJson(wifiArray, Serial);
+
+    // Update password if SSID already exists, otherwise append.
     bool found = false;
-    for (JsonObject wifiPair : wifiArray) {
-        if (strcmp(wifiPair["ssid"], ssid.c_str()) == 0) {
-            wifiPair["password"] = password;
+    for (JsonObject entry : wifiArray) {
+        if (entry["ssid"].as<String>() == ssid) {
+            entry["password"] = password;
             found = true;
             break;
         }
     }
 
     if (!found) {
-        JsonObject newWifiPair = wifiArray.add<JsonObject>();
-        newWifiPair["ssid"] = ssid;
-        newWifiPair["password"] = password;
+        JsonObject newEntry = wifiArray.add<JsonObject>();
+        newEntry["ssid"] = ssid;
+        newEntry["password"] = password;
     }
 
-    file = SPIFFS.open("/prefs.txt", FILE_WRITE);
-    if (serializeJson(doc, file) == 0) {
-        Serial.println("Failed to write to file (addWifiPair)");
-        file.close();
-        return false;
-    }
-    file.close();
-    Serial.println("Wifi pair added successfully");
-    return true;
+    serializeJson(credsDoc, wifiCredentials);
+    Serial.println("Updated Wi-Fi credentials: " + wifiCredentials);
+    return saveToStorage();
 }
 
 bool ConfigurationManager::clearWifiCredentials() {
-    JsonDocument doc;
-    Serial.println("Clearing Wifi credentials");
-
-    File file = SPIFFS.open("/prefs.txt", FILE_READ);
-    String fileContents = file.readString();
-    file.close();
-
-    DeserializationError error = deserializeJson(doc, fileContents);
-    if (error) {
-        Serial.println("Failed to parse JSON (clear wifi credentials):");
-        Serial.println(error.c_str());
-        return false;
-    }
-
-    JsonArray wifiArray = doc["wifiCredentials"].as<JsonArray>();
-    wifiArray.clear();
-
-    file = SPIFFS.open("/prefs.txt", FILE_WRITE);
-    if (serializeJson(doc, file) == 0) {
-        Serial.println("Failed to write to file (clear wifi credentials)");
-        file.close();
-        return false;
-    }
-    file.close();
-    Serial.println("Wifi credentials cleared successfully");
-    wifiCredentials = "";
-    return true;
+    Serial.println("Clearing Wi-Fi credentials");
+    wifiCredentials = "[]";
+    return saveToStorage();
 }
 
 bool ConfigurationManager::validateSettings() const {
@@ -245,10 +281,10 @@ bool ConfigurationManager::validateSettings() const {
 void ConfigurationManager::setDefaults() {
     localAP = true;
     wifiSSID = "NMEATrax";
-    wifiPass = "12345678";
+    wifiPass = "nmeatrax";
     recMode = OFF;
     recInterval = 5;
-    wifiCredentials = "";
+    wifiCredentials = "[]";
     
     Serial.println("Configuration set to defaults");
 }
@@ -261,7 +297,7 @@ String ConfigurationManager::toJson() const {
     doc["wifiPass"] = wifiPass;
     doc["recMode"] = (int)recMode;
     doc["recInt"] = recInterval;
-    doc["wifiCredentials"] = wifiCredentials;
+    writeStationCredentialsToDoc(doc, wifiCredentials);
     
     String result;
     serializeJson(doc, result);
@@ -294,46 +330,7 @@ bool ConfigurationManager::fromJson(const String& json) {
     if (doc["recInt"].is<int>()) {
         recInterval = doc["recInt"];
     }
-    if (doc["wifiCredentials"].is<const char*>()) {
-        wifiCredentials = doc["wifiCredentials"].as<String>();
-    }
-    
+    wifiCredentials = readStationCredentialsFromDoc(doc);
+
     return validateSettings();
-}
-
-template<typename T>
-bool ConfigurationManager::updateSetting(const char* key, const T& value) {
-    JsonDocument doc;
-    
-    File file = SPIFFS.open("/prefs.txt", "r");
-    if (!file) {
-        Serial.println("Failed to read file during write");
-        return false;
-    }
-    String fileContents = file.readString();
-    file.close();
-    
-    DeserializationError error = deserializeJson(doc, fileContents);
-    if (error) {
-        Serial.print("Failed to parse JSON during update: ");
-        Serial.println(error.c_str());
-        return false;
-    }
-
-    doc[key] = value;
-
-    if (serializeJson(doc, fileContents) == 0) {
-        Serial.println("Failed to create JSON during update");
-        return false;
-    }
-
-    file = SPIFFS.open("/prefs.txt", "w");
-    if (!file) {
-        Serial.println("Failed to open file for writing during update");
-        return false;
-    }
-    file.print(fileContents);
-    file.close();
-    Serial.println("Preferences updated successfully");
-    return true;
 }

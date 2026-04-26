@@ -30,10 +30,12 @@ public:
     bool loadFromStorage();
     bool saveToStorage();
     
-    // WiFi Configuration - separate from communication mode
+    // Device-hosted access point configuration
     bool isLocalAP() const { return localAP; }
     const String& getWifiSSID() const { return wifiSSID; }
     const String& getWifiPass() const { return wifiPass; }
+
+    // External Wi-Fi access points as a JSON array string
     const String& getWifiCredentials() const { return wifiCredentials; }
     
     // Recording Configuration
@@ -46,9 +48,10 @@ public:
     bool setWifiPass(const String& password);
     bool setRecMode(RecMode mode);
     bool setRecInterval(int interval);
-    bool setWifiCredentials(const String& credentials);
+    // bool setWifiCredentials(const String& credentialsJson);
     
-    // WiFi credential management
+    // External Wi-Fi credential-list management
+    bool addWifiCredentialFromJson(const String& credentialJson);
     bool addWifiCredential(const String& ssid, const String& password);
     bool clearWifiCredentials();
     
@@ -69,16 +72,12 @@ private:
     // Configuration data - no Settings struct dependency
     bool localAP = true;
     String wifiSSID = "NMEATrax";
-    String wifiPass = "12345678";
+    String wifiPass = "nmeatrax";
     RecMode recMode = OFF;
     int recInterval = 5;
-    String wifiCredentials = "";
+    String wifiCredentials = "[]";
     
     bool initialized = false;
-    
-    // Helper for updating individual preferences
-    template<typename T>
-    bool updateSetting(const char* key, const T& value);
 };
 
 #endif // CONFIGURATION_MANAGER_H

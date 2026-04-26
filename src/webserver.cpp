@@ -83,17 +83,20 @@ bool webSetup() {
                 config.setRecInterval(recInt);
                 request->send(200, "text/plain", "OK");
             }
-            else if (request->hasParam("setWifiCred")) {
-                JsonDocument doc;
-                DeserializationError error = deserializeJson(doc, request->getParam("setWifiCred")->value().c_str());
-                if (error) {
-                    Serial.println("Failed to parse JSON (http receive):");
-                    Serial.println(error.c_str());
-                    request->send(200, "text/plain", "Failed to parse JSON");
+            else if (request->hasParam("setWifiCred") || request->hasParam("setWifiCred", true)) {
+                const AsyncWebParameter* wifiCredParam = request->getParam("setWifiCred", true);
+                if (!wifiCredParam) {
+                    wifiCredParam = request->getParam("setWifiCred");
                 }
-                else {
-                    config.addWifiCredential(doc["ssid"].as<String>(), doc["password"].as<String>());
-                    request->send(200, "text/plain", "OK");
+                if (!wifiCredParam) {
+                    request->send(200, "text/plain", "Missing credential parameter");
+                } else {
+                    bool success = config.addWifiCredentialFromJson(wifiCredParam->value());
+                    if (success) {
+                        request->send(200, "text/plain", "OK");
+                    } else {
+                        request->send(200, "text/plain", "Failed to parse or add credential");
+                    }
                 }
             }
             else if (request->hasParam("clrWifiCred")) {

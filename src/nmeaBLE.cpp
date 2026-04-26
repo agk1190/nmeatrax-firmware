@@ -1,7 +1,10 @@
 #include "nmeaBLE.h"
 #include <NimBLEDevice.h>
 #include <ArduinoJson.h>
-#include <map>
+#include <cstring>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/task.h>
 #include "sdcard.h"
 #include "ConfigurationManager.h"
 #include "recording.h"
@@ -21,6 +24,38 @@ NimBLECharacteristic *pDownloadsListCharacteristic;
 NimBLECharacteristic *pFileDownloadControlCharacteristic;
 NimBLECharacteristic *pFileDownloadCharacteristic;
 NimBLEServer *pServer;
+
+struct DeferredBleCommand {
+    char payload[256];
+};
+
+static QueueHandle_t bleSettingsQueue = nullptr;
+static void notifySettingsJson();
+
+static void bleSettingsWorkerTask(void * pvParameters) {
+    DeferredBleCommand cmd;
+
+    for (;;) {
+        if (xQueueReceive(bleSettingsQueue, &cmd, portMAX_DELAY) != pdTRUE) {
+            continue;
+        }
+
+        ConfigurationManager& config = ConfigurationManager::getInstance();
+        bool ok = config.addWifiCredentialFromJson(String(cmd.payload));
+        if (!ok) {
+            pSettingsCharacteristic->setValue("error:setWifiCred");
+            pSettingsCharacteristic->notify();
+            continue;
+        }
+
+        notifySettingsJson();
+    }
+}
+
+static void notifySettingsJson() {
+    pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
+    pSettingsCharacteristic->notify();
+}
 
 class DownloadsListCallback : public NimBLECharacteristicCallbacks {
     void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
@@ -42,82 +77,55 @@ class SettingsCallback : public NimBLECharacteristicCallbacks {
         String key = data.substring(0, data.indexOf('='));
         String value = data.substring(data.indexOf('=') + 1);
 
-        std::map<String, std::function<void(String)>> settingsMap = {
-            { "fetch", [](String value) {
-                pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
-                pSettingsCharacteristic->notify();
-            }},
-            { "recMode", [](String value) {
-                setRecordingMode(value.toInt());
-                pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
-                pSettingsCharacteristic->notify();
-            }},
-            { "recInt", [](String value) {
-                ConfigurationManager& config = ConfigurationManager::getInstance();
-                int recInt = value.toInt();
-                if (recInt < 1) { recInt = 1; }
-                config.setRecInterval(recInt);
-                pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
-                pSettingsCharacteristic->notify();
-            }},
-            { "wifiSSID", [](String value) {
-                ConfigurationManager& config = ConfigurationManager::getInstance();
-                config.setWifiSSID(value);
-                pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
-                pSettingsCharacteristic->notify();
-            }},
-            { "wifiPass", [](String value) {
-                ConfigurationManager& config = ConfigurationManager::getInstance();
-                config.setWifiPass(value);
-                pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
-                pSettingsCharacteristic->notify();
-            }},
-            { "wifiMode", [](String value) {
-                ConfigurationManager& config = ConfigurationManager::getInstance();
-                config.setLocalAP(value == "true");
-                pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
-                pSettingsCharacteristic->notify();
-            }},
-            { "email", [](String value) {
-                startEmailTask();
-            }},
-            { "otaUpdate", [](String value) {
-                startOTAupdate();
-            }},
-            { "setWifiCred", [](String value) {
-                JsonDocument doc;
-                DeserializationError error = deserializeJson(doc, value);
-                if (error) {
-                    Serial.println("Failed to parse JSON (ble receive):");
-                    Serial.println(error.c_str());
-                } else {
-                    ConfigurationManager& config = ConfigurationManager::getInstance();
-                    config.addWifiCredential(doc["ssid"], doc["password"]);
-                }
-                pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
-                pSettingsCharacteristic->notify();
-            }}, 
-            { "clrWifiCred", [](String value) {
-                ConfigurationManager& config = ConfigurationManager::getInstance();
-                config.clearWifiCredentials();
-                pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
-                pSettingsCharacteristic->notify();
-            }},
-            { "eraseData", [](String value) {
-                deleteFile(SD, "/");
-                pDownloadsListCharacteristic->setValue(listDir(SD, "/", 0).c_str());
-                pDownloadsListCharacteristic->notify();
-            }},
-            { "reboot", [](String value) {
-                ESP.restart();
-            }}
-        };
+        if (key == "fetch") {
+            notifySettingsJson();
+        } else if (key == "recMode") {
+            setRecordingMode(value.toInt());
+            notifySettingsJson();
+        } else if (key == "recInt") {
+            ConfigurationManager& config = ConfigurationManager::getInstance();
+            config.setRecInterval(value.toInt());
+            notifySettingsJson();
+        } else if (key == "wifiSSID") {
+            ConfigurationManager& config = ConfigurationManager::getInstance();
+            config.setWifiSSID(value);
+            notifySettingsJson();
+        } else if (key == "wifiPass") {
+            ConfigurationManager& config = ConfigurationManager::getInstance();
+            config.setWifiPass(value);
+            notifySettingsJson();
+        } else if (key == "wifiMode") {
+            ConfigurationManager& config = ConfigurationManager::getInstance();
+            config.setLocalAP(value == "true");
+            notifySettingsJson();
+        } else if (key == "email") {
+            startEmailTask();
+        } else if (key == "otaUpdate") {
+            startOTAupdate();
+        } else if (key == "setWifiCred") {
+            DeferredBleCommand cmd = {};
+            strncpy(cmd.payload, value.c_str(), sizeof(cmd.payload) - 1);
+            cmd.payload[sizeof(cmd.payload) - 1] = '\0';
 
-        auto it = settingsMap.find(key);
-        if (it != settingsMap.end()) {
-            it->second(value); // Call the function associated with the setting
-            // pCharacteristic->setValue("OK");
-            // pCharacteristic->notify();
+            bool queued = false;
+            if (bleSettingsQueue != nullptr) {
+                queued = (xQueueSend(bleSettingsQueue, &cmd, 0) == pdTRUE);
+            }
+
+            Serial.println("Queueing Wi-Fi credential update via BLE:" + String(cmd.payload));
+
+            pSettingsCharacteristic->setValue(queued ? "queued:setWifiCred" : "busy:setWifiCred");
+            pSettingsCharacteristic->notify();
+        } else if (key == "clrWifiCred") {
+            ConfigurationManager& config = ConfigurationManager::getInstance();
+            config.clearWifiCredentials();
+            notifySettingsJson();
+        } else if (key == "eraseData") {
+            deleteFile(SD, "/");
+            pDownloadsListCharacteristic->setValue(listDir(SD, "/", 0).c_str());
+            pDownloadsListCharacteristic->notify();
+        } else if (key == "reboot") {
+            ESP.restart();
         } else {
             Serial.println("Unknown setting: " + key);
             pCharacteristic->setValue("Unknown setting");
@@ -229,6 +237,22 @@ void bleSetup() {
     pDownloadsListCharacteristic->setCallbacks(new DownloadsListCallback());
     pFileDownloadControlCharacteristic->setCallbacks(new FileDownloadControlCallback());
     // pFileDownloadCharacteristic does not need callbacks, it just sends data
+
+    if (bleSettingsQueue == nullptr) {
+        bleSettingsQueue = xQueueCreate(4, sizeof(DeferredBleCommand));
+    }
+    if (bleSettingsQueue != nullptr) {
+        xTaskCreate(
+            bleSettingsWorkerTask,
+            "bleSetWorker",
+            4096,
+            nullptr,
+            2,
+            nullptr
+        );
+    } else {
+        Serial.println("Failed to create BLE settings queue");
+    }
 
     pServer->advertiseOnDisconnect(true);
     

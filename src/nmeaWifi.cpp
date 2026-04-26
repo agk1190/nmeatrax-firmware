@@ -41,7 +41,7 @@ bool wifiSetup() {
             ESP.restart();
         }
     }
-    createWifiText();
+    // createWifiText();
     return true;
 }
 
