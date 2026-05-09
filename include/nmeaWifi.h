@@ -18,4 +18,8 @@ bool connectToWiFi(String jsonString);
  */
 void createWifiText();
 
+/**
+ * @brief Get the MAC address of the device
+ * @returns MAC address as a String
+ */
 String getMacAddress();

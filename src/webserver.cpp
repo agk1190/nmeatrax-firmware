@@ -15,12 +15,9 @@
 #include <ElegantOTA.h>
 #include <ArduinoJson.h>
 
-#include "nmeaVars.h"
 #include "recording.h"
 #include "myemail.h"
-#include "nmeaWifi.h"
 #include "sdcard.h"
-#include "nmeaBLE.h"
 
 // New modular managers
 #include "CommunicationManager.h"
@@ -36,196 +33,168 @@ AsyncEventSource events("/NMEATrax");
 QueueHandle_t webQueue;
 TaskHandle_t webSendTaskHandle = NULL;
 
-bool useWifi = false;
-
 bool webSetup() {
-    if (useWifi) {
-        wifiSetup();
+    CommunicationManager& comm = CommunicationManager::getInstance();
 
-        // serve content of root of web server directory
-        server.serveStatic("/web", SPIFFS, "/");
+    if (!comm.isWifiEnabled()) {return false;}
 
-        // redirect request to 192.168.1.1 to 192.168.1.1/web/index.html
-        // server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) { 
-        //     request->redirect("/web/index.html"); 
-        // });
+    // serve content of root of web server directory
+    server.serveStatic("/web", SPIFFS, "/");
 
-        // Get all files on the SD card
-        server.on("/listDir", HTTP_GET, [](AsyncWebServerRequest *request) {
-            if (getSDcardStatus() == 3) {
-                String fileList = listDir(SD, "/", 0);
-                request->send(200, "text/plain", fileList);
-            } else {
-                request->send(503);
-            }
-        });
+    // redirect request to 192.168.1.1 to 192.168.1.1/web/index.html
+    // server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) { 
+    //     request->redirect("/web/index.html"); 
+    // });
 
-        // all functions related to doing or setting something
-        server.on("/set", HTTP_POST, [](AsyncWebServerRequest *request) {
-            ConfigurationManager& config = ConfigurationManager::getInstance();
-            
-            if (request->hasParam("wifiSSID")) {
-                config.setWifiSSID(request->getParam("wifiSSID")->value());
-                request->send(200, "text/plain", "OK");
-            }
-            else if (request->hasParam("wifiPass")) {
-                config.setWifiPass(request->getParam("wifiPass")->value());
-                request->send(200, "text/plain", "OK");
-            }
-            else if (request->hasParam("wifiMode")) {
-                bool isLocalAP = request->getParam("wifiMode")->value() == "true";
-                config.setLocalAP(isLocalAP);
-                request->send(200, "text/plain", "OK");
-            }
-            else if (request->hasParam("recInt")) {
-                int recInt = atoi(request->getParam("recInt")->value().c_str());
-                if (recInt < 1) { recInt = 1; }
-                config.setRecInterval(recInt);
-                request->send(200, "text/plain", "OK");
-            }
-            else if (request->hasParam("setWifiCred") || request->hasParam("setWifiCred", true)) {
-                const AsyncWebParameter* wifiCredParam = request->getParam("setWifiCred", true);
-                if (!wifiCredParam) {
-                    wifiCredParam = request->getParam("setWifiCred");
-                }
-                if (!wifiCredParam) {
-                    request->send(200, "text/plain", "Missing credential parameter");
-                } else {
-                    bool success = config.addWifiCredentialFromJson(wifiCredParam->value());
-                    if (success) {
-                        request->send(200, "text/plain", "OK");
-                    } else {
-                        request->send(200, "text/plain", "Failed to parse or add credential");
-                    }
-                }
-            }
-            else if (request->hasParam("clrWifiCred")) {
-                config.clearWifiCredentials();
-                request->send(200, "text/plain", "OK");
-            }
-            else if (request->hasParam("eraseData")) {
-                deleteFile(SD, "/");
-                request->send(200, "text/plain", "OK");
-            }
-            else if (request->hasParam("reboot")) {
-                request->send(200, "text/plain", "OK");
-                ESP.restart();
-            }
-            else if (request->hasParam("email")) {
-                request->send(200, "text/plain", "OK");
-                startEmailTask();
-            } 
-            else if (request->hasParam("otaUpdate")) {
-                request->send(200, "text/plain", "OK");
-                startOTAupdate();
-            }
-            else if (request->hasParam("recMode")) {
-                // int mode = atoi(request->getParam("recMode")->value().c_str());
-                // switch (mode) {
-                // case 0:
-                //     settings.recMode = OFF;
-                //     break;
-                // case 1:
-                //     settings.recMode = ON;
-                //     outOfIdle = true;
-                //     break;
-                // case 2:
-                //     settings.recMode = AUTO_SPD_IDLE;
-                //     break;
-                // case 3:
-                //     settings.recMode = AUTO_RPM_IDLE;
-                //     break;
-                // default:
-                //     settings.recMode = OFF;
-                //     break;
-                // }
-                //
-                // updatePreference("recMode", settings.recMode);
-                setRecordingMode(request->getParam("recMode")->value().toInt());
-                request->send(200, "text/plain", "OK");
-            }
-            else {
-                request->send(200, "text/plain", "Nothing Set");
-            }       
-        });
+    // Get all files on the SD card
+    server.on("/listDir", HTTP_GET, [](AsyncWebServerRequest *request) {
+        if (getSDcardStatus() == 3) {
+            String fileList = listDir(SD, "/", 0);
+            request->send(200, "text/plain", fileList);
+        } else {
+            request->send(503);
+        }
+    });
 
-        // Communication mode switching endpoint
-        server.on("/comm", HTTP_POST, [](AsyncWebServerRequest *request) {
-            if (request->hasParam("mode")) {
-                String modeStr = request->getParam("mode")->value();
-                CommunicationManager& comm = CommunicationManager::getInstance();
-                
-                CommunicationMode newMode;
-                if (modeStr.equalsIgnoreCase("wifi")) {
-                    newMode = CommunicationMode::WIFI_ONLY;
-                } else if (modeStr.equalsIgnoreCase("ble")) {
-                    newMode = CommunicationMode::BLE_ONLY;
-                } else {
-                    request->send(400, "text/plain", "Invalid mode. Use: wifi or ble");
-                    return;
-                }
-                
-                bool success = comm.switchMode(newMode);
-                if (success) {
-                    String response = "Communication mode switched to " + modeStr;
-                    request->send(200, "text/plain", response);
-                } else {
-                    request->send(500, "text/plain", "Failed to switch communication mode");
-                }
-            }
-            else if (request->hasParam("status")) {
-                CommunicationManager& comm = CommunicationManager::getInstance();
-                JsonDocument status;
-                
-                status["currentMode"] = (int)comm.getCurrentMode();
-                status["wifiEnabled"] = comm.isWifiEnabled();
-                status["bleEnabled"] = comm.isBleEnabled();
-                
-                String response;
-                serializeJson(status, response);
-                request->send(200, "application/json", response);
-            }
-            else {
-                request->send(400, "text/plain", "Missing parameter. Use 'mode' or 'status'");
-            }
-        });
-
-        // send current settings to client
-        server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request) {
-            request->send(200, "application/json", makeSettingsJson());
-        });
-
-        // Handle Web Server Events
-        events.onConnect([](AsyncEventSourceClient *client){
-            if(client->lastId()){
-                Serial.printf("Client reconnected! Last message ID that it got is: %u\n", client->lastId());
-            }
-            client->send("Connected to NMEATrax!", NULL, millis(), 10000);
-        });
-        server.addHandler(&events);
-
-        // Start webserver
-        server.begin();
-
-        Serial.println("HTTP server started");
-
-        // this advertises the device locally at "nmeatrax.local"
-        // https://www.reddit.com/r/esp32/comments/sayiah/comment/htyvhf3/?utm_source=share&utm_medium=web2x&context=3
-        #define HOSTNAME "nmeatrax"
-        mdns_init(); 
-        mdns_hostname_set(HOSTNAME); 
-        mdns_instance_name_set(HOSTNAME); 
-        MDNS.addService("http","tcp",80);
-        MDNS.begin("NMEATrax");
-        Serial.printf("MDNS responder started at http://%s.local\n", HOSTNAME);
-    } else {
-        // Use new CommunicationManager instead of direct calls
-        CommunicationManager& comm = CommunicationManager::getInstance();
+    // all functions related to doing or setting something
+    server.on("/set", HTTP_POST, [](AsyncWebServerRequest *request) {
         ConfigurationManager& config = ConfigurationManager::getInstance();
         
-        // Initialize communication - default to BLE mode (user can switch via API)
-        comm.initialize(CommunicationMode::BLE_ONLY);
-    }
+        if (request->hasParam("wifiSSID")) {
+            config.setWifiSSID(request->getParam("wifiSSID")->value());
+            request->send(200, "text/plain", "OK");
+        }
+        else if (request->hasParam("wifiPass")) {
+            config.setWifiPass(request->getParam("wifiPass")->value());
+            request->send(200, "text/plain", "OK");
+        }
+        else if (request->hasParam("wifiMode")) {
+            bool isLocalAP = request->getParam("wifiMode")->value() == "true";
+            config.setLocalAP(isLocalAP);
+            request->send(200, "text/plain", "OK");
+        }
+        else if (request->hasParam("recInt")) {
+            int recInt = atoi(request->getParam("recInt")->value().c_str());
+            if (recInt < 1) { recInt = 1; }
+            config.setRecInterval(recInt);
+            request->send(200, "text/plain", "OK");
+        }
+        else if (request->hasParam("setWifiCred") || request->hasParam("setWifiCred", true)) {
+            const AsyncWebParameter* wifiCredParam = request->getParam("setWifiCred", true);
+            if (!wifiCredParam) {
+                wifiCredParam = request->getParam("setWifiCred");
+            }
+            if (!wifiCredParam) {
+                request->send(200, "text/plain", "Missing credential parameter");
+            } else {
+                bool success = config.addWifiCredentialFromJson(wifiCredParam->value());
+                if (success) {
+                    request->send(200, "text/plain", "OK");
+                } else {
+                    request->send(200, "text/plain", "Failed to parse or add credential");
+                }
+            }
+        }
+        else if (request->hasParam("clrWifiCred")) {
+            config.clearWifiCredentials();
+            request->send(200, "text/plain", "OK");
+        }
+        else if (request->hasParam("eraseData")) {
+            deleteFile(SD, "/");
+            request->send(200, "text/plain", "OK");
+        }
+        else if (request->hasParam("reboot")) {
+            request->send(200, "text/plain", "OK");
+            ESP.restart();
+        }
+        else if (request->hasParam("email")) {
+            request->send(200, "text/plain", "OK");
+            TaskManager& taskMgr = TaskManager::getInstance();
+            taskMgr.createTask(TaskType::EMAIL_TASK, sendEmail, NULL);
+        } 
+        else if (request->hasParam("otaUpdate")) {
+            request->send(200, "text/plain", "OK");
+            startOTAupdate();
+        }
+        else if (request->hasParam("recMode")) {
+            ConfigurationManager& config = ConfigurationManager::getInstance();
+            config.setRecMode(static_cast<RecMode>(request->getParam("recMode")->value().toInt()));
+            request->send(200, "text/plain", "OK");
+        }
+        else {
+            request->send(200, "text/plain", "Nothing Set");
+        }       
+    });
+
+    // Communication mode switching endpoint
+    server.on("/comm", HTTP_POST, [](AsyncWebServerRequest *request) {
+        if (request->hasParam("mode")) {
+            String modeStr = request->getParam("mode")->value();
+            CommunicationManager& comm = CommunicationManager::getInstance();
+            
+            CommunicationMode newMode;
+            if (modeStr.equalsIgnoreCase("wifi")) {
+                newMode = CommunicationMode::WIFI_ONLY;
+            } else if (modeStr.equalsIgnoreCase("ble")) {
+                newMode = CommunicationMode::BLE_ONLY;
+            } else {
+                request->send(400, "text/plain", "Invalid mode. Use: wifi or ble");
+                return;
+            }
+            
+            bool success = comm.switchMode(newMode);
+            if (success) {
+                String response = "Communication mode switched to " + modeStr;
+                request->send(200, "text/plain", response);
+            } else {
+                request->send(500, "text/plain", "Failed to switch communication mode");
+            }
+        }
+        else if (request->hasParam("status")) {
+            CommunicationManager& comm = CommunicationManager::getInstance();
+            JsonDocument status;
+            
+            status["currentMode"] = (int)comm.getCurrentMode();
+            status["wifiEnabled"] = comm.isWifiEnabled();
+            status["bleEnabled"] = comm.isBleEnabled();
+            
+            String response;
+            serializeJson(status, response);
+            request->send(200, "application/json", response);
+        }
+        else {
+            request->send(400, "text/plain", "Missing parameter. Use 'mode' or 'status'");
+        }
+    });
+
+    // send current settings to client
+    server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(200, "application/json", makeSettingsJson());
+    });
+
+    // Handle Web Server Events
+    events.onConnect([](AsyncEventSourceClient *client){
+        if(client->lastId()){
+            Serial.printf("Client reconnected! Last message ID that it got is: %u\n", client->lastId());
+        }
+        client->send("Connected to NMEATrax!", NULL, millis(), 10000);
+    });
+    server.addHandler(&events);
+
+    // Start webserver
+    server.begin();
+
+    Serial.println("HTTP server started");
+
+    // this advertises the device locally at "nmeatrax.local"
+    // https://www.reddit.com/r/esp32/comments/sayiah/comment/htyvhf3/?utm_source=share&utm_medium=web2x&context=3
+    #define HOSTNAME "nmeatrax"
+    mdns_init(); 
+    mdns_hostname_set(HOSTNAME); 
+    mdns_instance_name_set(HOSTNAME); 
+    MDNS.addService("http","tcp",80);
+    MDNS.begin("NMEATrax");
+    Serial.printf("MDNS responder started at http://%s.local\n", HOSTNAME);
 
     webQueue = xQueueCreate(20, sizeof(String *)); // Queue for 20 messages
     
@@ -263,10 +232,6 @@ String makeSettingsJson() {
     return buffer;
 }
 
-void startEmailTask() {
-    xTaskCreate(sendEmail, "Send Email", 8192, NULL, 1, NULL);
-}
-
 void startOTAupdate() {
     HardwareManager& hardware = HardwareManager::getInstance();
     TaskManager& taskMgr = TaskManager::getInstance();
@@ -283,16 +248,6 @@ void hostSdCard() {
     server.serveStatic("/sdCard", SD, "/");
 }
 
-void sendToWebQueue(String data) {
-    CommunicationManager& comm = CommunicationManager::getInstance();
-    comm.sendData(data);
-    
-    String *dataToSend = new String(data);
-    if (!xQueueSend(webQueue, &dataToSend, 0)) {
-        delete dataToSend; // Free memory if queue is full
-    }
-}
-
 void webLoop() {
     char text[160];
     snprintf(text, sizeof(text),
@@ -306,13 +261,11 @@ void webLoop() {
     // sendSettings(settingsStr); // Send settings over BLE
 }
 
-void sendEmailData(String text) {
-    char buf[512];
-    snprintf(buf, sizeof(buf),
-        "{\"messageType\":\"email\",\"instanceID\":0,\"data\":{\"msg\":\"%s\"}}",
-        text.c_str()
-    );
-    sendToWebQueue(buf);
+void sendToWebQueue(String data) {
+    String *dataToSend = new String(data);
+    if (!xQueueSend(webQueue, &dataToSend, 0)) {
+        delete dataToSend; // Free memory if queue is full
+    }
 }
 
 void sendDataTask(void *parameter) {

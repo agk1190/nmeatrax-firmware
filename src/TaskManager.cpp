@@ -134,7 +134,7 @@ TaskHandle_t TaskManager::getTaskHandle(TaskType type) const {
 }
 
 void TaskManager::deleteAllTasks() {
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 6; i++) {
         if (tasks[i].isRunning && tasks[i].handle != nullptr) {
             vTaskDelete(tasks[i].handle);
             tasks[i].handle = nullptr;
@@ -171,6 +171,9 @@ void TaskManager::initializeDefaults() {
     
     // Web Send Task (pinned to core 1)
     setTaskConfig(TaskType::WEB_SEND_TASK, "sendDataTask", 4096, 1, 1);
+
+    // Email Task
+    setTaskConfig(TaskType::EMAIL_TASK, "emailTask", 7168, 1);
 }
 
 int TaskManager::getTaskIndex(TaskType type) const {
@@ -180,6 +183,7 @@ int TaskManager::getTaskIndex(TaskType type) const {
         case TaskType::BACKGROUND_TASK: return 2;
         case TaskType::LOGGING_TASK: return 3;
         case TaskType::WEB_SEND_TASK: return 4;
+        case TaskType::EMAIL_TASK: return 5;
         default: return -1;
     }
 }

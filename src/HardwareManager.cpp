@@ -7,7 +7,6 @@
  */
 
 #include "HardwareManager.h"
-#include "nmeaVars.h"
 
 // External function reference
 extern bool getSDcardStatus();

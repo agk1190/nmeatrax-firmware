@@ -5,9 +5,10 @@
 */
 
 #include "sdcard.h"
-#include "nmeaVars.h"
 #include "FS.h"
 #include "SPI.h"
+
+#include "HardwareManager.h"
 
 bool sdCardInitialized = false;
 

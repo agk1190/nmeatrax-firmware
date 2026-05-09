@@ -25,11 +25,6 @@ void hostSdCard();
 void webLoop();
 
 /**
- * @brief Send email progress
-*/
-void sendEmailData(String text);
-
-/**
  * @brief Send data to client(s)
  */
 void sendDataTask(void *parameter);
@@ -45,7 +40,5 @@ void sendToWebQueue(String data);
  * @returns JSON string of settings
  */
 String makeSettingsJson();
-
-void startEmailTask();
 
 void startOTAupdate();

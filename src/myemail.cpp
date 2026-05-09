@@ -20,6 +20,9 @@
 
 #include <ReadyMail.h>
 
+#include "TaskManager.h"
+#include "CommunicationManager.h"
+
 WiFiClientSecure ssl_client;
 SMTPClient smtp(ssl_client);
 
@@ -77,7 +80,9 @@ time_t getCurrentTime() {
 void quitAndDelete() {
     ConfigurationManager& config = ConfigurationManager::getInstance();
     if (config.isLocalAP()) {WiFi.mode(WIFI_MODE_AP);}
-    vTaskDelete(NULL);
+    TaskManager& taskMgr = TaskManager::getInstance();
+    sendEmailData("Exiting...");
+    taskMgr.deleteTask(TaskType::EMAIL_TASK);
 }
 
 void sendEmail(void *pvParameters) {
@@ -96,23 +101,34 @@ void sendEmail(void *pvParameters) {
     }
     sendEmailData("Connected to internet");
 
-    // char heapMsg[64];
-    // snprintf(heapMsg, sizeof(heapMsg), "Free heap before SSL: %u", esp_get_free_heap_size());
-    // sendEmailData(heapMsg);
+    // Free Wi-Fi scan buffer and shrink TLS record buffers to maximise contiguous
+    // heap available for BIGNUM / MPI operations during the TLS key-exchange phase.
+    WiFi.scanDelete();
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+
+    char heapMsg[96];
+    snprintf(heapMsg, sizeof(heapMsg), "Heap before SSL: free=%u min=%u largest=%u",
+             esp_get_free_heap_size(),
+             esp_get_minimum_free_heap_size(),
+             heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+    sendEmailData(heapMsg);
 
     ssl_client.setInsecure();
+    // ssl_client.setHandshakeTimeout(20);
 
     smtp.connect(SMTP_HOST, SMTP_PORT, smtpCb);
     if (!smtp.isConnected()) {
         sendEmailData("Failed to connect to SMTP server");
         quitAndDelete();
     }
+    sendEmailData("Connected to email server");
 
     smtp.authenticate(AUTHOR_EMAIL, AUTHOR_PASSWORD, readymail_auth_password);
     if (!smtp.isAuthenticated()) {
         sendEmailData("Failed to authenticate with SMTP server");
         quitAndDelete();
     }
+    sendEmailData("Authenticated to email server");
 
     time_t now = getCurrentTime();
 
@@ -236,4 +252,15 @@ void connectToWifi() {
             quitAndDelete();
         }
     }
+}
+
+void sendEmailData(String text) {
+    char buf[512];
+    snprintf(buf, sizeof(buf),
+        "{\"messageType\":\"email\",\"instanceID\":0,\"data\":{\"msg\":\"%s\"}}",
+        text.c_str()
+    );
+    
+    CommunicationManager& comm = CommunicationManager::getInstance();
+    comm.sendData(buf);
 }

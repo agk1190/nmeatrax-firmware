@@ -6,6 +6,7 @@
  * NMEATrax email header file.
  */
 
+#include <Arduino.h>
 #include "secrets.h"
 
 //---Contents of secrets.h---
@@ -49,3 +50,9 @@ void sendEmail(void *pvParameters);
  * it sends an email notification and deletes the task.
  */
 void connectToWifi();
+
+/**
+ * @brief Send email progress
+ * @param text The progress message to send
+*/
+void sendEmailData(String text);

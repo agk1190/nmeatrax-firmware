@@ -27,6 +27,7 @@ public:
     CommunicationMode getCurrentMode() const { return currentMode; }
     bool isWifiEnabled() const { return wifiEnabled; }
     bool isBleEnabled() const { return bleEnabled; }
+    String getMacAddress() const { return macAddress; }
     
     // Cleanup
     void shutdown();
@@ -46,6 +47,8 @@ private:
     bool wifiEnabled = false;
     bool bleEnabled = false;
     bool initialized = false;
+
+    String macAddress = "";
 };
 
 #endif // COMMUNICATION_MANAGER_H

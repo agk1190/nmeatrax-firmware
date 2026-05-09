@@ -2,7 +2,7 @@
 #include "recording.h"
 #include "ConfigurationManager.h"
 #include "TaskManager.h"
-#include "nmeaVars.h"
+// #include "nmeaVars.h"
 #include "sdcard.h"
 
 bool outOfIdle = true;
@@ -209,14 +209,4 @@ void vWriteRecording(void * pvParameters) {
         writeRecording();
         taskMgr.suspendTask(TaskType::LOGGING_TASK);
     } 
-}
-
-void setRecordingMode(int mode) {
-    if (mode < 0 || mode > 5) {
-        Serial.println("Invalid recording mode");
-        return;
-    }
-    ConfigurationManager& config = ConfigurationManager::getInstance();
-    config.setRecMode(static_cast<RecMode>(mode));
-    Serial.printf("Recording mode set to %d\n", mode);
 }

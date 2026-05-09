@@ -39,6 +39,8 @@ bool CommunicationManager::initialize(CommunicationMode mode) {
             success = initializeWifi();
             break;
     }
+
+    macAddress = getMacAddress();
     
     initialized = success;
     return success;
@@ -99,6 +101,7 @@ bool CommunicationManager::initializeWifi() {
     if (success) {
         wifiEnabled = true;
         Serial.println("WiFi communication initialized successfully");
+        webSetup();  // Start web server after WiFi is initialized
     } else {
         Serial.println("Failed to initialize WiFi communication");
     }

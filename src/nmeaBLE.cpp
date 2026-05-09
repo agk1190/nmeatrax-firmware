@@ -5,10 +5,13 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
+
 #include "sdcard.h"
 #include "ConfigurationManager.h"
+#include "TaskManager.h"
 #include "recording.h"
 #include "webserv.h"
+#include "myemail.h"
 
 // BLE UUIDs
 #define SERVICE_UUID                "ddbf54c4-f88d-4358-b2a5-cfbf2ce4dd37"
@@ -80,7 +83,8 @@ class SettingsCallback : public NimBLECharacteristicCallbacks {
         if (key == "fetch") {
             notifySettingsJson();
         } else if (key == "recMode") {
-            setRecordingMode(value.toInt());
+            ConfigurationManager& config = ConfigurationManager::getInstance();
+            config.setRecMode(static_cast<RecMode>(value.toInt()));
             notifySettingsJson();
         } else if (key == "recInt") {
             ConfigurationManager& config = ConfigurationManager::getInstance();
@@ -99,7 +103,8 @@ class SettingsCallback : public NimBLECharacteristicCallbacks {
             config.setLocalAP(value == "true");
             notifySettingsJson();
         } else if (key == "email") {
-            startEmailTask();
+            TaskManager& taskMgr = TaskManager::getInstance();
+            taskMgr.createTask(TaskType::EMAIL_TASK, sendEmail, NULL);
         } else if (key == "otaUpdate") {
             startOTAupdate();
         } else if (key == "setWifiCred") {
@@ -255,9 +260,6 @@ void bleSetup() {
     }
 
     pServer->advertiseOnDisconnect(true);
-    
-    
-    pService->start();
 
     NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(SERVICE_UUID);

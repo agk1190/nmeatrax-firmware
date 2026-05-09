@@ -18,7 +18,8 @@ enum class TaskType {
     NMEA_TASK,
     BACKGROUND_TASK,
     LOGGING_TASK,
-    WEB_SEND_TASK
+    WEB_SEND_TASK,
+    EMAIL_TASK
 };
 
 struct TaskInfo {
@@ -59,7 +60,7 @@ private:
     TaskManager(const TaskManager&) = delete;
     TaskManager& operator=(const TaskManager&) = delete;
     
-    TaskInfo tasks[5]; // One for each TaskType
+    TaskInfo tasks[6]; // One for each TaskType
     bool initialized = false;
     
     void initializeDefaults();

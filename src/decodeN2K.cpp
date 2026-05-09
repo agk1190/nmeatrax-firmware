@@ -15,14 +15,11 @@
 #include <N2kMessagesEnumToStr.h>
 
 #include "decodeN2K.h"
-#include "nmeaVars.h"
-#include "webserv.h"
-#include "nmeaWifi.h"
 #include "recording.h"
-// #include <iostream>
-// #include <sstream>
-// #include <string>
-// #include <iomanip> // For std::setprecision
+
+#include "HardwareManager.h"
+#include "CommunicationManager.h"
+
 
 typedef struct {
     unsigned long PGN;
@@ -60,13 +57,15 @@ uint32_t depthKeepAlive;
 
 Stream *OutputStream;
 
+CommunicationManager& comm = CommunicationManager::getInstance();
+
 void HandleNMEA2000Msg(const tN2kMsg &N2kMsg);
 
 bool NMEAsetup() {
     OutputStream = &Serial;
 
     // Set Product information
-    NMEA2000.SetProductInformation(getMacAddress().c_str(),  // Manufacturer's Model serial code
+    NMEA2000.SetProductInformation(comm.getMacAddress().c_str(),  // Manufacturer's Model serial code
                                     101,                // Manufacturer's product code
                                     "NMEATrax",         // Manufacturer's Model ID
                                     FW_VERSION,         // Manufacturer's Software version code
@@ -157,7 +156,7 @@ void EngineRapid(const tN2kMsg &N2kMsg) {
             !N2kIsNA(EngineSpeed) ? EngineSpeed : -273,
             !N2kIsNA(EngineTiltTrim) ? (double)EngineTiltTrim : -273
         );
-        sendToWebQueue(text);
+        comm.sendData(text);
         nmeaData->rpm = !N2kIsNA(EngineSpeed) ? EngineSpeed : -273;
         nmeaData->legTilt = !N2kIsNA(EngineTiltTrim) ? EngineTiltTrim : -273;
 
@@ -236,7 +235,7 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
             Status1.Status, 
             Status2.Status
         );
-        sendToWebQueue(text);
+        comm.sendData(text);
 
         // char text2[256];
         // snprintf(text, sizeof(text),
@@ -245,7 +244,7 @@ void EngineDynamicParameters(const tN2kMsg &N2kMsg) {
         //     Status1.Status,
         //     Status2.Status
         // );
-        // sendToWebQueue(text2);
+        // comm.sendData(text2);
 
         // char errorBits[32];
         
@@ -299,7 +298,7 @@ void TransmissionParameters(const tN2kMsg &N2kMsg) {
             !N2kIsNA(OilTemperature) ? OilTemperature : -273,
             !N2kIsNA(OilPressure) ? OilPressure / 1000 : -273
         );
-        sendToWebQueue(text);
+        comm.sendData(text);
         
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -332,7 +331,7 @@ void COGSOG(const tN2kMsg &N2kMsg) {
                 !N2kIsNA(SOG) ? ReturnWithConversionCheckUnDef(SOG) : -273,
                 !N2kIsNA(COG) ? ReturnWithConversionCheckUnDef(COG,&RadToDeg) : -273
             );
-            sendToWebQueue(text);
+            comm.sendData(text);
         }
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -398,7 +397,7 @@ void GNSS(const tN2kMsg &N2kMsg) {
             !N2kIsNA(Latitude) ? Latitude : -273,
             !N2kIsNA(Longitude) ? Longitude : -273
         );
-        sendToWebQueue(text);
+        comm.sendData(text);
 
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }
@@ -432,7 +431,7 @@ void Temperature(const tN2kMsg &N2kMsg) {
             !N2kIsNA(ActualTemperature) ? ActualTemperature : -273,
             !N2kIsNA(SetTemperature) ? SetTemperature : -273
         );
-        sendToWebQueue(text);
+        comm.sendData(text);
 
     } else {OutputStream->print("Failed to parse PGN: ");  OutputStream->println(N2kMsg.PGN);}
 }
@@ -454,7 +453,7 @@ void WaterDepth(const tN2kMsg &N2kMsg) {
             !N2kIsNA(DepthBelowTransducer) ? DepthBelowTransducer : -273,
             !N2kIsNA(Offset) ? Offset : -273
         );
-        sendToWebQueue(text);
+        comm.sendData(text);
 
         if (N2kIsNA(Offset) || Offset == 0) {
             #ifdef DEBUG_EN
@@ -544,7 +543,7 @@ void FluidLevel(const tN2kMsg &N2kMsg) {
             (!N2kIsNA(Level) && FluidType == N2kft_Fuel) ? Level : -273,
             !N2kIsNA(Capacity) ? Capacity : -273
         );
-        sendToWebQueue(text);
+        comm.sendData(text);
     }
 }
 
@@ -572,7 +571,7 @@ void MagneticVariation(const tN2kMsg &N2kMsg) {
             SID,
             ReturnWithConversionCheckUnDef(Variation, &RadToDeg)
         );
-        sendToWebQueue(text);
+        comm.sendData(text);
 
     } else {OutputStream->print("Failed to parse PGN: "); OutputStream->println(N2kMsg.PGN);}
 }

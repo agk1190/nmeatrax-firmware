@@ -99,8 +99,6 @@ bool ConfigurationManager::loadFromStorage() {
     
     String fileContents = file.readString();
     file.close();
-
-    Serial.println("Raw configuration JSON:" + fileContents);
     
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, fileContents);
@@ -180,7 +178,12 @@ bool ConfigurationManager::setWifiPass(const String& password) {
 }
 
 bool ConfigurationManager::setRecMode(RecMode mode) {
+    if (mode < 0 || mode > 5) {
+        Serial.println("Invalid recording mode");
+        return false;
+    }
     recMode = mode;
+    Serial.printf("Recording mode set to %d\n", mode);
     return saveToStorage();
 }
 

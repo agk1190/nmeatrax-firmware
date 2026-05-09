@@ -7,7 +7,6 @@
  */
 
 #include "main.h"
-#include "nmeaVars.h"
 #include "decodeN2K.h"
 #include "sdcard.h"
 #include "webserv.h"
@@ -20,13 +19,6 @@
 #include "ConfigurationManager.h"
 #include "TaskManager.h"
 #include "HardwareManager.h"
-
-// Legacy task handles for backward compatibility
-// TODO: Remove once all code migrated to TaskManager
-TaskHandle_t webTaskHandle = NULL;
-TaskHandle_t loggingTaskHandle = NULL;
-TaskHandle_t bgTaskHandle = NULL;
-TaskHandle_t nmeaTaskHandle = NULL;
 
 // ***************************************************
 /**
@@ -80,21 +72,18 @@ void setup() {
         comm.initialize(CommunicationMode::BLE_ONLY);
     }
 
-    // Initialize web server and NMEA
-    webSetup();
+    // Initialize NMEA
     NMEAsetup();
 
     // Create tasks using TaskManager
-    taskMgr.createTask(TaskType::WEB_TASK, vWebTask, (void *) 1);
-    delay(100);
+    if (comm.isWifiEnabled()) {
+        taskMgr.createTask(TaskType::WEB_TASK, vWebTask, (void *) 1);
+        delay(100);
+    }
+    
     taskMgr.createTask(TaskType::BACKGROUND_TASK, vBackgroundTasks, (void *) 1);
     delay(100);
     taskMgr.createTask(TaskType::NMEA_TASK, vNmeaTask, (void *) 1);
-    
-    // Update legacy task handles for backward compatibility
-    webTaskHandle = taskMgr.getTaskHandle(TaskType::WEB_TASK);
-    bgTaskHandle = taskMgr.getTaskHandle(TaskType::BACKGROUND_TASK);
-    nmeaTaskHandle = taskMgr.getTaskHandle(TaskType::NMEA_TASK);
     
     Serial.println("NMEATrax initialization complete");
 }
@@ -123,6 +112,7 @@ void vWebTask(void * pvParameters) {
 void vBackgroundTasks(void * pvParameters) {
     HardwareManager& hardware = HardwareManager::getInstance();
     TaskManager& taskMgr = TaskManager::getInstance();
+    CommunicationManager& comm = CommunicationManager::getInstance();
     
     for (;;) {
         static int nmeaSleepCount = 0;
@@ -155,13 +145,21 @@ void vBackgroundTasks(void * pvParameters) {
             if (nmeaSleepCount >= 4) {  // 5 seconds
                 nmeaSleepCount = 0;
                 nmeaSleep = false;
-                vTaskResume(nmeaTaskHandle);
+                // vTaskResume(nmeaTaskHandle);
+                taskMgr.resumeTask(TaskType::NMEA_TASK);
             } else {
                 nmeaSleepCount++;
             }
         } else {
             nmeaSleepCount = 0;
         }
+
+        char text[160];
+        snprintf(text, sizeof(text),
+            "{\"messageType\":\"000000\",\"instanceID\":0,\"data\":{\"millis\":%lu}}",
+            millis()
+        );
+        comm.sendData(text);
 
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
