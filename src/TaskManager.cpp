@@ -164,7 +164,7 @@ void TaskManager::initializeDefaults() {
     setTaskConfig(TaskType::NMEA_TASK, "nmeaTask", 8192, 1);
     
     // Background Task
-    setTaskConfig(TaskType::BACKGROUND_TASK, "bgTasks", 8192, 3);
+    setTaskConfig(TaskType::BACKGROUND_TASK, "bgTasks", 4096, 3);
     
     // Logging Task
     setTaskConfig(TaskType::LOGGING_TASK, "recordingTask", 4096, 5);

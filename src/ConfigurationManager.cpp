@@ -153,8 +153,6 @@ bool ConfigurationManager::saveToStorage() {
         return false;
     }
 
-    Serial.println("Configuration JSON to save:" + json);
-    
     file.print(json);
     file.close();
     
