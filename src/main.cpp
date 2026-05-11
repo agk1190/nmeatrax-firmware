@@ -77,13 +77,13 @@ void setup() {
 
     // Create tasks using TaskManager
     if (comm.isWifiEnabled()) {
-        taskMgr.createTask(TaskType::WEB_TASK, vWebTask, (void *) 1);
+        taskMgr.createTask(TaskType::WEB_TASK, vWebTask, nullptr);
         delay(100);
     }
     
-    taskMgr.createTask(TaskType::BACKGROUND_TASK, vBackgroundTasks, (void *) 1);
+    taskMgr.createTask(TaskType::BACKGROUND_TASK, vBackgroundTasks, nullptr);
     delay(100);
-    taskMgr.createTask(TaskType::NMEA_TASK, vNmeaTask, (void *) 1);
+    taskMgr.createTask(TaskType::NMEA_TASK, vNmeaTask, nullptr);
     
     Serial.println("NMEATrax initialization complete");
 }
@@ -95,10 +95,10 @@ void setup() {
 void loop() {}
 
 void vNmeaTask(void * pvParameters) {
-    TickType_t delay = 1 / portTICK_PERIOD_MS;
+    TickType_t taskDelay = 1 / portTICK_PERIOD_MS;
     for (;;) {
         NMEAloop();
-        vTaskDelay(delay);
+        vTaskDelay(taskDelay);
     }
 }
 

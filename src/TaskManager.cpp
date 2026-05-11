@@ -18,12 +18,12 @@ TaskManager& TaskManager::getInstance() {
 }
 
 bool TaskManager::createTask(TaskType type, TaskFunction_t taskFunction, void* parameters) {
-    int index = getTaskIndex(type);
-    if (index < 0) {
+    int taskIndex = getTaskIndex(type);
+    if (taskIndex < 0) {
         return false;
     }
     
-    TaskInfo& task = tasks[index];
+    TaskInfo& task = tasks[taskIndex];
     
     // Delete existing task if running
     if (task.isRunning && task.handle != nullptr) {
@@ -67,12 +67,12 @@ bool TaskManager::createTask(TaskType type, TaskFunction_t taskFunction, void* p
 }
 
 bool TaskManager::deleteTask(TaskType type) {
-    int index = getTaskIndex(type);
-    if (index < 0) {
+    int taskIndex = getTaskIndex(type);
+    if (taskIndex < 0) {
         return false;
     }
     
-    TaskInfo& task = tasks[index];
+    TaskInfo& task = tasks[taskIndex];
     if (task.handle != nullptr && task.isRunning) {
         vTaskDelete(task.handle);
         task.handle = nullptr;
@@ -85,12 +85,12 @@ bool TaskManager::deleteTask(TaskType type) {
 }
 
 bool TaskManager::suspendTask(TaskType type) {
-    int index = getTaskIndex(type);
-    if (index < 0) {
+    int taskIndex = getTaskIndex(type);
+    if (taskIndex < 0) {
         return false;
     }
     
-    TaskInfo& task = tasks[index];
+    const TaskInfo& task = tasks[taskIndex];
     if (task.handle != nullptr && task.isRunning) {
         vTaskSuspend(task.handle);
         return true;
@@ -99,12 +99,12 @@ bool TaskManager::suspendTask(TaskType type) {
 }
 
 bool TaskManager::resumeTask(TaskType type) {
-    int index = getTaskIndex(type);
-    if (index < 0) {
+    int taskIndex = getTaskIndex(type);
+    if (taskIndex < 0) {
         return false;
     }
     
-    TaskInfo& task = tasks[index];
+    const TaskInfo& task = tasks[taskIndex];
     if (task.handle != nullptr && task.isRunning) {
         vTaskResume(task.handle);
         return true;
@@ -118,19 +118,19 @@ bool TaskManager::restartTask(TaskType type, TaskFunction_t taskFunction, void* 
 }
 
 bool TaskManager::isTaskRunning(TaskType type) const {
-    int index = getTaskIndex(type);
-    if (index < 0) {
+    int taskIndex = getTaskIndex(type);
+    if (taskIndex < 0) {
         return false;
     }
-    return tasks[index].isRunning;
+    return tasks[taskIndex].isRunning;
 }
 
 TaskHandle_t TaskManager::getTaskHandle(TaskType type) const {
-    int index = getTaskIndex(type);
-    if (index < 0) {
+    int taskIndex = getTaskIndex(type);
+    if (taskIndex < 0) {
         return nullptr;
     }
-    return tasks[index].handle;
+    return tasks[taskIndex].handle;
 }
 
 void TaskManager::deleteAllTasks() {
@@ -144,12 +144,12 @@ void TaskManager::deleteAllTasks() {
 }
 
 void TaskManager::setTaskConfig(TaskType type, const char* name, uint32_t stackSize, UBaseType_t priority, BaseType_t coreId) {
-    int index = getTaskIndex(type);
-    if (index < 0) {
+    int taskIndex = getTaskIndex(type);
+    if (taskIndex < 0) {
         return;
     }
     
-    TaskInfo& task = tasks[index];
+    TaskInfo& task = tasks[taskIndex];
     task.name = name;
     task.stackSize = stackSize;
     task.priority = priority;

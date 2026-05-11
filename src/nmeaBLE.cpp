@@ -104,7 +104,7 @@ class SettingsCallback : public NimBLECharacteristicCallbacks {
             notifySettingsJson();
         } else if (key == "email") {
             TaskManager& taskMgr = TaskManager::getInstance();
-            taskMgr.createTask(TaskType::EMAIL_TASK, sendEmail, NULL);
+            taskMgr.createTask(TaskType::EMAIL_TASK, sendEmail, nullptr);
         } else if (key == "otaUpdate") {
             startOTAupdate();
         } else if (key == "setWifiCred") {

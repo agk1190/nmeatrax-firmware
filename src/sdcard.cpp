@@ -87,11 +87,11 @@ String listDir(fs::FS &fs, const char * dirname, uint8_t levels) {
 String getFile(fs::FS &fs, String filePath) {
     File file = fs.open(filePath);
     String s;
-    if (!file){
+    if (!file) {
         Serial.println("Failed to open file for reading");
         return("null");
     }
-    if (file.available() && (file.size() < 100000)){
+    if (file.available() && (file.size() < 100000)) {
         s = (file.readString());
         file.close();
         return(s);
@@ -100,22 +100,21 @@ String getFile(fs::FS &fs, String filePath) {
     }
 }
 
-bool appendFile(fs::FS &fs, const char * path, const char * message, bool ensureCRLF){
+bool appendFile(fs::FS &fs, const char * path, const char * message, bool ensureCRLF) {
     File file = fs.open(path, FILE_APPEND);
     const char * toSend;
-    if (!file){
+    if (!file) {
         Serial.println("Failed to open file for appending");
         return (false);
     }
     
-    if (ensureCRLF)
-    {
+    if (ensureCRLF) {
         toSend = addCRLF(message).c_str();
     } else {
         toSend = message;
     }
     
-    if (file.print(toSend)){
+    if (file.print(toSend)) {
     } else {
         Serial.println("Append failed");
         return (false);
@@ -124,13 +123,13 @@ bool appendFile(fs::FS &fs, const char * path, const char * message, bool ensure
     return (true);
 }
 
-bool writeFile(fs::FS &fs, const char * path, const char * message, bool newLine){
+bool writeFile(fs::FS &fs, const char * path, const char * message, bool newLine) {
     File file = fs.open(path, FILE_WRITE);
-    if(!file){
+    if(!file) {
         Serial.println("Failed to open file for writing");
         return(false);
     }
-    if(file.print(message)){
+    if(file.print(message)) {
         if (newLine){file.print("\r\n");}
     } else {
         Serial.println("Write failed");
@@ -140,17 +139,16 @@ bool writeFile(fs::FS &fs, const char * path, const char * message, bool newLine
     return(true);
 }
 
-bool deleteFile(fs::FS &fs, const char * path){
+bool deleteFile(fs::FS &fs, const char * path) {
     File root = fs.open(path);
-    if(!root){
+    if(!root) {
         Serial.println("Failed to open file/directory");
         return(false);
     }
-    if(root.isDirectory()){
+    if(root.isDirectory()) {
         File file = root.openNextFile();
-        file = root.openNextFile();
-        while (file) 
-        {
+        // file = root.openNextFile();
+        while (file) {
             String fileName = "/";
             fileName += file.name();
             if (!fs.remove(fileName)) {
@@ -164,7 +162,7 @@ bool deleteFile(fs::FS &fs, const char * path){
     }
 }
 
-bool sdSetup(){
+bool sdSetup() {
     const uint8_t SCK = 18;
     const uint8_t MISO = 19;
     const uint8_t MOSI = 23;
@@ -180,7 +178,7 @@ bool sdSetup(){
 
     uint8_t cardType = SD.cardType();
 
-    if(cardType == CARD_NONE){
+    if(cardType == CARD_NONE) {
         Serial.println("No SD card attached");
         sdCardInitialized = false;
         return(false);

@@ -110,7 +110,7 @@ bool webSetup() {
         else if (request->hasParam("email")) {
             request->send(200, "text/plain", "OK");
             TaskManager& taskMgr = TaskManager::getInstance();
-            taskMgr.createTask(TaskType::EMAIL_TASK, sendEmail, NULL);
+            taskMgr.createTask(TaskType::EMAIL_TASK, sendEmail, nullptr);
         } 
         else if (request->hasParam("otaUpdate")) {
             request->send(200, "text/plain", "OK");
@@ -200,7 +200,7 @@ bool webSetup() {
     
     // Use TaskManager for web send task
     TaskManager& taskMgr = TaskManager::getInstance();
-    taskMgr.createTask(TaskType::WEB_SEND_TASK, sendDataTask, NULL);
+    taskMgr.createTask(TaskType::WEB_SEND_TASK, sendDataTask, nullptr);
     webSendTaskHandle = taskMgr.getTaskHandle(TaskType::WEB_SEND_TASK);
 
     return(true);
@@ -211,7 +211,6 @@ String makeSettingsJson() {
     CommunicationManager& comm = CommunicationManager::getInstance();
     
     JsonDocument values;
-    char buffer[1024];
     values["firmware"] = FW_VERSION;
     values["hardware"] = "2.0";
     values["recMode"] = config.getRecMode();
@@ -227,9 +226,9 @@ String makeSettingsJson() {
     values["wifiEnabled"] = comm.isWifiEnabled();
     values["bleEnabled"] = comm.isBleEnabled();
     
-    serializeJson(values, buffer);
-    String settingsStr(buffer);
-    return buffer;
+    String settingsStr;
+    serializeJson(values, settingsStr);
+    return settingsStr;
 }
 
 void startOTAupdate() {

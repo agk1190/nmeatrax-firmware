@@ -381,8 +381,8 @@ void GNSS(const tN2kMsg &N2kMsg) {
         #endif
 
         uint64_t unixTime;
-        nmeaData->lat = N2kIsNA(Latitude) ? -273 : Latitude, 6;
-        nmeaData->lon = N2kIsNA(Longitude) ? -273 : Longitude, 6;
+        nmeaData->lat = N2kIsNA(Latitude) ? -273 : Latitude;
+        nmeaData->lon = N2kIsNA(Longitude) ? -273 : Longitude;
         unixTime = ((DaysSince1970*86400)+SecondsSinceMidnight);
         nmeaData->unixTime = unixTime;
         struct timeval tv;
@@ -424,7 +424,7 @@ void Temperature(const tN2kMsg &N2kMsg) {
 
         char text[160];
         snprintf(text, sizeof(text),
-            "{\"messageType\":\"130312\",\"instanceID\":%u,\"data\":{\"tempInstance\":%u,\"tempSource\":%u,\"actualTemp\":%.2f,\"setTemp\":%.2f}}",
+            "{\"messageType\":\"130312\",\"instanceID\":%u,\"data\":{\"tempInstance\":%u,\"tempSource\":%i,\"actualTemp\":%.2f,\"setTemp\":%.2f}}",
             SID,
             TempInstance,
             TempSource,
@@ -537,7 +537,7 @@ void FluidLevel(const tN2kMsg &N2kMsg) {
 
         char text[128];
         snprintf(text, sizeof(text),
-            "{\"messageType\":\"127505\",\"instanceID\":%u,\"data\":{\"fluidType\":%u,\"level\":%.1f,\"capacity\":%.1f}}",
+            "{\"messageType\":\"127505\",\"instanceID\":%u,\"data\":{\"fluidType\":%i,\"level\":%.1f,\"capacity\":%.1f}}",
             Instance,
             FluidType,
             (!N2kIsNA(Level) && FluidType == N2kft_Fuel) ? Level : -273,

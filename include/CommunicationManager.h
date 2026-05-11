@@ -23,7 +23,6 @@ public:
     bool initialize(CommunicationMode mode = CommunicationMode::BLE_ONLY);
     bool switchMode(CommunicationMode newMode);
     void sendData(const String& data);
-    void sendSettings(const String& settingsJson);
     CommunicationMode getCurrentMode() const { return currentMode; }
     bool isWifiEnabled() const { return wifiEnabled; }
     bool isBleEnabled() const { return bleEnabled; }

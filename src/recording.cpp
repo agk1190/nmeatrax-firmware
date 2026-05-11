@@ -59,7 +59,7 @@ String getCSV() {
     return rdata; */
     char buffer[1024]; // Adjust size as needed
     snprintf(buffer, sizeof(buffer),
-        "%d,%.2f,%.2f,%.2f,%.1f,%.1f,%.3f,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%c,%.6f,%.6f,%.2f,%" PRIu32 ",%lu",
+        "%d,%.2f,%.2f,%.2f,%.1f,%.1f,%.3f,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%c,%.6f,%.6f,%.2f,%" PRIu32 ",%ld",
         nmeaData->rpm,
         nmeaData->eTemp,
         nmeaData->oTemp,
@@ -172,7 +172,7 @@ void recorderLoop() {
             CSVFileName = "/";
             CSVFileName += lastCSVfileName;       // current = last because search function failed on search for current file name
             writeFile(SD, CSVFileName.c_str(), csvHeaders, true);
-            taskMgr.createTask(TaskType::LOGGING_TASK, vWriteRecording, (void*)1);
+            taskMgr.createTask(TaskType::LOGGING_TASK, vWriteRecording, nullptr);
             outOfIdle = false;
         }
         taskMgr.resumeTask(TaskType::LOGGING_TASK);     // trigger log to be written
@@ -181,7 +181,7 @@ void recorderLoop() {
 }
 
 bool writeRecording() {
-    TaskManager& taskMgr = TaskManager::getInstance();
+    const TaskManager& taskMgr = TaskManager::getInstance();
     if (!taskMgr.isTaskRunning(TaskType::LOGGING_TASK)) {
         Serial.println("Logging task not created");
         return false;

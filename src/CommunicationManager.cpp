@@ -81,10 +81,6 @@ void CommunicationManager::sendData(const String& data) {
     }
 }
 
-void CommunicationManager::sendSettings(const String& settingsJson) {
-    sendData(settingsJson);
-}
-
 void CommunicationManager::shutdown() {
     shutdownWifi();
     shutdownBle();
