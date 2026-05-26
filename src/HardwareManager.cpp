@@ -84,7 +84,7 @@ bool HardwareManager::isN2KStandby() const {
 }
 
 bool HardwareManager::isSDCardPresent() const {
-    return digitalRead(SD_Detect) == LOW; // Assuming LOW means card present
+    return digitalRead(SD_Detect);
 }
 
 int HardwareManager::getSDCardStatus() const {

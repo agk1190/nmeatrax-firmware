@@ -9,6 +9,7 @@
 #include "sdcard.h"
 #include "ConfigurationManager.h"
 #include "TaskManager.h"
+#include "HardwareManager.h"
 #include "recording.h"
 #include "webserv.h"
 #include "myemail.h"
@@ -64,8 +65,15 @@ class DownloadsListCallback : public NimBLECharacteristicCallbacks {
     void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
         String value = pCharacteristic->getValue();
         if (value.equalsIgnoreCase("listDir")) {
-            pDownloadsListCharacteristic->setValue(listDir(SD, "/", 0).c_str());
-            pDownloadsListCharacteristic->notify();
+            HardwareManager& hardware = HardwareManager::getInstance();
+            if (!hardware.isSDCardPresent()) {
+                pDownloadsListCharacteristic->setValue("SD card not present");
+                pDownloadsListCharacteristic->notify();
+                return;
+            } else {
+                pDownloadsListCharacteristic->setValue(listDir(SD, "/", 0).c_str());
+                pDownloadsListCharacteristic->notify();
+            }
         }    
     }
 

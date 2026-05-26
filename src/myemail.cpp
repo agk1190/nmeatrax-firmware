@@ -22,6 +22,7 @@
 
 #include "TaskManager.h"
 #include "CommunicationManager.h"
+#include "HardwareManager.h"
 
 WiFiClientSecure ssl_client;
 SMTPClient smtp(ssl_client);
@@ -58,23 +59,6 @@ void fileCb(File &file, const char *filename, readymail_file_operating_mode mode
     // This is required by library to get the file object
     // that uses in its read/write processes.
     file = myFile;
-}
-
-time_t getCurrentTime() {
-    configTime(-28800, 3600, "pool.ntp.org", "time.nist.gov");
-    sendEmailData("Waiting for NTP time sync...");
-    unsigned long start = millis();
-    time_t now;
-    while (((now = time(nullptr)) < 1700000000) && (millis() - start < 10000)) { // 1700000000 ~ year 2024
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-    }
-    if (now < 1700000000) {
-        sendEmailData("Failed. Using internal time.");
-        now = time(nullptr);
-        return now;
-    }
-    sendEmailData("NTP time synced.");
-    return now;
 }
 
 void quitAndDelete() {
@@ -114,7 +98,6 @@ void sendEmail(void *pvParameters) {
     sendEmailData(heapMsg);
 
     ssl_client.setInsecure();
-    // ssl_client.setHandshakeTimeout(20);
 
     smtp.connect(SMTP_HOST, SMTP_PORT, smtpCb);
     if (!smtp.isConnected()) {
@@ -130,48 +113,37 @@ void sendEmail(void *pvParameters) {
     }
     sendEmailData("Authenticated to email server");
 
-    time_t now = getCurrentTime();
-
     SMTPMessage msg;
-    struct tm timeinfo;
-    localtime_r(&now, &timeinfo);
-    char datetimeStr[20];
-    strftime(datetimeStr, sizeof(datetimeStr), "%Y-%m-%d %H:%M:%S", &timeinfo);
-    String subject = "NMEATrax Recordings - " + String(datetimeStr);
+    String subject = "NMEATrax Recordings";
     msg.headers.add(rfc822_subject, subject);
     msg.headers.add(rfc822_from, String(SENDER_NAME) + " <" + AUTHOR_EMAIL + ">");
     msg.headers.add(rfc822_to, String(RECIPIENT_NAME) + " <" + RECIPIENT_EMAIL + ">");
     #ifndef TESTMODE
     msg.headers.add(rfc822_to, String(RECIPIENT_NAME2) + " <" + RECIPIENT_EMAIL2 + ">");
     #endif
-    msg.text.body("New voyage recordings!");
-    msg.timestamp = now;
+    msg.html.body("<html><body>New voyage recordings!</body></html>");
+    configTime(0, 0, "pool.ntp.org");
+    while (time(nullptr) < 100000) delay(100);
+    msg.timestamp = time(nullptr);
 
-    File root = SD.open("/");
-    if (!root) {
-        sendEmailData("Failed to read SD card!");
-        quitAndDelete();
-    }
-    if (!root.isDirectory()) {
-        sendEmailData("Failed to read SD card!");
-        quitAndDelete();
-    }
-    File file = root.openNextFile();
-    sendEmailData("Adding attachments...");
-    while (file) {
-        if (file.isDirectory()) {} 
-        else {
-            String filename = file.name();
-            if (filename.equalsIgnoreCase("wifi.txt")) {
-                // Skip wifi.txt
-            } else {
+    HardwareManager& hardware = HardwareManager::getInstance();
+    if (hardware.isSDCardPresent()) {
+        File root = SD.open("/");
+        if (!root) {
+            sendEmailData("Failed to read SD card!");
+            quitAndDelete();
+        }
+        if (!root.isDirectory()) {
+            sendEmailData("Failed to read SD card!");
+            quitAndDelete();
+        }
+        File file = root.openNextFile();
+        sendEmailData("Adding attachments...");
+        while (file) {
+            if (!file.isDirectory()) {
+                String filename = file.name();
                 Attachment attachment;
-                if (filename.substring(filename.length() - 3).equalsIgnoreCase("csv")) {
-                    attachment.mime = "text/csv";
-                } else {
-                    attachment.mime = "text/plain";
-                }
-
+                attachment.mime = "text/csv";
                 attachment.name = filename;
                 attachment.filename = filename;
                 attachment.attach_file.callback = fileCb;
@@ -179,14 +151,12 @@ void sendEmail(void *pvParameters) {
                 msg.attachments.add(attachment, attach_type_attachment);
                 vTaskDelay(1 / portTICK_PERIOD_MS);
             }
+            file = root.openNextFile();
         }
-        file = root.openNextFile();
     }
 
     sendEmailData("Sending email...");
-    String result;
-    smtp.send(msg, result);
-    sendEmailData("Email result: " + result);
+    smtp.send(msg);
     sendEmailData("Email sent successfully!");
     quitAndDelete();
 }
