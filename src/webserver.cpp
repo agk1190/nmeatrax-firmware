@@ -73,6 +73,29 @@ bool webSetup() {
             config.setLocalAP(isLocalAP);
             request->send(200, "text/plain", "OK");
         }
+        else if (request->hasParam("commMode")) {
+            String modeStr = request->getParam("commMode")->value();
+            CommunicationManager& comm = CommunicationManager::getInstance();
+            
+            CommunicationMode newMode;
+            if (modeStr.equalsIgnoreCase("1")) {
+                newMode = CommunicationMode::WIFI_ONLY;
+            } else if (modeStr.equalsIgnoreCase("0")) {
+                newMode = CommunicationMode::BLE_ONLY;
+            } else {
+                request->send(400, "text/plain", "Invalid mode. Use: 1 for Wi-Fi or 0 for BLE");
+                return;
+            }
+            
+            comm.setDesiredMode(newMode);
+            bool success = comm.switchMode(newMode);
+            if (success) {
+                String response = "Communication mode switched to " + modeStr;
+                request->send(200, "text/plain", response);
+            } else {
+                request->send(500, "text/plain", "Failed to switch communication mode");
+            }
+        }
         else if (request->hasParam("recInt")) {
             int recInt = atoi(request->getParam("recInt")->value().c_str());
             if (recInt < 1) { recInt = 1; }
@@ -127,7 +150,7 @@ bool webSetup() {
     });
 
     // Communication mode switching endpoint
-    server.on("/comm", HTTP_POST, [](AsyncWebServerRequest *request) {
+    server.on("/commMode", HTTP_POST, [](AsyncWebServerRequest *request) {
         if (request->hasParam("mode")) {
             String modeStr = request->getParam("mode")->value();
             CommunicationManager& comm = CommunicationManager::getInstance();
@@ -142,6 +165,7 @@ bool webSetup() {
                 return;
             }
             
+            comm.setDesiredMode(newMode);
             bool success = comm.switchMode(newMode);
             if (success) {
                 String response = "Communication mode switched to " + modeStr;

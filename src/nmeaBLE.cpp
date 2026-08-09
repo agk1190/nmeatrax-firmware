@@ -8,6 +8,7 @@
 
 #include "sdcard.h"
 #include "ConfigurationManager.h"
+#include "CommunicationManager.h"
 #include "TaskManager.h"
 #include "HardwareManager.h"
 #include "recording.h"
@@ -109,6 +110,25 @@ class SettingsCallback : public NimBLECharacteristicCallbacks {
         } else if (key == "wifiMode") {
             ConfigurationManager& config = ConfigurationManager::getInstance();
             config.setLocalAP(value == "true");
+            notifySettingsJson();
+        } else if (key == "commMode") {
+            CommunicationManager& comm = CommunicationManager::getInstance();
+            // Serial.println("Received communication mode change request via BLE: " + value);
+            // int modeInt = value.toInt();
+            // if (modeInt == 1) {
+            //     Serial.println("Switching to Wi-Fi mode");
+            //     comm.setDesiredMode(CommunicationMode::WIFI_ONLY);
+            // } else if (modeInt == 0) {
+            //     Serial.println("Switching to BLE mode");
+            //     comm.setDesiredMode(CommunicationMode::BLE_ONLY);
+            // } else {
+            //     Serial.println("Invalid communication mode value: " + value);
+            //     pSettingsCharacteristic->setValue("error:commMode");
+            //     pSettingsCharacteristic->notify();
+            //     return;
+            // }
+            CommunicationMode mode = (CommunicationMode)value.toInt();
+            comm.setDesiredMode(mode);
             notifySettingsJson();
         } else if (key == "email") {
             TaskManager& taskMgr = TaskManager::getInstance();

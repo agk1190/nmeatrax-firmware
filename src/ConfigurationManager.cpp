@@ -9,6 +9,7 @@
  */
 
 #include "ConfigurationManager.h"
+#include "CommunicationManager.h"
 #include <ArduinoJson.h>
 #include "FS.h"
 #include "SPIFFS.h"
@@ -112,6 +113,10 @@ bool ConfigurationManager::loadFromStorage() {
     if (doc["isLocalAP"].is<bool>()) {
         localAP = doc["isLocalAP"];
     }
+    if (doc["commMode"].is<int>()) {
+        CommunicationManager& comm = CommunicationManager::getInstance();
+        comm.setDesiredMode((CommunicationMode)doc["commMode"].as<int>());
+    }
     if (doc["wifiSSID"].is<const char*>()) {
         wifiSSID = doc["wifiSSID"].as<String>();
     }
@@ -132,9 +137,18 @@ bool ConfigurationManager::loadFromStorage() {
 
 bool ConfigurationManager::saveToStorage() {
     Serial.println("Saving configuration to storage...");
+    CommunicationManager& comm = CommunicationManager::getInstance();
+
+    int commModeDesired = (int)comm.getDesiredMode();
+    int commModeCurrent = (int)comm.getCurrentMode();
+    Serial.printf("Current communication mode: %d, Desired communication mode: %d\n", commModeCurrent, commModeDesired);
+    if (commModeDesired != commModeCurrent) {
+        Serial.println("Warning: Desired communication mode does not match current mode. Configuration will be saved with desired mode.");
+    }
     
     JsonDocument doc;
     doc["isLocalAP"] = localAP;
+    doc["commMode"] = (int)comm.getDesiredMode();
     doc["wifiSSID"] = wifiSSID;
     doc["wifiPass"] = wifiPass;
     doc["recMode"] = (int)recMode;
@@ -155,6 +169,8 @@ bool ConfigurationManager::saveToStorage() {
 
     file.print(json);
     file.close();
+    
+    Serial.println(json);
     
     Serial.println("Configuration saved successfully");
     return true;
@@ -192,11 +208,6 @@ bool ConfigurationManager::setRecInterval(int interval) {
     recInterval = interval;
     return saveToStorage();
 }
-
-// bool ConfigurationManager::setWifiCredentials(const String& credentialsJson) {
-//     wifiCredentials = normalizeStationCredentialsJson(credentialsJson);
-//     return saveToStorage();
-// }
 
 bool ConfigurationManager::addWifiCredentialFromJson(const String& credentialJson) {
     JsonDocument doc;

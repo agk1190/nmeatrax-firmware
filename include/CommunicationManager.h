@@ -21,9 +21,11 @@ public:
     static CommunicationManager& getInstance();
     
     bool initialize(CommunicationMode mode = CommunicationMode::BLE_ONLY);
+    void setDesiredMode(CommunicationMode mode);
     bool switchMode(CommunicationMode newMode);
     void sendData(const String& data);
     CommunicationMode getCurrentMode() const { return currentMode; }
+    CommunicationMode getDesiredMode() const { return desiredMode; }
     bool isWifiEnabled() const { return wifiEnabled; }
     bool isBleEnabled() const { return bleEnabled; }
     String getMacAddress() const { return macAddress; }
@@ -43,6 +45,7 @@ private:
     void shutdownBle();
     
     CommunicationMode currentMode = CommunicationMode::BLE_ONLY;
+    CommunicationMode desiredMode = CommunicationMode::BLE_ONLY;
     bool wifiEnabled = false;
     bool bleEnabled = false;
     bool initialized = false;

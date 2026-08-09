@@ -167,6 +167,7 @@ void connectToWifi() {
     String textBuffer = "";
     JsonDocument doc;
     ConfigurationManager& config = ConfigurationManager::getInstance();
+    CommunicationManager& comm = CommunicationManager::getInstance();
     
     DeserializationError error = deserializeJson(doc, config.getWifiCredentials());
     if (error) {
@@ -175,7 +176,11 @@ void connectToWifi() {
     }
 
     if (config.isLocalAP()) {
-        WiFi.mode(WIFI_MODE_APSTA);
+        if (comm.getCurrentMode() == CommunicationMode::BLE_ONLY) {
+            WiFi.mode(WIFI_MODE_STA);
+        } else {
+            WiFi.mode(WIFI_MODE_APSTA);
+        }
 
         sendEmailData("Starting scan of access points");
         int numberOfNetworksFound = WiFi.scanNetworks();

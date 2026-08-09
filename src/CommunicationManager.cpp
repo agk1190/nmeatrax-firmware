@@ -28,6 +28,7 @@ bool CommunicationManager::initialize(CommunicationMode mode) {
     }
     
     currentMode = mode;
+    desiredMode = mode;
     bool success = false;
     
     switch (mode) {
@@ -44,6 +45,12 @@ bool CommunicationManager::initialize(CommunicationMode mode) {
     
     initialized = success;
     return success;
+}
+
+void CommunicationManager::setDesiredMode(CommunicationMode mode) {
+    ConfigurationManager& config = ConfigurationManager::getInstance();
+    desiredMode = mode;
+    config.saveToStorage();  // Persist desired mode to storage
 }
 
 bool CommunicationManager::switchMode(CommunicationMode newMode) {

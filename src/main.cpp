@@ -65,7 +65,7 @@ void setup() {
         }
     }
 
-    CommunicationMode commMode = CommunicationMode::BLE_ONLY;
+    CommunicationMode commMode = comm.getDesiredMode();
     
     if (!comm.initialize(commMode)) {
         Serial.println("Warning: Communication initialization failed, falling back to BLE");
