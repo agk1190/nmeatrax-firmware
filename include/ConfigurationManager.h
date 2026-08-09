@@ -73,7 +73,7 @@ private:
     bool localAP = true;
     String wifiSSID = "NMEATrax";
     String wifiPass = "nmeatrax";
-    RecMode recMode = OFF;
+    RecMode recMode = RecMode::AUTO_RPM_IDLE;
     int recInterval = 5;
     String wifiCredentials = "[]";
     

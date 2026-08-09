@@ -175,11 +175,12 @@ static File bleFile;
 static size_t bleFileSize = 0;
 static size_t bleFilePos = 0;
 static const size_t chunkSize = 180;
+static bool isFileTransferInProgress = false;
 
 class FileDownloadControlCallback : public NimBLECharacteristicCallbacks {
     void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
         String value = pCharacteristic->getValue();
-        if (value.length() > 0 && !value.equalsIgnoreCase("ack") && !value.equalsIgnoreCase("end")) {
+        if (value.length() > 0 && !value.equalsIgnoreCase("ack") && !value.equalsIgnoreCase("end") && !isFileTransferInProgress) {
             // File request
             if (bleFile) bleFile.close();
             String filePath = "/" + value;
@@ -188,46 +189,51 @@ class FileDownloadControlCallback : public NimBLECharacteristicCallbacks {
                 Serial.println("Failed to open file");
                 pFileDownloadControlCharacteristic->setValue("error");
                 pFileDownloadControlCharacteristic->notify();
-                Serial.println("File Control Notified");
                 return;
             }
-            bleFileSize = bleFile.size();
-            bleFilePos = 0;
-            Serial.printf("Starting BLE file transfer: %s, size: %u B\n", filePath.c_str(), (unsigned int)bleFileSize);
-            // Send the first chunk
-            uint8_t buffer[chunkSize];
-            size_t bytesRead = bleFile.readBytes((char*)buffer, chunkSize);
-            bleFilePos += bytesRead;
-            if (bytesRead > 0) {
-                pFileDownloadCharacteristic->setValue(buffer, bytesRead);
-                pFileDownloadCharacteristic->notify();
-            } else {
-                bleFile.close();
-                Serial.println("File sent (empty or error).\n");
-            }
+            Serial.printf("Starting file transfer for: %s, size: %u bytes\n", filePath.c_str(), bleFile.size());
+            pFileDownloadCharacteristic->setValue("start");
+            pFileDownloadCharacteristic->notify();
         } else if (value.equalsIgnoreCase("ack")) {
-            // Send next chunk
-            if (bleFile && bleFile.available()) {
-                uint8_t buffer[chunkSize];
-                size_t bytesRead = bleFile.readBytes((char*)buffer, chunkSize);
-                bleFilePos += bytesRead;
-                if (bytesRead > 0) {
-                    pFileDownloadCharacteristic->setValue(buffer, bytesRead);
-                    pFileDownloadCharacteristic->notify();
-                    // Serial.printf("Sent chunk of size: %zu, total sent: %zu/%u\n", bytesRead, bleFilePos, (unsigned int)bleFileSize);
-                } else if (!bleFile.available() || bytesRead == 0) {
-                    bleFile.close();
-                    Serial.println("No more file chunks");
-                }
-            } else {
+            int bytesSent = sendChunk(bleFile);
+            if (bytesSent <= 0) {
                 if (bleFile) bleFile.close();
-                Serial.println("File transfer complete");
+                isFileTransferInProgress = false;
+                Serial.println("File transfer complete or error occurred");
             }
         } else if (value.equalsIgnoreCase("end")) {
             // End the file transfer
             pFileDownloadCharacteristic->setValue("");
+            pFileDownloadCharacteristic->notify();
+            isFileTransferInProgress = false;
+            Serial.println("File transfer completed");
         } else {
             Serial.println("No file name provided for download");
+        }
+    }
+
+    int sendChunk(File &file) {
+        if (!file) {
+            Serial.println("File not open");
+            return -1;
+        }
+        if (!file.available()) {
+            Serial.println("No more data to read");
+            return 0;
+        }
+
+        uint8_t buffer[chunkSize];
+        size_t bytesRead = file.readBytes((char*)buffer, chunkSize);
+        if (bytesRead > 0) {
+            pFileDownloadCharacteristic->setValue(buffer, bytesRead);
+            pFileDownloadCharacteristic->notify();
+            // Serial.printf("Sent chunk of size: %zu\n", bytesRead);
+            isFileTransferInProgress = true;
+            return bytesRead;
+        } else {
+            Serial.println("No more data to read or error occurred");
+            isFileTransferInProgress = false;
+            return 0;
         }
     }
 };
