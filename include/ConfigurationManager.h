@@ -69,13 +69,14 @@ private:
     ConfigurationManager(const ConfigurationManager&) = delete;
     ConfigurationManager& operator=(const ConfigurationManager&) = delete;
     
-    // Configuration data - no Settings struct dependency
-    bool localAP = true;
-    String wifiSSID = "NMEATrax";
-    String wifiPass = "nmeatrax";
-    RecMode recMode = RecMode::AUTO_RPM_IDLE;
-    int recInterval = 5;
-    String wifiCredentials = "[]";
+    // Configuration data
+    bool localAP;
+    int commMode;
+    String wifiSSID;
+    String wifiPass;
+    RecMode recMode;
+    int recInterval;
+    String wifiCredentials;
     
     bool initialized = false;
 };

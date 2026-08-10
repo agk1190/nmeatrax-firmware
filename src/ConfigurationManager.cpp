@@ -85,6 +85,8 @@ bool ConfigurationManager::initialize() {
         setDefaults();
         saveToStorage();
     }
+    CommunicationManager& comm = CommunicationManager::getInstance();
+    comm.setDesiredMode((CommunicationMode)commMode);
     
     return success;
 }
@@ -114,8 +116,7 @@ bool ConfigurationManager::loadFromStorage() {
         localAP = doc["isLocalAP"];
     }
     if (doc["commMode"].is<int>()) {
-        CommunicationManager& comm = CommunicationManager::getInstance();
-        comm.setDesiredMode((CommunicationMode)doc["commMode"].as<int>());
+        commMode = doc["commMode"];
     }
     if (doc["wifiSSID"].is<const char*>()) {
         wifiSSID = doc["wifiSSID"].as<String>();
@@ -169,9 +170,7 @@ bool ConfigurationManager::saveToStorage() {
 
     file.print(json);
     file.close();
-    
-    Serial.println(json);
-    
+        
     Serial.println("Configuration saved successfully");
     return true;
 }
@@ -294,7 +293,7 @@ void ConfigurationManager::setDefaults() {
     localAP = true;
     wifiSSID = "NMEATrax";
     wifiPass = "nmeatrax";
-    recMode = OFF;
+    recMode = RecMode::AUTO_RPM_IDLE;
     recInterval = 5;
     wifiCredentials = "[]";
     
