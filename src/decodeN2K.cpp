@@ -64,12 +64,22 @@ bool NMEAsetup() {
     OutputStream = &Serial;
 
     uint8_t baseMac[6];
-    std::string macAddr;
     String macAddrStr;
+    uint32_t uniqueNumber = 707887;
     esp_err_t ret = esp_wifi_get_mac(WIFI_IF_STA, baseMac);
     if (ret == ESP_OK) {
-        macAddr = std::to_string(baseMac[3]) + std::to_string(baseMac[4]) + std::to_string(baseMac[5]);
-        macAddrStr = macAddr.c_str();
+        std::ostringstream macSerialStream;
+        macSerialStream << std::uppercase << std::hex << std::setfill('0');
+        uint64_t macValue = 0;
+        for (uint8_t macByte : baseMac) {
+            macSerialStream << std::setw(2) << static_cast<int>(macByte);
+            macValue = (macValue << 8) | macByte;
+        }
+        macAddrStr = macSerialStream.str().c_str();
+        uniqueNumber = static_cast<uint32_t>((macValue ^ (macValue >> 21) ^ (macValue >> 42)) & 0x1FFFFF);
+        if (uniqueNumber == 0) {
+            uniqueNumber = 1;
+        }
     } else {
         macAddrStr = "707887";
     }
@@ -83,7 +93,7 @@ bool NMEAsetup() {
                                     2                   // Load Equivalency
                                     );
     // Set device information
-    NMEA2000.SetDeviceInformation(5,        // Unique number. Use e.g. Serial number.
+    NMEA2000.SetDeviceInformation(uniqueNumber, // Unique number. Must be unique per device for standards-compliant address claiming.
                                     140,    // Device function=Analog to NMEA 2000 Gateway. See codes on https://web.archive.org/web/20190531120557/https://www.nmea.org/Assets/20120726%20nmea%202000%20class%20&%20function%20codes%20v%202.00.pdf
                                     20,     // Device class=Inter/Intranetwork Device. See codes on  https://web.archive.org/web/20190531120557/https://www.nmea.org/Assets/20120726%20nmea%202000%20class%20&%20function%20codes%20v%202.00.pdf
                                     2040    // Just choosen free from code list on https://web.archive.org/web/20190529161431/http://www.nmea.org/Assets/20121020%20nmea%202000%20registration%20list.pdf
