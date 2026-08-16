@@ -85,6 +85,7 @@ bool NMEAsetup() {
         uniqueNumber = macHash & 0x1FFFFF;
         if (uniqueNumber == 0) uniqueNumber = 1;
     } else {
+        Serial.println("Unable to read ESP32 MAC address for NMEA2000 identity; using fallback unique number.");
         macAddrStr = "000001";
     }
 
