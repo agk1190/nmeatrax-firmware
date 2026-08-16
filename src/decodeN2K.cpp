@@ -58,6 +58,8 @@ uint32_t gpsKeepAlive;
 uint32_t depthKeepAlive;
 
 Stream *OutputStream;
+constexpr uint32_t FNV1A_32_OFFSET_BASIS = 2166136261u;
+constexpr uint32_t FNV1A_32_PRIME = 16777619u;
 
 void HandleNMEA2000Msg(const tN2kMsg &N2kMsg);
 
@@ -74,11 +76,11 @@ bool NMEAsetup() {
     if (ret == ESP_OK) {
         std::ostringstream macSerialStream;
         macSerialStream << std::uppercase << std::hex << std::setfill('0');
-        uint32_t macHash = 2166136261u;
+        uint32_t macHash = FNV1A_32_OFFSET_BASIS;
         for (uint8_t macByte : baseMac) {
             macSerialStream << std::setw(2) << static_cast<int>(macByte);
             macHash ^= macByte;
-            macHash *= 16777619u;
+            macHash *= FNV1A_32_PRIME;
         }
         std::string macSerial = macSerialStream.str();
         macAddrStr = macSerial.c_str();
@@ -86,7 +88,10 @@ bool NMEAsetup() {
         if (uniqueNumber == 0) uniqueNumber = 1;
     } else {
         Serial.println("Unable to read ESP32 MAC address for NMEA2000 identity; using fallback unique number.");
-        macAddrStr = "000001";
+        std::ostringstream macSerialStream;
+        macSerialStream << std::uppercase << std::hex << std::setfill('0') << std::setw(6) << uniqueNumber;
+        std::string macSerial = macSerialStream.str();
+        macAddrStr = macSerial.c_str();
     }
 
     // Set Product information
