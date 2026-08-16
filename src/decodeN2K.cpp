@@ -68,6 +68,9 @@ bool NMEAsetup() {
     String macAddrStr;
     uint32_t uniqueNumber = 1;
     esp_err_t ret = esp_efuse_mac_get_default(baseMac);
+    if (ret != ESP_OK) {
+        ret = esp_wifi_get_mac(WIFI_IF_STA, baseMac);
+    }
     if (ret == ESP_OK) {
         std::ostringstream macSerialStream;
         macSerialStream << std::uppercase << std::hex << std::setfill('0');
@@ -81,9 +84,7 @@ bool NMEAsetup() {
         uniqueNumber = deviceSerial & 0x1FFFFF;
         if (uniqueNumber == 0) uniqueNumber = 1;
     } else {
-        uniqueNumber = esp_random() & 0x1FFFFF;
-        if (uniqueNumber == 0) uniqueNumber = 1;
-        macAddrStr = String(uniqueNumber);
+        macAddrStr = "000001";
     }
 
     // Set Product information
