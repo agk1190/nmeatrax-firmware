@@ -13,6 +13,7 @@
 
 #include <NMEA2000_CAN.h>
 #include <N2kMessagesEnumToStr.h>
+#include <esp_mac.h>
 
 #include "decodeN2K.h"
 #include "main.h"
@@ -65,23 +66,24 @@ bool NMEAsetup() {
 
     uint8_t baseMac[6];
     String macAddrStr;
-    uint32_t uniqueNumber = 707887;
-    esp_err_t ret = esp_wifi_get_mac(WIFI_IF_STA, baseMac);
+    uint32_t uniqueNumber = 1;
+    esp_err_t ret = esp_efuse_mac_get_default(baseMac);
     if (ret == ESP_OK) {
         std::ostringstream macSerialStream;
         macSerialStream << std::uppercase << std::hex << std::setfill('0');
-        uint64_t macValue = 0;
         for (uint8_t macByte : baseMac) {
             macSerialStream << std::setw(2) << static_cast<int>(macByte);
-            macValue = (macValue << 8) | macByte;
         }
         macAddrStr = macSerialStream.str().c_str();
-        uniqueNumber = static_cast<uint32_t>((macValue ^ (macValue >> 21) ^ (macValue >> 42)) & 0x1FFFFF);
-        if (uniqueNumber == 0) {
-            uniqueNumber = 1;
-        }
+        uint32_t deviceSerial = (static_cast<uint32_t>(baseMac[3]) << 16) |
+                                (static_cast<uint32_t>(baseMac[4]) << 8) |
+                                static_cast<uint32_t>(baseMac[5]);
+        uniqueNumber = deviceSerial & 0x1FFFFF;
+        if (uniqueNumber == 0) uniqueNumber = 1;
     } else {
-        macAddrStr = "707887";
+        uniqueNumber = esp_random() & 0x1FFFFF;
+        if (uniqueNumber == 0) uniqueNumber = 1;
+        macAddrStr = String(uniqueNumber);
     }
 
     // Set Product information
