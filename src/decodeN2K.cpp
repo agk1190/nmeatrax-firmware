@@ -74,14 +74,15 @@ bool NMEAsetup() {
     if (ret == ESP_OK) {
         std::ostringstream macSerialStream;
         macSerialStream << std::uppercase << std::hex << std::setfill('0');
+        uint32_t macHash = 2166136261u;
         for (uint8_t macByte : baseMac) {
             macSerialStream << std::setw(2) << static_cast<int>(macByte);
+            macHash ^= macByte;
+            macHash *= 16777619u;
         }
-        macAddrStr = macSerialStream.str().c_str();
-        uint32_t deviceSerial = (static_cast<uint32_t>(baseMac[3]) << 16) |
-                                (static_cast<uint32_t>(baseMac[4]) << 8) |
-                                static_cast<uint32_t>(baseMac[5]);
-        uniqueNumber = deviceSerial & 0x1FFFFF;
+        std::string macSerial = macSerialStream.str();
+        macAddrStr = macSerial.c_str();
+        uniqueNumber = macHash & 0x1FFFFF;
         if (uniqueNumber == 0) uniqueNumber = 1;
     } else {
         macAddrStr = "000001";
