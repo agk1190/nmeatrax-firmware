@@ -35,7 +35,6 @@ struct DeferredBleCommand {
 };
 
 static QueueHandle_t bleSettingsQueue = nullptr;
-static void notifySettingsJson();
 
 static void bleSettingsWorkerTask(void * pvParameters) {
     DeferredBleCommand cmd;
@@ -57,7 +56,7 @@ static void bleSettingsWorkerTask(void * pvParameters) {
     }
 }
 
-static void notifySettingsJson() {
+void notifySettingsJson() {
     pSettingsCharacteristic->setValue(makeSettingsJson().c_str());
     pSettingsCharacteristic->notify();
 }
@@ -66,15 +65,7 @@ class DownloadsListCallback : public NimBLECharacteristicCallbacks {
     void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {
         String value = pCharacteristic->getValue();
         if (value.equalsIgnoreCase("listDir")) {
-            HardwareManager& hardware = HardwareManager::getInstance();
-            if (!hardware.isSDCardPresent()) {
-                pDownloadsListCharacteristic->setValue("SD card not present");
-                pDownloadsListCharacteristic->notify();
-                return;
-            } else {
-                pDownloadsListCharacteristic->setValue(listDir(SD, "/", 0).c_str());
-                pDownloadsListCharacteristic->notify();
-            }
+            notifyDownloadsList();
         }    
     }
 
@@ -82,6 +73,18 @@ class DownloadsListCallback : public NimBLECharacteristicCallbacks {
         Serial.println("Downloads list requested");
     }
 };
+
+void notifyDownloadsList() {
+    HardwareManager& hardware = HardwareManager::getInstance();
+    if (!hardware.isSDCardPresent()) {
+        pDownloadsListCharacteristic->setValue("SD card not present");
+        pDownloadsListCharacteristic->notify();
+        return;
+    } else {
+        pDownloadsListCharacteristic->setValue(listDir(SD, "/", 0).c_str());
+        pDownloadsListCharacteristic->notify();
+    }
+}
 
 class SettingsCallback : public NimBLECharacteristicCallbacks {
     void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override {

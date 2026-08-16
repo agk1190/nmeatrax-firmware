@@ -2,7 +2,7 @@
 #include "recording.h"
 #include "ConfigurationManager.h"
 #include "TaskManager.h"
-// #include "nmeaVars.h"
+#include "CommunicationManager.h"
 #include "sdcard.h"
 
 bool outOfIdle = true;
@@ -87,6 +87,7 @@ String getCSV() {
 void recorderLoop() {
     static int count = 0;
     ConfigurationManager& config = ConfigurationManager::getInstance();
+    TaskManager& taskMgr = TaskManager::getInstance();
     int localRecInt = config.getRecInterval();
 
     #ifdef TESTMODE1
@@ -123,7 +124,6 @@ void recorderLoop() {
     #endif
 
     count++;
-    TaskManager& taskMgr = TaskManager::getInstance();
     RecMode currentRecMode = config.getRecMode();
 
     switch (currentRecMode) {
@@ -174,6 +174,9 @@ void recorderLoop() {
             writeFile(SD, CSVFileName.c_str(), csvHeaders, true);
             taskMgr.createTask(TaskType::LOGGING_TASK, vWriteRecording, nullptr);
             outOfIdle = false;
+
+            CommunicationManager& comm = CommunicationManager::getInstance();
+            comm.sendDownloadsData();  // Notify communication manager to send updated downloads data
         }
         taskMgr.resumeTask(TaskType::LOGGING_TASK);     // trigger log to be written
         count = 0;

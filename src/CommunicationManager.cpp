@@ -88,6 +88,18 @@ void CommunicationManager::sendData(const String& data) {
     }
 }
 
+void CommunicationManager::sendSettings() {
+    if (initialized) {
+        notifySettingsJson();
+    }
+}
+
+void CommunicationManager::sendDownloadsData() {
+    if (initialized) {
+        notifyDownloadsList();
+    }
+}
+
 void CommunicationManager::shutdown() {
     shutdownWifi();
     shutdownBle();

@@ -24,6 +24,8 @@ public:
     void setDesiredMode(CommunicationMode mode);
     bool switchMode(CommunicationMode newMode);
     void sendData(const String& data);
+    void sendSettings();
+    void sendDownloadsData();
     CommunicationMode getCurrentMode() const { return currentMode; }
     CommunicationMode getDesiredMode() const { return desiredMode; }
     bool isWifiEnabled() const { return wifiEnabled; }

@@ -172,6 +172,7 @@ bool ConfigurationManager::saveToStorage() {
     file.close();
         
     Serial.println("Configuration saved successfully");
+    comm.sendSettings();  // Notify communication manager to send updated settings
     return true;
 }
 
