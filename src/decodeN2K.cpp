@@ -73,11 +73,16 @@ bool NMEAsetup() {
                                     2                   // Load Equivalency
                                     );
     // Set device information
-    NMEA2000.SetDeviceInformation(5,        // Unique number. Use e.g. Serial number.
+    NMEA2000.SetDeviceInformation(707887,        // Unique number. Use e.g. Serial number.
                                     140,    // Device function=Analog to NMEA 2000 Gateway. See codes on https://web.archive.org/web/20190531120557/https://www.nmea.org/Assets/20120726%20nmea%202000%20class%20&%20function%20codes%20v%202.00.pdf
                                     20,     // Device class=Inter/Intranetwork Device. See codes on  https://web.archive.org/web/20190531120557/https://www.nmea.org/Assets/20120726%20nmea%202000%20class%20&%20function%20codes%20v%202.00.pdf
                                     2040    // Just choosen free from code list on https://web.archive.org/web/20190529161431/http://www.nmea.org/Assets/20121020%20nmea%202000%20registration%20list.pdf
                                     );
+
+    NMEA2000.SetConfigurationInformation("NMEATrax by agk1190",
+                                           "NMEATrax Description 1",
+                                           "NMEATrax Description 2"
+                                           ); 
 
     NMEA2000.SetMode(tNMEA2000::N2km_ListenAndNode,7);
 
