@@ -57,8 +57,8 @@ String getCSV() {
     rdata += String(nmeaData->errorBits);
 
     return rdata; */
-    char buffer[1024]; // Adjust size as needed
-    snprintf(buffer, sizeof(buffer),
+    char getCSVBuffer[1024]; // Adjust size as needed
+    snprintf(getCSVBuffer, sizeof(getCSVBuffer),
         "%d,%.2f,%.2f,%.2f,%.1f,%.1f,%.3f,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%c,%.6f,%.6f,%.2f,%" PRIu32 ",%ld",
         nmeaData->rpm,
         nmeaData->eTemp,
@@ -81,7 +81,7 @@ String getCSV() {
         nmeaData->errorBits,
         nmeaData->unixTime
     );
-    return String(buffer);
+    return String(getCSVBuffer);
 }
 
 void recorderLoop() {

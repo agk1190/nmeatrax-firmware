@@ -115,7 +115,7 @@ void vBackgroundTasks(void * pvParameters) {
     CommunicationManager& comm = CommunicationManager::getInstance();
     
     for (;;) {
-        static int nmeaSleepCount = 0;
+        // static int nmeaSleepCount = 0;
 
         int sdStatus = hardware.getSDCardStatus();
         switch (sdStatus) {
@@ -141,18 +141,18 @@ void vBackgroundTasks(void * pvParameters) {
                 break;
         }
 
-        if (nmeaSleep) {
-            if (nmeaSleepCount >= 4) {  // 5 seconds
-                nmeaSleepCount = 0;
-                nmeaSleep = false;
-                // vTaskResume(nmeaTaskHandle);
-                taskMgr.resumeTask(TaskType::NMEA_TASK);
-            } else {
-                nmeaSleepCount++;
-            }
-        } else {
-            nmeaSleepCount = 0;
-        }
+        // if (nmeaSleep) {
+        //     if (nmeaSleepCount >= 4) {  // 5 seconds
+        //         nmeaSleepCount = 0;
+        //         nmeaSleep = false;
+        //         // vTaskResume(nmeaTaskHandle);
+        //         taskMgr.resumeTask(TaskType::NMEA_TASK);
+        //     } else {
+        //         nmeaSleepCount++;
+        //     }
+        // } else {
+        //     nmeaSleepCount = 0;
+        // }
 
         char text[160];
         snprintf(text, sizeof(text),

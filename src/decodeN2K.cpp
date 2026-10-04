@@ -637,7 +637,7 @@ void NMEAloop() {
     
     if (evcKeepAlive + 1000 < millis() && gpsKeepAlive + 1000 < millis() && depthKeepAlive + 1000 < millis()) {
         digitalWrite(LED_N2K, LOW);
-        nmeaSleep = true;
-        vTaskSuspend(NULL);
+        // nmeaSleep = true;
+        // vTaskSuspend(NULL);
     }
 }

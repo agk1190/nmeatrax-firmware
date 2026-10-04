@@ -102,16 +102,16 @@ String getFile(fs::FS &fs, String filePath) {
 
 bool appendFile(fs::FS &fs, const char * path, const char * message, bool ensureCRLF) {
     File file = fs.open(path, FILE_APPEND);
-    const char * toSend;
+    String normalizedMessage;
+    const char * toSend = message;
     if (!file) {
         Serial.println("Failed to open file for appending");
         return (false);
     }
     
     if (ensureCRLF) {
-        toSend = addCRLF(message).c_str();
-    } else {
-        toSend = message;
+        normalizedMessage = addCRLF(message);
+        toSend = normalizedMessage.c_str();
     }
     
     if (file.print(toSend)) {
