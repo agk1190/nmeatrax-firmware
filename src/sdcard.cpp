@@ -5,6 +5,7 @@
 */
 
 #include "sdcard.h"
+#include <vector>
 #include "FS.h"
 #include "SPI.h"
 
@@ -146,17 +147,26 @@ bool deleteFile(fs::FS &fs, const char * path) {
         return(false);
     }
     if(root.isDirectory()) {
+        // Collect names first so deleting doesn't disturb directory iteration
+        std::vector<String> names;
         File file = root.openNextFile();
-        // file = root.openNextFile();
         while (file) {
-            String fileName = "/";
-            fileName += file.name();
-            if (!fs.remove(fileName)) {
-                return(false);
+            // remove() only works on files; skip subdirectories (e.g. System Volume Information)
+            if (!file.isDirectory()) {
+                names.push_back(String(file.path()));
             }
             file = root.openNextFile();
         }
-        return(true);
+        root.close();
+
+        bool ok = true;
+        for (const String &name : names) {
+            if (!fs.remove(name)) {
+                Serial.printf("Failed to delete %s\n", name.c_str());
+                ok = false;
+            }
+        }
+        return(ok);
     } else {
         return(fs.remove(path));
     }
